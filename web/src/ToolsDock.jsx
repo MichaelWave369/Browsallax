@@ -9,11 +9,13 @@ const TOOLS = [
   { id: 'source', label: 'Browsallax Source', mark: '<>', kind: 'external', url: 'https://github.com/MichaelWave369/Browsallax', note: 'MIT source and roadmap' }
 ];
 
+const FIELD_PRODUCTS_URL = 'https://field-supply-369.netlify.app/';
+
 export default function ToolsDock({ currentView, onNavigate, openExternal }) {
   const [open, setOpen] = useState(true);
 
   return (
-    <aside className={`tools-dock ${open ? 'open' : 'closed'}`} aria-label="Browsallax free tools dock">
+    <aside className={`tools-dock ${open ? 'open' : 'closed'}`} aria-label="Browsallax tools dock">
       <button className="tools-dock-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         <span className="tools-dock-logo">B</span>
         {open && <span><strong>FREE TOOLS</strong><small>Browsallax Dock</small></span>}
@@ -36,6 +38,20 @@ export default function ToolsDock({ currentView, onNavigate, openExternal }) {
               <span className="tool-arrow">{tool.kind === 'external' ? '↗' : '→'}</span>
             </button>
           ))}
+
+          <p className="eyebrow" style={{ margin: '14px 10px 6px', fontSize: '.62rem' }}>FIELD PRODUCTS · PAID</p>
+          <button
+            className="tool-dock-item"
+            onClick={() => openExternal(FIELD_PRODUCTS_URL)}
+            aria-label="Open Field Supply paid products"
+          >
+            <span className="tool-mark">$</span>
+            <span className="tool-copy">
+              <strong>Field Supply</strong>
+              <small>RackMap and other paid field products</small>
+            </span>
+            <span className="tool-arrow">↗</span>
+          </button>
         </div>
       )}
     </aside>
