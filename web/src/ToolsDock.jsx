@@ -4,7 +4,7 @@ const TOOLS = [
   { id: 'research', label: 'Research', mark: 'R', kind: 'internal', view: 'research', note: 'Session-based investigations' },
   { id: 'ledger', label: 'Reality Ledger', mark: '◇', kind: 'internal', view: 'ledger', note: 'Local evidence receipts' },
   { id: 'workspaces', label: 'Workspaces', mark: 'W', kind: 'internal', view: 'workspaces', note: 'Saved links by project' },
-  { id: 'rackmap', label: 'RackMap', mark: '▦', kind: 'external', url: 'https://rackmap-369.netlify.app/', note: 'Free network rack mapping' },
+  { id: 'phioffice', label: 'PhiOffice369', mark: 'Φ', kind: 'external', url: 'https://michaelwave369.github.io/phioffice369/', note: 'Free local-first productivity suite' },
   { id: 'field', label: 'Enter the Field', mark: '◎', kind: 'external', url: 'https://www.enterthefield.org/network/?entry=card', note: 'More free tools and projects' },
   { id: 'source', label: 'Browsallax Source', mark: '<>', kind: 'external', url: 'https://github.com/MichaelWave369/Browsallax', note: 'MIT source and roadmap' }
 ];
