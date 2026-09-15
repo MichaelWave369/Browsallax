@@ -7,7 +7,7 @@ const START_LINKS = [
   { label: 'Wikipedia', url: 'https://www.wikipedia.org/', note: 'Reference and jumping-off point.' },
   { label: 'GitHub', url: 'https://github.com/', note: 'Code, projects, issues, releases.' },
   { label: 'Internet Archive', url: 'https://archive.org/', note: 'Old web, books, software, media.' },
-  { label: 'RackMap', url: 'https://rackmap-369.netlify.app/', note: 'Open the free RackMap network tool.' },
+  { label: 'PhiOffice369', url: 'https://michaelwave369.github.io/phioffice369/', note: 'Free local-first productivity suite.' },
   { label: 'Enter the Field', url: 'https://www.enterthefield.org/network/?entry=card', note: 'Browse more free tools and projects.' }
 ];
 
@@ -279,7 +279,7 @@ export default function App() {
                 <p className="eyebrow">FREE TOOLS DOCK</p>
                 <h2>The ecosystem now follows you around the app.</h2>
                 <p>
-                  Open RackMap, Enter the Field, Workspaces, Reality Ledger, Research Mode, or the MIT source
+                  Open PhiOffice369, Enter the Field, Workspaces, Reality Ledger, Research Mode, or the MIT source
                   from one persistent dock without turning the home screen into a billboard farm.
                 </p>
               </article>
