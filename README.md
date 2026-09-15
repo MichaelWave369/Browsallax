@@ -26,12 +26,17 @@ Current web features:
 - local workspaces and saved links
 - **Research Mode** with named investigations, guiding questions, sources, notes, unresolved questions, session export, and Ledger handoff
 - **persistent Free Tools Dock** with Research, Workspaces, Reality Ledger, PhiOffice369, Enter the Field, and Browsallax source
+- a separate **Field Products · Paid** link to Field Supply for RackMap and other commercial products
 - browser-local Reality Ledger receipts
 - SHA-256 evidence digests using the Web Crypto API
 - Reality Ledger JSON export
 - installable PWA manifest
 - offline application shell/service worker
 - no account and no backend required
+
+### Product boundary
+
+Browsallax keeps free tools and paid products visibly separate. Free utilities live in the Free Tools Dock. Commercial products such as RackMap are discovered through **Field Supply** at `https://field-supply-369.netlify.app/`, under a clearly labeled paid-products section rather than being represented as free software.
 
 ### Research Mode authority boundary
 
@@ -118,6 +123,7 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 │ page capture         │ Research Mode         │
 │ planned Ollama AI    │ Reality Ledger        │
 │                      │ Free Tools Dock       │
+│                      │ Field Products link   │
 │                      │ offline app shell     │
 ├──────────────────────┴───────────────────────┤
 │ Shared design rules                          │
@@ -142,6 +148,7 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [x] GitHub Pages deployment workflow
 - [x] Research Mode
 - [x] persistent Free Tools Dock
+- [x] separate paid-products link to Field Supply
 - [ ] downloads UI
 - [ ] history UI
 - [ ] bookmarks
@@ -176,6 +183,12 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [ ] optional user-added tool links
 - [ ] tighter integrations with additional free products as stable public URLs are available
 
+### Field products
+
+- [x] Field Supply discovery link
+- [x] RackMap remains outside the Free Tools classification
+- [ ] optional richer product cards without mixing free and paid categories
+
 ## Design rules
 
 1. **Capability is not authority.** AI output is assistance, not truth.
@@ -184,6 +197,7 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 4. **Permissions are visible.** Powerful capabilities require explicit boundaries.
 5. **Sources survive transformations.** Summaries and AI interpretations do not replace evidence.
 6. **Free means free.** Core Browsallax functionality is MIT-licensed and does not require a subscription.
+7. **Paid means paid.** Commercial products are labeled and routed separately rather than being presented as free ecosystem tools.
 
 ## Contributing
 
