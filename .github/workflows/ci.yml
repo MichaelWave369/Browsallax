@@ -10,17 +10,37 @@ permissions:
   contents: read
 
 jobs:
-  syntax:
-    name: JavaScript syntax
+  desktop-syntax:
+    name: Desktop JavaScript syntax
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
 
       - name: Run syntax checks
         run: npm run check
+
+  web-build:
+    name: React web production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm install --no-audit --no-fund
+
+      - name: Build React app
+        working-directory: web
+        run: npm run build
