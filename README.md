@@ -19,11 +19,24 @@ Browsallax is an MIT-licensed, local-first desktop browser built on Chromium thr
 - `nodeIntegration: false`
 - `contextIsolation: true`
 - Deny-by-default sensitive permissions
+- Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
 - Keyboard shortcuts:
   - `Ctrl/Cmd + L` focus address bar
   - `Ctrl/Cmd + T` new tab
   - `Ctrl/Cmd + W` close tab
   - `Alt + Left/Right` history navigation
+
+## Reality Ledger capture
+
+Select text on a webpage, right-click, and choose **Capture selection to Reality Ledger**.
+
+Browsallax appends a JSON Lines receipt locally under the Electron user-data directory at:
+
+```text
+reality-ledger/web-captures.jsonl
+```
+
+Each receipt is explicitly marked `SOURCE_ONLY` and `derived: false`. The capture records provenance and integrity; it does not claim the captured text is true.
 
 ## Security posture
 
@@ -66,8 +79,11 @@ npm run check
 │ Minimal IPC boundary                       │
 │ explicit commands only                     │
 ├────────────────────────────────────────────┤
+│ Local evidence layer                       │
+│ append-only Reality Ledger web receipts    │
+├────────────────────────────────────────────┤
 │ Planned local capability layer             │
-│ Ollama • Reality Ledger • free tools       │
+│ Ollama • workspaces • free tools           │
 └────────────────────────────────────────────┘
 ```
 
@@ -82,6 +98,8 @@ npm run check
 - [x] persistent browsing session
 - [x] popup-to-tab routing
 - [x] deny-by-default sensitive permissions
+- [x] selected-text Reality Ledger capture
+- [x] source URL + timestamp + SHA-256 digest
 - [ ] downloads UI
 - [ ] history UI
 - [ ] bookmarks
@@ -94,14 +112,13 @@ npm run check
 - [ ] model picker
 - [ ] Ask This Page
 - [ ] Summarize This Page
-- [ ] selected-text actions
+- [ ] selected-text AI actions
 - [ ] page extraction with explicit source boundaries
 - [ ] no cloud dependency required
 
-### v0.3 evidence + workspaces
+### v0.3 research + workspaces
 
-- [ ] Reality Ledger capture
-- [ ] source URL + timestamp + content hash
+- [ ] Reality Ledger browser UI
 - [ ] research sessions
 - [ ] annotations
 - [ ] tab workspaces
@@ -112,7 +129,6 @@ npm run check
 - [ ] tools dock
 - [ ] RackMap launcher/integration
 - [ ] Super PhiVessel launcher/integration
-- [ ] Reality Ledger UI
 - [ ] extensible manifest for additional free tools
 
 ## Design rules
