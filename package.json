@@ -1,0 +1,19 @@
+{
+  "name": "browsallax",
+  "version": "0.1.0-alpha.1",
+  "description": "A free, local-first Chromium browser with transparent permissions and optional local AI.",
+  "main": "src/main.js",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js"
+  },
+  "devDependencies": {
+    "electron": "44.3.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
