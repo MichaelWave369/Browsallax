@@ -1,0 +1,43 @@
+import { useState } from 'react';
+
+const TOOLS = [
+  { id: 'research', label: 'Research', mark: 'R', kind: 'internal', view: 'research', note: 'Session-based investigations' },
+  { id: 'ledger', label: 'Reality Ledger', mark: '◇', kind: 'internal', view: 'ledger', note: 'Local evidence receipts' },
+  { id: 'workspaces', label: 'Workspaces', mark: 'W', kind: 'internal', view: 'workspaces', note: 'Saved links by project' },
+  { id: 'rackmap', label: 'RackMap', mark: '▦', kind: 'external', url: 'https://rackmap-369.netlify.app/', note: 'Free network rack mapping' },
+  { id: 'field', label: 'Enter the Field', mark: '◎', kind: 'external', url: 'https://www.enterthefield.org/network/?entry=card', note: 'More free tools and projects' },
+  { id: 'source', label: 'Browsallax Source', mark: '<>', kind: 'external', url: 'https://github.com/MichaelWave369/Browsallax', note: 'MIT source and roadmap' }
+];
+
+export default function ToolsDock({ currentView, onNavigate, openExternal }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <aside className={`tools-dock ${open ? 'open' : 'closed'}`} aria-label="Browsallax free tools dock">
+      <button className="tools-dock-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        <span className="tools-dock-logo">B</span>
+        {open && <span><strong>FREE TOOLS</strong><small>Browsallax Dock</small></span>}
+        <span className="tools-dock-chevron">{open ? '›' : '‹'}</span>
+      </button>
+
+      {open && (
+        <div className="tools-dock-list">
+          {TOOLS.map((tool) => (
+            <button
+              key={tool.id}
+              className={`tool-dock-item ${tool.kind === 'internal' && currentView === tool.view ? 'active' : ''}`}
+              onClick={() => tool.kind === 'internal' ? onNavigate(tool.view) : openExternal(tool.url)}
+            >
+              <span className="tool-mark">{tool.mark}</span>
+              <span className="tool-copy">
+                <strong>{tool.label}</strong>
+                <small>{tool.note}</small>
+              </span>
+              <span className="tool-arrow">{tool.kind === 'external' ? '↗' : '→'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
+}
