@@ -5,13 +5,15 @@
 Browsallax is an MIT-licensed, local-first browser project with two complementary editions:
 
 - **Browsallax Desktop** is the Chromium/Electron browser shell with real tabs, browser permissions, page-level capture, and planned local AI.
-- **Browsallax Web** is the zero-install React/PWA companion for GitHub Pages with search/launch, local workspaces, and a browser-local Reality Ledger.
+- **Browsallax Web** is the zero-install React/PWA companion for GitHub Pages with search/launch, local workspaces, Research Mode, a persistent free-tools dock, and a browser-local Reality Ledger.
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** `v0.1.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.1.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
+
+Live site: **https://michaelwave369.github.io/Browsallax/**
 
 The React edition lives in [`web/`](web/) and is designed for instant use from GitHub Pages without installing the desktop app.
 
@@ -22,12 +24,18 @@ Current web features:
 - URL/search omnibox that opens destinations in normal browser tabs
 - quick-launch panel for useful public tools and Browsallax projects
 - local workspaces and saved links
+- **Research Mode** with named investigations, guiding questions, sources, notes, unresolved questions, session export, and Ledger handoff
+- **persistent Free Tools Dock** with Research, Workspaces, Reality Ledger, RackMap, Enter the Field, and Browsallax source
 - browser-local Reality Ledger receipts
 - SHA-256 evidence digests using the Web Crypto API
 - Reality Ledger JSON export
 - installable PWA manifest
 - offline application shell/service worker
 - no account and no backend required
+
+### Research Mode authority boundary
+
+Research Mode organizes user-supplied material. It does not claim that a saved source, note, or research conclusion is true. When a source or note is preserved into the Reality Ledger, the resulting receipt is explicitly stamped `SOURCE_ONLY` and keeps provenance separate from interpretation.
 
 ### Important web boundary
 
@@ -48,9 +56,11 @@ cd web
 npm run build
 ```
 
-The GitHub Pages workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds `web/` and deploys `web/dist`.
+The GitHub Pages workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds `web/` and deploys `web/dist` on pushes to `main`.
 
-## Browsallax Desktop: what works now
+## Browsallax Desktop
+
+Current desktop features:
 
 - Chromium web rendering through Electron 44
 - Multi-tab browsing
@@ -64,11 +74,7 @@ The GitHub Pages workflow in [`.github/workflows/pages.yml`](.github/workflows/p
 - `contextIsolation: true`
 - Deny-by-default sensitive permissions
 - Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
-- Keyboard shortcuts:
-  - `Ctrl/Cmd + L` focus address bar
-  - `Ctrl/Cmd + T` new tab
-  - `Ctrl/Cmd + W` close tab
-  - `Alt + Left/Right` history navigation
+- Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
 
 ## Reality Ledger capture
 
@@ -84,7 +90,7 @@ reality-ledger/web-captures.jsonl
 
 ### Web
 
-Browsallax Web lets a user paste or type an observation, optionally attach a source URL, and create a local receipt in browser storage. Receipts can be exported as JSON.
+Browsallax Web lets a user type or paste an observation, optionally attach a source URL, and create a local receipt in browser storage. Research Mode can also hand selected sources and notes into the same Ledger. Receipts can be exported as JSON.
 
 In both editions, receipts are explicitly marked `SOURCE_ONLY` and `derived: false`. The capture records provenance and integrity; it does not claim the captured text is true.
 
@@ -96,69 +102,53 @@ In Desktop, the application chrome and web pages are separate. Web pages do not 
 
 For the Desktop alpha, camera, microphone, geolocation, and notifications are denied by default. A human-readable permission ledger and per-site permission controls are planned rather than silently granting capabilities.
 
-Browsallax Web has no privileged backend. Its workspaces and Reality Ledger are kept in local browser storage unless the user explicitly exports them.
-
-## Run Browsallax Desktop
-
-Requirements:
-
-- Node.js 24+
-- npm
-
-```bash
-npm install
-npm start
-```
-
-For a quick JavaScript syntax check:
-
-```bash
-npm run check
-```
+Browsallax Web has no privileged backend. Its workspaces, research sessions, and Reality Ledger are kept in local browser storage unless the user explicitly exports them.
 
 ## Architecture
 
 ```text
-┌────────────────────────────────────────────┐
-│               BROWSALLAX                   │
-├──────────────────────┬─────────────────────┤
-│ DESKTOP              │ WEB / PWA           │
-│ Electron + Chromium  │ React + Vite        │
-├──────────────────────┼─────────────────────┤
-│ real browser tabs    │ launch/search       │
-│ browser permissions  │ local workspaces    │
-│ page capture         │ local ledger UI     │
-│ planned Ollama AI    │ offline app shell   │
-├──────────────────────┴─────────────────────┤
-│ Shared design rules                        │
-│ local-first • evidence • explicit authority│
-└────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│                 BROWSALLAX                   │
+├──────────────────────┬───────────────────────┤
+│ DESKTOP              │ WEB / PWA             │
+│ Electron + Chromium  │ React + Vite          │
+├──────────────────────┼───────────────────────┤
+│ real browser tabs    │ launch/search         │
+│ browser permissions  │ local workspaces      │
+│ page capture         │ Research Mode         │
+│ planned Ollama AI    │ Reality Ledger        │
+│                      │ Free Tools Dock       │
+│                      │ offline app shell     │
+├──────────────────────┴───────────────────────┤
+│ Shared design rules                          │
+│ local-first • evidence • explicit authority  │
+└──────────────────────────────────────────────┘
 ```
 
 ## Roadmap
 
-### v0.1 foundation
+### Foundation
 
 - [x] secure Electron shell
-- [x] tabs
-- [x] omnibox
+- [x] tabs and omnibox
 - [x] navigation history
 - [x] persistent browsing session
 - [x] popup-to-tab routing
 - [x] deny-by-default sensitive permissions
 - [x] selected-text Reality Ledger capture
-- [x] source URL + timestamp + SHA-256 digest
 - [x] React/PWA web companion
 - [x] local web workspaces
 - [x] local web Reality Ledger + JSON export
 - [x] GitHub Pages deployment workflow
+- [x] Research Mode
+- [x] persistent Free Tools Dock
 - [ ] downloads UI
 - [ ] history UI
 - [ ] bookmarks
 - [ ] private windows
 - [ ] site information panel
 
-### v0.2 local intelligence
+### Local intelligence
 
 - [ ] optional Ollama discovery on localhost
 - [ ] model picker
@@ -168,20 +158,23 @@ npm run check
 - [ ] page extraction with explicit source boundaries
 - [ ] no cloud dependency required
 
-### v0.3 research + workspaces
+### Research evolution
 
-- [ ] Reality Ledger desktop browser UI
-- [ ] research sessions
-- [ ] annotations
+- [ ] source annotations and tags
+- [ ] contradiction / unresolved-question views
+- [ ] research session import
+- [ ] cross-session search
 - [ ] desktop tab workspaces
-- [ ] contradiction / unresolved-question tracking without claiming truth authority
+- [ ] optional local-model analysis that never overwrites source evidence
 
-### v0.4 free tools ecosystem
+### Free tools ecosystem
 
-- [ ] tools dock
-- [ ] RackMap launcher/integration
-- [ ] Super PhiVessel launcher/integration
-- [ ] extensible manifest for additional free tools
+- [x] web tools dock
+- [x] RackMap launcher
+- [x] Enter the Field launcher
+- [ ] extensible tool manifest
+- [ ] optional user-added tool links
+- [ ] tighter integrations with additional free products as stable public URLs are available
 
 ## Design rules
 
