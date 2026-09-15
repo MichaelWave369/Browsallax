@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:;" />
+    <title>Browsallax</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="chrome-shell">
+      <div class="tab-row">
+        <div class="brand" aria-label="Browsallax">BROWSALLAX</div>
+        <div id="tabs" class="tabs" role="tablist" aria-label="Browser tabs"></div>
+        <button id="new-tab" class="icon-button add-tab" type="button" title="New tab" aria-label="New tab">+</button>
+      </div>
+
+      <div class="nav-row">
+        <div class="nav-buttons">
+          <button id="back" class="icon-button" type="button" title="Back" aria-label="Back">←</button>
+          <button id="forward" class="icon-button" type="button" title="Forward" aria-label="Forward">→</button>
+          <button id="reload" class="icon-button" type="button" title="Reload" aria-label="Reload">↻</button>
+          <button id="home" class="icon-button" type="button" title="Home" aria-label="Home">⌂</button>
+        </div>
+
+        <form id="omnibox-form" class="omnibox-form">
+          <div class="security-indicator" title="HTTPS status is shown in the address itself">◈</div>
+          <input
+            id="omnibox"
+            class="omnibox"
+            type="text"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-label="Address and search"
+            placeholder="Search or enter address"
+          />
+        </form>
+
+        <div class="status-pill" title="Local-first features are coming in the next milestone">
+          <span class="status-dot"></span>
+          LOCAL READY
+        </div>
+      </div>
+    </header>
+
+    <main class="page-underlay" aria-hidden="true">
+      <div class="underlay-mark">BROWSALLAX</div>
+      <div class="underlay-copy">The web, with better instruments.</div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
