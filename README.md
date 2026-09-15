@@ -2,11 +2,55 @@
 
 **A free browser for humans, machines, and everything in between.**
 
-Browsallax is an MIT-licensed, local-first desktop browser built on Chromium through Electron. The goal is not to invent another rendering engine. The goal is to build a transparent, useful browser shell around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
+Browsallax is an MIT-licensed, local-first browser project with two complementary editions:
 
-> **Status:** `v0.1.0-alpha.1` bootstrap. Browsallax is usable as an experimental browser shell, but it is not yet hardened for daily-driver use.
+- **Browsallax Desktop** is the Chromium/Electron browser shell with real tabs, browser permissions, page-level capture, and planned local AI.
+- **Browsallax Web** is the zero-install React/PWA companion for GitHub Pages with search/launch, local workspaces, and a browser-local Reality Ledger.
 
-## What works now
+The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
+
+> **Status:** `v0.1.0-alpha.1`. Both editions are early software and should be treated as experimental.
+
+## Browsallax Web
+
+The React edition lives in [`web/`](web/) and is designed for instant use from GitHub Pages without installing the desktop app.
+
+Current web features:
+
+- React 19.3 + Vite 8.3
+- responsive Browsallax interface
+- URL/search omnibox that opens destinations in normal browser tabs
+- quick-launch panel for useful public tools and Browsallax projects
+- local workspaces and saved links
+- browser-local Reality Ledger receipts
+- SHA-256 evidence digests using the Web Crypto API
+- Reality Ledger JSON export
+- installable PWA manifest
+- offline application shell/service worker
+- no account and no backend required
+
+### Important web boundary
+
+Browsallax Web does **not** pretend it can embed and control arbitrary websites. Modern browsers enforce same-origin security, and sites can block framing with CSP or `X-Frame-Options`. External destinations therefore open as normal browser tabs. Deep capabilities such as page inspection, permission control, selected-text capture from arbitrary sites, and local-model page analysis belong in Browsallax Desktop.
+
+### Run the web edition locally
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Production build:
+
+```bash
+cd web
+npm run build
+```
+
+The GitHub Pages workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds `web/` and deploys `web/dist`.
+
+## Browsallax Desktop: what works now
 
 - Chromium web rendering through Electron 44
 - Multi-tab browsing
@@ -28,6 +72,8 @@ Browsallax is an MIT-licensed, local-first desktop browser built on Chromium thr
 
 ## Reality Ledger capture
 
+### Desktop
+
 Select text on a webpage, right-click, and choose **Capture selection to Reality Ledger**.
 
 Browsallax appends a JSON Lines receipt locally under the Electron user-data directory at:
@@ -36,17 +82,23 @@ Browsallax appends a JSON Lines receipt locally under the Electron user-data dir
 reality-ledger/web-captures.jsonl
 ```
 
-Each receipt is explicitly marked `SOURCE_ONLY` and `derived: false`. The capture records provenance and integrity; it does not claim the captured text is true.
+### Web
+
+Browsallax Web lets a user paste or type an observation, optionally attach a source URL, and create a local receipt in browser storage. Receipts can be exported as JSON.
+
+In both editions, receipts are explicitly marked `SOURCE_ONLY` and `derived: false`. The capture records provenance and integrity; it does not claim the captured text is true.
 
 ## Security posture
 
 Browsallax treats arbitrary web content as untrusted.
 
-The application chrome and web pages are separate. Web pages do not receive Node.js access. The renderer bridge exposes only a small set of browser-navigation messages, while loaded sites run in sandboxed `WebContentsView` instances.
+In Desktop, the application chrome and web pages are separate. Web pages do not receive Node.js access. The renderer bridge exposes only a small set of browser-navigation messages, while loaded sites run in sandboxed `WebContentsView` instances.
 
-For this alpha, camera, microphone, geolocation, and notifications are denied by default. A human-readable permission ledger and per-site permission controls are planned rather than silently granting capabilities.
+For the Desktop alpha, camera, microphone, geolocation, and notifications are denied by default. A human-readable permission ledger and per-site permission controls are planned rather than silently granting capabilities.
 
-## Run it
+Browsallax Web has no privileged backend. Its workspaces and Reality Ledger are kept in local browser storage unless the user explicitly exports them.
+
+## Run Browsallax Desktop
 
 Requirements:
 
@@ -69,21 +121,17 @@ npm run check
 ```text
 ┌────────────────────────────────────────────┐
 │               BROWSALLAX                   │
-├────────────────────────────────────────────┤
-│ Local browser chrome                       │
-│ tabs • omnibox • navigation • status       │
-├────────────────────────────────────────────┤
-│ Sandboxed WebContentsView tabs             │
-│ Chromium pages, isolated from Node.js      │
-├────────────────────────────────────────────┤
-│ Minimal IPC boundary                       │
-│ explicit commands only                     │
-├────────────────────────────────────────────┤
-│ Local evidence layer                       │
-│ append-only Reality Ledger web receipts    │
-├────────────────────────────────────────────┤
-│ Planned local capability layer             │
-│ Ollama • workspaces • free tools           │
+├──────────────────────┬─────────────────────┤
+│ DESKTOP              │ WEB / PWA           │
+│ Electron + Chromium  │ React + Vite        │
+├──────────────────────┼─────────────────────┤
+│ real browser tabs    │ launch/search       │
+│ browser permissions  │ local workspaces    │
+│ page capture         │ local ledger UI     │
+│ planned Ollama AI    │ offline app shell   │
+├──────────────────────┴─────────────────────┤
+│ Shared design rules                        │
+│ local-first • evidence • explicit authority│
 └────────────────────────────────────────────┘
 ```
 
@@ -100,6 +148,10 @@ npm run check
 - [x] deny-by-default sensitive permissions
 - [x] selected-text Reality Ledger capture
 - [x] source URL + timestamp + SHA-256 digest
+- [x] React/PWA web companion
+- [x] local web workspaces
+- [x] local web Reality Ledger + JSON export
+- [x] GitHub Pages deployment workflow
 - [ ] downloads UI
 - [ ] history UI
 - [ ] bookmarks
@@ -118,10 +170,10 @@ npm run check
 
 ### v0.3 research + workspaces
 
-- [ ] Reality Ledger browser UI
+- [ ] Reality Ledger desktop browser UI
 - [ ] research sessions
 - [ ] annotations
-- [ ] tab workspaces
+- [ ] desktop tab workspaces
 - [ ] contradiction / unresolved-question tracking without claiming truth authority
 
 ### v0.4 free tools ecosystem
