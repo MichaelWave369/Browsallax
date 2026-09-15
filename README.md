@@ -25,7 +25,7 @@ Current web features:
 - quick-launch panel for useful public tools and Browsallax projects
 - local workspaces and saved links
 - **Research Mode** with named investigations, guiding questions, sources, notes, unresolved questions, session export, and Ledger handoff
-- **persistent Free Tools Dock** with Research, Workspaces, Reality Ledger, RackMap, Enter the Field, and Browsallax source
+- **persistent Free Tools Dock** with Research, Workspaces, Reality Ledger, PhiOffice369, Enter the Field, and Browsallax source
 - browser-local Reality Ledger receipts
 - SHA-256 evidence digests using the Web Crypto API
 - Reality Ledger JSON export
@@ -170,7 +170,7 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 ### Free tools ecosystem
 
 - [x] web tools dock
-- [x] RackMap launcher
+- [x] PhiOffice369 launcher
 - [x] Enter the Field launcher
 - [ ] extensible tool manifest
 - [ ] optional user-added tool links
