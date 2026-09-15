@@ -1,4 +1,4 @@
-const CACHE_NAME = 'browsallax-web-v1';
+const CACHE_NAME = 'browsallax-web-v2';
 const APP_SHELL = ['./', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
