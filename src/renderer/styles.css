@@ -1,0 +1,225 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1016;
+  --panel: #111923;
+  --panel-2: #182330;
+  --line: #253447;
+  --text: #e7f0f7;
+  --muted: #8ea3b7;
+  --accent: #5dd6c0;
+  --accent-2: #8fc7ff;
+  --danger: #ff7a8a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button, input { font: inherit; }
+button { color: inherit; }
+
+.chrome-shell {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 96px;
+  background:
+    radial-gradient(circle at 20% -100%, rgba(93, 214, 192, 0.18), transparent 48%),
+    linear-gradient(180deg, #101823 0%, #0f161f 100%);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+  user-select: none;
+}
+
+.tab-row,
+.nav-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.tab-row {
+  height: 38px;
+  padding: 5px 8px 0;
+  gap: 8px;
+}
+
+.brand {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  height: 30px;
+  min-width: 130px;
+  max-width: 230px;
+  flex: 0 1 230px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 11px;
+  border: 1px solid transparent;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+}
+
+.tab.active {
+  background: var(--panel-2);
+  border-color: var(--line);
+  border-bottom-color: var(--panel-2);
+  color: var(--text);
+}
+
+.tab-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 12px;
+}
+
+.tab-close {
+  width: 19px;
+  height: 19px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tab-close:hover { background: rgba(255,255,255,0.08); color: var(--danger); }
+
+.nav-row {
+  height: 58px;
+  padding: 8px 10px 10px;
+  gap: 10px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-button:hover:not(:disabled) {
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
+}
+.icon-button:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.add-tab { width: 30px; height: 30px; }
+
+.omnibox-form {
+  flex: 1 1 auto;
+  min-width: 180px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0a0f15;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.omnibox-form:focus-within {
+  border-color: rgba(93, 214, 192, 0.75);
+  box-shadow: 0 0 0 2px rgba(93, 214, 192, 0.11);
+}
+
+.security-indicator {
+  padding: 0 10px 0 12px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.omnibox {
+  width: 100%;
+  height: 100%;
+  padding: 0 12px 0 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+}
+.omnibox::selection { background: rgba(93,214,192,0.28); }
+
+.status-pill {
+  flex: 0 0 auto;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(93,214,192,0.75);
+}
+
+.page-underlay {
+  position: absolute;
+  inset: 96px 0 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  background:
+    radial-gradient(circle at center, rgba(93,214,192,0.06), transparent 42%),
+    var(--bg);
+  text-align: center;
+}
+.underlay-mark {
+  color: var(--accent);
+  font-weight: 900;
+  letter-spacing: 0.28em;
+}
+.underlay-copy { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 900px) {
+  .brand { display: none; }
+  .status-pill { display: none; }
+  .tab { min-width: 100px; }
+}
