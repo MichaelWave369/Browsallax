@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import ResearchMode from './ResearchMode.jsx';
+import ToolsDock from './ToolsDock.jsx';
 
 const START_LINKS = [
   { label: 'DuckDuckGo', url: 'https://duckduckgo.com/', note: 'Search without the usual surveillance carnival.' },
@@ -6,7 +8,7 @@ const START_LINKS = [
   { label: 'GitHub', url: 'https://github.com/', note: 'Code, projects, issues, releases.' },
   { label: 'Internet Archive', url: 'https://archive.org/', note: 'Old web, books, software, media.' },
   { label: 'RackMap', url: 'https://rackmap-369.netlify.app/', note: 'Open the free RackMap network tool.' },
-  { label: 'Browsallax Repo', url: 'https://github.com/MichaelWave369/Browsallax', note: 'Source, issues, roadmap, MIT license.' }
+  { label: 'Enter the Field', url: 'https://www.enterthefield.org/network/?entry=card', note: 'Browse more free tools and projects.' }
 ];
 
 const DEFAULT_WORKSPACES = [
@@ -141,24 +143,36 @@ export default function App() {
     );
   }
 
-  async function addLedgerReceipt(event) {
-    event.preventDefault();
-    const evidence = ledgerText.trim();
-    if (!evidence) return;
+  async function captureEvidence({ title, source, evidence, context = null }) {
+    const observed = String(evidence || '').trim();
+    if (!observed) return null;
 
     const receipt = {
       schema: 'browsallax.reality-ledger.web.v1',
       id: crypto.randomUUID(),
       authority: 'SOURCE_ONLY',
       capturedAt: new Date().toISOString(),
-      title: ledgerTitle.trim() || 'Untitled observation',
-      source: ledgerSource.trim() || null,
-      evidence,
-      sha256: await sha256(evidence),
-      derived: false
+      title: String(title || '').trim() || 'Untitled observation',
+      source: String(source || '').trim() || null,
+      evidence: observed,
+      sha256: await sha256(observed),
+      derived: false,
+      ...(context ? { context } : {})
     };
 
     setLedger((items) => [receipt, ...items]);
+    return receipt;
+  }
+
+  async function addLedgerReceipt(event) {
+    event.preventDefault();
+    const receipt = await captureEvidence({
+      title: ledgerTitle,
+      source: ledgerSource,
+      evidence: ledgerText
+    });
+    if (!receipt) return;
+
     setLedgerTitle('');
     setLedgerSource('');
     setLedgerText('');
@@ -184,7 +198,7 @@ export default function App() {
         </button>
 
         <nav className="nav-tabs" aria-label="Primary navigation">
-          {['home', 'workspaces', 'ledger'].map((item) => (
+          {['home', 'research', 'workspaces', 'ledger'].map((item) => (
             <button key={item} className={view === item ? 'active' : ''} onClick={() => setView(item)}>
               {item[0].toUpperCase() + item.slice(1)}
             </button>
@@ -229,7 +243,7 @@ export default function App() {
                   <div><dt>Workspace data</dt><dd>Local storage</dd></div>
                   <div><dt>Ledger receipts</dt><dd>{ledger.length}</dd></div>
                   <div><dt>Saved links</dt><dd>{linkCount}</dd></div>
-                  <div><dt>Cloud AI</dt><dd>Not required</dd></div>
+                  <div><dt>Research Mode</dt><dd>Ready</dd></div>
                 </dl>
               </aside>
             </section>
@@ -252,6 +266,26 @@ export default function App() {
             </section>
 
             <section className="split-section">
+              <article className="info-panel accent-panel">
+                <p className="eyebrow">RESEARCH MODE</p>
+                <h2>Sources, notes, and unanswered questions stay together.</h2>
+                <p>
+                  Build local research sessions, preserve important observations into the Reality Ledger,
+                  and export the entire investigation as JSON.
+                </p>
+                <button className="ghost-button" onClick={() => setView('research')}>Open Research Mode →</button>
+              </article>
+              <article className="info-panel">
+                <p className="eyebrow">FREE TOOLS DOCK</p>
+                <h2>The ecosystem now follows you around the app.</h2>
+                <p>
+                  Open RackMap, Enter the Field, Workspaces, Reality Ledger, Research Mode, or the MIT source
+                  from one persistent dock without turning the home screen into a billboard farm.
+                </p>
+              </article>
+            </section>
+
+            <section className="split-section">
               <article className="info-panel">
                 <p className="eyebrow">WHAT THIS IS</p>
                 <h2>A web companion, not a fake browser inside a browser.</h2>
@@ -270,6 +304,14 @@ export default function App() {
           </>
         )}
 
+        {view === 'research' && (
+          <ResearchMode
+            openExternal={open}
+            captureEvidence={captureEvidence}
+            setStatus={setStatus}
+          />
+        )}
+
         {view === 'workspaces' && (
           <section className="page-section">
             <div className="section-heading">
@@ -280,16 +322,16 @@ export default function App() {
             <div className="workspace-controls">
               <form className="compact-form" onSubmit={addWorkspace}>
                 <label>New workspace</label>
-                <div><input value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} placeholder="Physics, Client A, Weird Ideas..." /><button>Add</button></div>
+                <div><input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} placeholder="Physics, Client A, Weird Ideas..." /><button>Add</button></div>
               </form>
               <form className="compact-form" onSubmit={addWorkspaceLink}>
                 <label>Save a link</label>
-                <select value={workspaceId} onChange={(e) => setWorkspaceId(e.target.value)}>
+                <select value={workspaceId} onChange={(event) => setWorkspaceId(event.target.value)}>
                   {workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
                 </select>
                 <div className="two-inputs">
-                  <input value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)} placeholder="Title" />
-                  <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="URL or search" required />
+                  <input value={linkTitle} onChange={(event) => setLinkTitle(event.target.value)} placeholder="Title" />
+                  <input value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="URL or search" required />
                 </div>
                 <button>Save to workspace</button>
               </form>
@@ -326,9 +368,9 @@ export default function App() {
 
             <div className="ledger-layout">
               <form className="ledger-form" onSubmit={addLedgerReceipt}>
-                <label>Title<input value={ledgerTitle} onChange={(e) => setLedgerTitle(e.target.value)} placeholder="What are you capturing?" /></label>
-                <label>Source URL<input value={ledgerSource} onChange={(e) => setLedgerSource(e.target.value)} placeholder="https://... (optional)" /></label>
-                <label>Observed text<textarea value={ledgerText} onChange={(e) => setLedgerText(e.target.value)} placeholder="Paste or type the exact observation here." required rows="9" /></label>
+                <label>Title<input value={ledgerTitle} onChange={(event) => setLedgerTitle(event.target.value)} placeholder="What are you capturing?" /></label>
+                <label>Source URL<input value={ledgerSource} onChange={(event) => setLedgerSource(event.target.value)} placeholder="https://... (optional)" /></label>
+                <label>Observed text<textarea value={ledgerText} onChange={(event) => setLedgerText(event.target.value)} placeholder="Paste or type the exact observation here." required rows="9" /></label>
                 <button className="primary-button">Create local receipt</button>
                 <p className="form-note">Receipts are stamped SOURCE_ONLY and SHA-256 hashed. A hash preserves integrity; it does not certify truth.</p>
               </form>
@@ -353,9 +395,11 @@ export default function App() {
         )}
       </main>
 
+      <ToolsDock currentView={view} onNavigate={setView} openExternal={open} />
+
       <footer>
         <span>{status}</span>
-        <span>Browsallax Web v0.1.0-alpha.1 · MIT</span>
+        <span>Browsallax Web v0.2.0-alpha.1 · MIT</span>
       </footer>
     </div>
   );
