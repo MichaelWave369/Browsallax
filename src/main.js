@@ -1,5 +1,7 @@
 const path = require('node:path');
-const { app, BrowserWindow, WebContentsView, ipcMain, session } = require('electron');
+const fs = require('node:fs/promises');
+const crypto = require('node:crypto');
+const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu } = require('electron');
 
 const TOOLBAR_HEIGHT = 96;
 const START_URL = 'https://duckduckgo.com/';
@@ -38,6 +40,42 @@ function safePageUrl(rawUrl) {
 
 function getActiveTab() {
   return activeTabId ? tabs.get(activeTabId) : null;
+}
+
+function ledgerPath() {
+  return path.join(app.getPath('userData'), 'reality-ledger', 'web-captures.jsonl');
+}
+
+async function captureSelectionReceipt(tab, selectionText) {
+  const text = String(selectionText || '').trim();
+  if (!text) return;
+
+  const capturedAt = new Date().toISOString();
+  const bytes = Buffer.from(text, 'utf8');
+  const receipt = {
+    schema: 'browsallax.reality-ledger.web-capture.v1',
+    authority: 'SOURCE_ONLY',
+    captured_at: capturedAt,
+    source: {
+      url: tab.view.webContents.getURL(),
+      title: tab.title || tab.view.webContents.getTitle() || ''
+    },
+    observation: {
+      type: 'SELECTED_TEXT',
+      text,
+      utf8_bytes: bytes.length
+    },
+    integrity: {
+      algorithm: 'sha256',
+      digest: crypto.createHash('sha256').update(bytes).digest('hex')
+    },
+    derived: false
+  };
+
+  const filePath = ledgerPath();
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.appendFile(filePath, `${JSON.stringify(receipt)}\n`, 'utf8');
+  console.log(`[Browsallax] Reality Ledger receipt appended: ${filePath}`);
 }
 
 function sendState() {
@@ -91,6 +129,30 @@ function bindTabEvents(tab) {
 
   wc.on('will-navigate', (event, url) => {
     if (!safePageUrl(url)) event.preventDefault();
+  });
+
+  wc.on('context-menu', (_event, params) => {
+    const template = [];
+
+    if (params.selectionText?.trim()) {
+      template.push({
+        label: 'Capture selection to Reality Ledger',
+        click: () => {
+          captureSelectionReceipt(tab, params.selectionText).catch((error) => {
+            console.error('[Browsallax] Reality Ledger capture failed', error);
+          });
+        }
+      });
+      template.push({ type: 'separator' });
+    }
+
+    if (params.isEditable) {
+      template.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' });
+    } else if (params.selectionText?.trim()) {
+      template.push({ role: 'copy' });
+    }
+
+    if (template.length > 0) Menu.buildFromTemplate(template).popup();
   });
 
   wc.on('page-title-updated', (_event, title) => {
