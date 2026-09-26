@@ -40,6 +40,7 @@ test('page task spec permits only bounded http/https work', () => {
     goal: 'Verify the page',
     constraints: ['Do not delete anything'],
     acceptance: [{ kind: 'text_contains', value: 'Example' }],
+    completeOnInitialAcceptance: true,
     maxSteps: 999,
     maxDurationMs: 999999999
   });
@@ -47,6 +48,7 @@ test('page task spec permits only bounded http/https work', () => {
   assert.equal(spec.url, 'https://example.com/path');
   assert.equal(spec.maxSteps, 40);
   assert.equal(spec.maxDurationMs, 10 * 60 * 1000);
+  assert.equal(spec.completeOnInitialAcceptance, true);
   assert.throws(
     () => normalizePageTaskSpec({ url: 'file:///etc/passwd', goal: 'read it' }),
     /PAGE_TASK_URL_UNSAFE/
@@ -61,6 +63,9 @@ test('page bridge manifest advertises no tab or authority escalation', () => {
   assert.equal(manifest.authority.arbitraryTabAccess, false);
   assert.equal(manifest.authority.bearerTokenExposed, false);
   assert.equal(manifest.authority.dedicatedTaskTabOnly, true);
+  assert.equal(manifest.initialAcceptanceShortCircuit.supported, true);
+  assert.equal(manifest.initialAcceptanceShortCircuit.deterministicAssertionsOnly, true);
+  assert.equal(manifest.initialAcceptanceShortCircuit.authority, 'NONE');
 });
 
 test('task ownership is scoped to origin and webContents identity', () => {
@@ -111,4 +116,14 @@ test('page bridge exposes planner hints as advisory and not executor authority',
   assert.equal(manifest.authority.plannerHintsAreAdvisory, true);
   assert.equal(manifest.plannerRegistryHints.supported, true);
   assert.equal(manifest.plannerRegistryHints.version, 'PV-BOP-BRR-0.1');
+});
+
+
+test('initial acceptance short-circuit requires an actual acceptance assertion', () => {
+  const spec = normalizePageTaskSpec({
+    url: 'https://example.com/',
+    goal: 'No deterministic acceptance supplied',
+    completeOnInitialAcceptance: true
+  });
+  assert.equal(spec.completeOnInitialAcceptance, false);
 });
