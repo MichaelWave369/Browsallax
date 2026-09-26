@@ -4,29 +4,31 @@ Browsallax is intentionally developed in small, reviewable rungs. Completed work
 
 ## Next three milestones
 
-### 1. Finish Live Acceptance 005
-
-- run `npm run accept:registry-fail-closed` against a live local Browsallax instance;
-- freeze the missing-local-model fail-closed receipt;
-- preserve success and adversarial halves as one acceptance record;
-- do not change Browser Operator routing rules unless the live adversarial result contradicts the frozen contract.
-
-### 2. Trust and presentation hardening
-
-- keep the README synchronized with actual runtime versions;
-- maintain the threat model and security-test matrix;
-- add real screenshots from live Browsallax builds;
-- add a concise visual architecture diagram;
-- add a contributor-oriented repository map;
-- add a private security-reporting path and supported-version policy.
-
-### 3. Browser intent handoff in Super Φ.Vessel
+### 1. Repair the Super Φ.Vessel browser-intent handoff
 
 - explicit browser work should route directly to the trusted Browsallax task lane;
 - Brain Registry routing may propose a planner;
 - Browsallax remains responsible for local inventory verification and browser authority;
 - normal provider completion should not be a prerequisite for starting an explicit governed browser task;
 - preserve terminal diagnostics when provider/orchestration fails before browser task creation.
+
+### 2. Finish trust and presentation hardening
+
+- add real screenshots from live Browsallax Desktop and Web builds;
+- add a short demo recording;
+- keep the README synchronized with actual runtime versions;
+- maintain the threat model and security-test matrix;
+- add a private security-reporting path and supported-version policy;
+- document the release process and Electron security-update cadence.
+
+### 3. Verify security lifecycles
+
+- test endpoint token freshness across restarts;
+- test endpoint file cleanup on shutdown;
+- add popup-to-tab and permission-denial Electron smoke tests;
+- test trusted-sender-close cancellation;
+- add receipt-chain verification and tamper detection;
+- define mutation idempotency / replay semantics.
 
 ## Desktop foundation
 
@@ -90,7 +92,8 @@ Browsallax is intentionally developed in small, reviewable rungs. Completed work
 - [x] direct NASA acceptance harness
 - [x] registry-routed NASA acceptance harness
 - [x] registry missing-local-model fail-closed harness
-- [ ] live freeze of missing-local-model fail-closed acceptance
+- [x] live freeze of missing-local-model fail-closed acceptance
+- [x] combined Live Acceptance 005 success + fail-closed record
 - [ ] per-action approval for sensitive mutations
 - [ ] local vision interpretation and replay
 

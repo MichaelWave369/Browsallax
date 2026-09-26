@@ -65,7 +65,7 @@ npm run accept:registry-fail-closed
 | Desktop selected-text Ledger capture | **Working** |
 | Browser Operator | **Experimental · live-tested** |
 | Local Ollama planner | **Working · experimental** |
-| Brain Registry routed planner | **Working · live-tested success path** |
+| Brain Registry routed planner | **Working · live-tested success + fail-closed paths** |
 | Governed read-only research | **Working · live-tested** |
 | Mutation automation | **Restricted · experimental** |
 | Sensitive mutation | **HELD pending per-action approval design** |
@@ -334,12 +334,8 @@ Browsallax keeps observed runtime acceptance separate from unit-test claims.
 - [Live Acceptance 003](docs/acceptance/Browsallax-Live-Acceptance-003-2026-09-26.md) — successful conversational read-only web observation.
 - [Live Acceptance 004](docs/acceptance/Browsallax-Live-Acceptance-004-2026-09-26.md) — bounded NASA read-only research completion after `PV-BOP-RRC-0.1`.
 - [Live Acceptance 005A](docs/acceptance/Browsallax-Live-Acceptance-005A-2026-09-26.md) — Brain Registry routed NASA success with `REGISTRY_RECOMMENDED`, local inventory verification, `qwen3:4b`, one-step completion, and read-only authority.
-
-The adversarial 005B live run remains pending:
-
-```bash
-npm run accept:registry-fail-closed
-```
+- [Live Acceptance 005B](docs/acceptance/Browsallax-Live-Acceptance-005B-2026-09-26.md) — adversarial registry/local-inventory disagreement fails closed at step 0 with no planner dispatch and no legacy fallback.
+- [Live Acceptance 005](docs/acceptance/Browsallax-Live-Acceptance-005-2026-09-26.md) — combined success + fail-closed acceptance for `PV-BOP-BRR-0.1`.
 
 ## Roadmap
 
@@ -347,9 +343,9 @@ The active roadmap now lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 Current priorities:
 
-1. finish Live Acceptance 005 with the missing-local-model fail-closed run;
-2. continue trust/presentation hardening, including real screenshots and release/security documentation;
-3. repair Super Φ.Vessel browser-intent handoff so explicit browser tasks do not depend on an unrelated provider completion before reaching Browsallax.
+1. repair Super Φ.Vessel browser-intent handoff so explicit browser tasks do not depend on an unrelated provider completion before reaching Browsallax;
+2. continue trust/presentation hardening with real screenshots, a short demo, and release/security documentation;
+3. add lifecycle/security verification for token rotation, endpoint cleanup, permission denial, popup routing, and receipt-chain tamper detection.
 
 ## Visual tour
 

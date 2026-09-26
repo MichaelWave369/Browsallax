@@ -1,0 +1,44 @@
+{
+  "schema": "browsallax.live-acceptance.v1",
+  "id": "Browsallax-Live-Acceptance-005B-2026-09-26",
+  "date": "2026-09-26",
+  "status": "PASS",
+  "scope": "Brain Registry/local inventory disagreement fail-closed path",
+  "command": "npm run accept:registry-fail-closed",
+  "adversarialInput": {
+    "missingModel": "registry-missing-model:latest",
+    "installedCount": 29,
+    "registryVersion": "diag-fail-closed-1",
+    "routerVersion": "diag-fail-closed-1",
+    "routingMode": "AUTO",
+    "role": "utility",
+    "approvedModels": [
+      "registry-missing-model:latest"
+    ],
+    "recommendedModel": "registry-missing-model:latest",
+    "candidateCount": 1
+  },
+  "acceptance": {
+    "dispositionFailed": true,
+    "stepCountZero": true,
+    "expectedError": true,
+    "registryPresent": true,
+    "registryUsed": true,
+    "selectionBasis": "NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL",
+    "selectedModel": null,
+    "selectedModelIsNull": true,
+    "noLegacyFallback": true
+  },
+  "runtime": {
+    "bridgeVersion": "PV-BRIDGE-0.2",
+    "browserRegistryRouterVersion": "PV-BOP-BRR-0.1",
+    "taskStatus": "FAILED",
+    "stepCount": 0,
+    "error": "NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL",
+    "planner": null,
+    "provider": null,
+    "model": null,
+    "navigationAuthorityBasis": "BASELINE_LOCAL_OPERATOR",
+    "bridgeAuthority": "BRIDGE_ONLY_NO_AUTHORITY_ESCALATION"
+  }
+}

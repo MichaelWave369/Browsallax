@@ -13,7 +13,7 @@ This matrix separates **implemented coverage**, **live acceptance evidence**, an
 | Trusted page cannot choose executor | manifest + Brain Registry advisory assertions | Covered | Preserve as contract test |
 | Brain Registry schema validation | valid hint accepted; unknown schema rejected | Covered | Add oversized/candidate-boundary fuzz cases |
 | Registry/local inventory intersection | planner/router tests | Covered | Preserve with live acceptance |
-| Registry missing locally fails closed | router/planner tests | Covered | Live adversarial acceptance command added; live result still needs to be frozen |
+| Registry missing locally fails closed | router/planner tests + Live Acceptance 005B | Covered + live-tested | Preserve as contract invariant |
 | Legacy planner fallback only without registry hint | router tests | Covered | Preserve as contract invariant |
 | Local endpoint must be loopback | `test/operator-client.test.js` | Covered | Add IPv6/canonicalization cases |
 | Public client descriptor hides bearer token | client test | Covered | Add serialization regression |
@@ -47,7 +47,8 @@ Current repository evidence includes:
 - **Live Acceptance 003** — successful conversational read-only web observation.
 - **Live Acceptance 004** — bounded NASA research completion after the read-only completion contract.
 - **Live Acceptance 005A** — registry-routed NASA research success using `REGISTRY_RECOMMENDED`, local inventory verification, `qwen3:4b`, one-step completion, and read-only authority.
-- **Live Acceptance 005B** — pending live execution of the adversarial missing-local-model harness. The harness is present as `npm run accept:registry-fail-closed`.
+- **Live Acceptance 005B** — adversarial missing-local-model run failed closed at step 0 with `NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL`, `selectedModel=null`, no planner dispatch, and no legacy fallback.
+- **Live Acceptance 005** — combined success + disagreement acceptance for Brain Registry routed planner selection.
 
 ## Priority security backlog
 
