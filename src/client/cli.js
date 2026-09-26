@@ -81,6 +81,7 @@ Commands:
   browsallax bridge-manifest
 
   browsallax task --tab <id> --goal <text>
+      [--url <https://...>]
       [--constraint <text>]...
       [--success <text>]...
       [--accept-text <text>]...
@@ -162,6 +163,7 @@ async function run(argv = process.argv.slice(2), { io = console, connectOptions 
     const goal = requiredFlag(flags, 'goal');
     const spec = {
       tabId,
+      url: flags.url === undefined || flags.url === true ? undefined : String(flags.url),
       goal,
       constraints: values(flags, 'constraint').map(String),
       successCriteria: values(flags, 'success').map(String),
