@@ -24,6 +24,7 @@ test('local operator API requires token and human grant for ordinary mutation', 
     getTitle: () => 'Example',
     isLoading: () => false,
     executeJavaScript: async (script) => {
+      if (script.includes('document.body ? document.body.innerText')) return 'READY';
       if (script.includes("const candidates =")) {
         return {
           url: 'https://example.test/',
