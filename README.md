@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.5.0-alpha.3`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.5.0-alpha.4`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -171,7 +171,8 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [x] sensitive actions HELD in v0.1
 - [x] hash-chained operator Reality Ledger receipts
 - [x] local Ollama task planner with deterministic model selection
-- [x] schema-constrained local planner with one bounded repair attempt (`PV-BOP-PLAN-0.3`)
+- [x] schema-constrained local planner with one bounded repair attempt (`PV-BOP-PLAN-0.4`)
+- [x] bounded read-only research completion and no-mutation planning contract (`PV-BOP-RRC-0.1`)
 - [x] observe → plan → act → verify → replan task loop
 - [x] resumable HELD tasks across human authority grants
 - [x] deterministic task acceptance assertions before COMPLETE
