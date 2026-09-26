@@ -1,0 +1,63 @@
+{
+  "schema": "browsallax.live_acceptance.v1",
+  "acceptance_id": "BROWSALLAX-LIVE-ACCEPTANCE-004",
+  "date": "2026-09-26",
+  "evidence_class": "HUMAN_OBSERVED_BOUNDED_MULTI_STEP_READ_ONLY_RESEARCH_ACCEPTANCE",
+  "verdict": "PASS",
+  "contracts": {
+    "read_only_research_completion": "PV-BOP-RRC-0.1",
+    "planner": "PV-BOP-PLAN-0.4",
+    "browser_operator": "PV-BOP-0.2",
+    "trusted_page_bridge": "PV-PAGE-0.1"
+  },
+  "tests": [
+    {
+      "name": "nasa_bounded_research",
+      "request": "Browse NASA's website and tell me the title of the newest news article you can currently observe. Tell me the source you used.",
+      "observed_output": {
+        "article_title": "NASA, Boeing to Provide Update on Starliner Development.",
+        "source_label": "NASA News",
+        "source_url": "https://www.nasa.gov/news/",
+        "authority_description": "observed page context only"
+      },
+      "assertions": {
+        "completed": "PASS",
+        "max_steps_reached": false,
+        "source_preserved": "PASS",
+        "observed_context_boundary": "PASS"
+      }
+    },
+    {
+      "name": "enter_the_field_control",
+      "request": "Browse https://www.enterthefield.org and tell me what page title and main heading you can currently observe.",
+      "observed_output": {
+        "page_title": "Arrival Field",
+        "main_heading": "◌ Enter the Field",
+        "source_url": "https://www.enterthefield.org"
+      },
+      "assertions": {
+        "completed": "PASS",
+        "control_regression": false,
+        "source_preserved": "PASS"
+      }
+    }
+  ],
+  "regression_closed": {
+    "previous_error": "MAX_STEPS_REACHED",
+    "previous_step_count": 10,
+    "closed": true
+  },
+  "evidence_boundary": {
+    "human_observed_application_output": true,
+    "external_web_reverification_performed": false,
+    "local_task_receipt_imported": false,
+    "local_receipt_hash": null,
+    "truth_promotion": "NONE"
+  },
+  "related_evidence": [
+    "BROWSALLAX-LIVE-ACCEPTANCE-001",
+    "BROWSALLAX-LIVE-INTERACTION-001",
+    "BROWSALLAX-LIVE-ACCEPTANCE-002",
+    "BROWSALLAX-LIVE-ACCEPTANCE-003"
+  ]
+}
