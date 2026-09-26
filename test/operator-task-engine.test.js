@@ -245,3 +245,80 @@ test('task engine preserves bounded planner failure diagnostics without exposing
   assert.equal(failureReceipt.data.failureDiagnostics.model, 'gemma3:12b');
   assert.doesNotMatch(JSON.stringify(failureReceipt), /SECRET_MUST_NOT_ESCAPE/);
 });
+
+
+test('initial deterministic acceptance can complete before planner dispatch when explicitly enabled', async () => {
+  let plannerCalls = 0;
+  const log = ledger();
+  const engine = new BrowserTaskEngine({
+    planner: {
+      plan: async () => {
+        plannerCalls += 1;
+        throw new Error('PLANNER_SHOULD_NOT_RUN');
+      }
+    },
+    ledger: log,
+    observe: async () => ({ url: 'https://example.test/', title: 'Example', text: 'READY', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async (_tabId, assertion) => ({
+      ok: true,
+      pass: assertion.kind === 'text_contains' && assertion.value === 'READY',
+      actual: 'READY'
+    }),
+    getGrant: () => null
+  });
+
+  const created = await engine.create({
+    tabId: 6,
+    goal: 'Verify the already-loaded page identifies itself',
+    acceptance: [{ kind: 'text_contains', value: 'READY' }],
+    completeOnInitialAcceptance: true,
+    maxSteps: 12
+  });
+  const complete = await waitFor(engine, created.id, (task) => task.status === 'COMPLETE');
+
+  assert.equal(complete.stepCount, 0);
+  assert.equal(complete.planner, null);
+  assert.equal(plannerCalls, 0);
+  assert.equal(complete.completeOnInitialAcceptance, true);
+  assert.equal(complete.result.verification.mode, 'DETERMINISTIC_ASSERTIONS');
+  assert.equal(complete.result.verification.pass, true);
+  assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_INITIAL_ACCEPTANCE_CHECK'));
+  assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_COMPLETE'));
+});
+
+test('initial deterministic acceptance short-circuit is opt-in', async () => {
+  let plannerCalls = 0;
+  const engine = new BrowserTaskEngine({
+    planner: {
+      plan: async () => {
+        plannerCalls += 1;
+        return {
+          thoughtSummary: 'Finish normally.',
+          action: { type: 'finish', status: 'complete', summary: 'Planner completed.' },
+          successEvidence: 'READY',
+          planner: { model: 'test' }
+        };
+      }
+    },
+    ledger: ledger(),
+    observe: async () => ({ url: 'https://example.test/', title: 'Example', text: 'READY', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async () => ({ ok: true, pass: true, actual: 'READY' }),
+    getGrant: () => null
+  });
+
+  const created = await engine.create({
+    tabId: 7,
+    goal: 'Use the normal planner path',
+    acceptance: [{ kind: 'text_contains', value: 'READY' }],
+    maxSteps: 4
+  });
+  const complete = await waitFor(engine, created.id, (task) => task.status === 'COMPLETE');
+
+  assert.equal(complete.stepCount, 1);
+  assert.equal(plannerCalls, 1);
+  assert.equal(complete.completeOnInitialAcceptance, false);
+});
