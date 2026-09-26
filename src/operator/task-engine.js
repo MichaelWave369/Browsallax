@@ -9,6 +9,25 @@ function sanitizeAction(action = {}) {
   return copy;
 }
 
+function normalizeAcceptance(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw Object.assign(new Error('TASK_ACCEPTANCE_INVALID'), { statusCode: 400 });
+    }
+    const kind = String(item.kind || '').toLowerCase();
+    if (!['url_contains', 'text_contains', 'visible'].includes(kind)) {
+      throw Object.assign(new Error('TASK_ACCEPTANCE_KIND_INVALID'), { statusCode: 400 });
+    }
+    if (kind === 'visible') {
+      const selector = String(item.selector || '').trim();
+      if (!selector) throw Object.assign(new Error('TASK_ACCEPTANCE_SELECTOR_REQUIRED'), { statusCode: 400 });
+      return { kind, selector: selector.slice(0, 2000) };
+    }
+    return { kind, value: String(item.value || '').slice(0, 4000) };
+  });
+}
+
 function publicTask(task) {
   return {
     id: task.id,
@@ -16,6 +35,7 @@ function publicTask(task) {
     goal: task.goal,
     constraints: task.constraints,
     successCriteria: task.successCriteria,
+    acceptance: task.acceptance,
     status: task.status,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -84,6 +104,7 @@ class BrowserTaskEngine {
     const successCriteria = Array.isArray(input.successCriteria)
       ? input.successCriteria.map((item) => String(item).trim()).filter(Boolean).slice(0, 30)
       : [];
+    const acceptance = normalizeAcceptance(input.acceptance);
     const maxSteps = Math.max(1, Math.min(40, Number(input.maxSteps || 20)));
     const maxDurationMs = Math.max(10000, Math.min(10 * 60 * 1000, Number(input.maxDurationMs || 3 * 60 * 1000)));
     const now = new Date().toISOString();
@@ -94,6 +115,7 @@ class BrowserTaskEngine {
       goal,
       constraints,
       successCriteria,
+      acceptance,
       status: 'QUEUED',
       createdAt: now,
       updatedAt: now,
@@ -116,6 +138,7 @@ class BrowserTaskEngine {
       goal,
       constraints,
       successCriteria,
+      acceptance,
       maxSteps,
       maxDurationMs,
       taskEngineVersion: TASK_ENGINE_VERSION
@@ -187,7 +210,28 @@ class BrowserTaskEngine {
         const action = plan.action;
         if (action.type === 'finish') {
           if (action.status === 'complete') {
-            return await this.complete(task, action.summary || plan.successEvidence || 'Task complete.');
+            const verification = await this.verifyAcceptance(task, { step });
+            if (verification.pass) {
+              return await this.complete(
+                task,
+                action.summary || plan.successEvidence || 'Task complete.',
+                verification
+              );
+            }
+
+            entry.phase = 'VERIFY';
+            entry.outcome = {
+              ok: false,
+              status: 'ACCEPTANCE_FAILED',
+              verification
+            };
+            task.updatedAt = new Date().toISOString();
+            await this.ledger.append('TASK_ACCEPTANCE_FAILED', {
+              taskId: task.id,
+              step,
+              verification
+            });
+            continue;
           }
           return await this.fail(task, action.summary || 'Planner declared task failed.');
         }
@@ -296,6 +340,37 @@ class BrowserTaskEngine {
     return publicTask(task);
   }
 
+  async verifyAcceptance(task, meta = {}) {
+    if (!task.acceptance.length) {
+      return {
+        pass: true,
+        mode: 'PLANNER_DECLARED',
+        checks: []
+      };
+    }
+
+    const checks = [];
+    for (const assertion of task.acceptance) {
+      const result = await this.assert(task.tabId, assertion, {
+        taskId: task.id,
+        acceptance: true,
+        ...meta
+      });
+      checks.push({
+        assertion,
+        pass: Boolean(result?.pass),
+        actual: result?.actual ?? null,
+        error: result?.error || null
+      });
+    }
+
+    return {
+      pass: checks.every((check) => check.pass),
+      mode: 'DETERMINISTIC_ASSERTIONS',
+      checks
+    };
+  }
+
   async shutdown() {
     for (const controller of this.controllers.values()) {
       controller.abort(new Error('OPERATOR_SHUTDOWN'));
@@ -317,9 +392,12 @@ class BrowserTaskEngine {
     this.controllers.clear();
   }
 
-  async complete(task, summary) {
+  async complete(task, summary, verification = { pass: true, mode: 'PLANNER_DECLARED', checks: [] }) {
     task.status = 'COMPLETE';
-    task.result = { summary: String(summary || 'Task complete.').slice(0, 4000) };
+    task.result = {
+      summary: String(summary || 'Task complete.').slice(0, 4000),
+      verification
+    };
     task.finishedAt = new Date().toISOString();
     task.updatedAt = task.finishedAt;
     await this.ledger.append('TASK_COMPLETE', {
@@ -349,6 +427,7 @@ class BrowserTaskEngine {
 module.exports = {
   BrowserTaskEngine,
   TASK_ENGINE_VERSION,
+  normalizeAcceptance,
   publicTask,
   sanitizeAction
 };
