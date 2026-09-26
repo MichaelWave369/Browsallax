@@ -1,0 +1,36 @@
+{
+  "schema": "browsallax.live_interaction.v1",
+  "interaction_id": "BROWSALLAX-LIVE-INTERACTION-001",
+  "date": "2026-09-26",
+  "evidence_class": "HUMAN_OBSERVED_LIVE_INTERACTION",
+  "verdict": "PASS",
+  "environment": {
+    "browsallax_desktop": true,
+    "local_ready_visible": true,
+    "super_phi_vessel_live": true
+  },
+  "interaction": {
+    "human_input": "Hello!",
+    "observed_response": "Hello! How can I help you today?",
+    "visible_runtime_label": "BrainC Hosted",
+    "response_rendered_in_workspace": true
+  },
+  "demonstrated_path": [
+    "human_input",
+    "super_phi_vessel_conversation_ui",
+    "brainc_hosted_visible_lane",
+    "assistant_response",
+    "workspace_render"
+  ],
+  "related_evidence": [
+    "BROWSALLAX-LIVE-ACCEPTANCE-001"
+  ],
+  "evidence_boundary": {
+    "screenshot_observed": true,
+    "screenshot_embedded_in_repository": false,
+    "repository_record": true,
+    "local_runtime_receipt_imported": false,
+    "local_runtime_receipt_hash": null,
+    "task_uuid": null
+  }
+}
