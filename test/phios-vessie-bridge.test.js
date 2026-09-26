@@ -103,3 +103,132 @@ test('task status maps to bridge disposition without upgrading failed verificati
   assert.equal(mapTaskDisposition({ status: 'HELD' }), 'HELD');
   assert.equal(mapTaskDisposition({ status: 'RUNNING' }), 'IN_PROGRESS');
 });
+
+
+test('bridge preserves and normalizes Brain Registry planner hints across task submission', async () => {
+  const calls = [];
+  const fakeClient = {
+    createTask: async (spec) => {
+      calls.push(spec);
+      return {
+        task: {
+          ...completeTask(),
+          status: 'QUEUED',
+          result: null,
+          stepCount: 0,
+          plannerRegistry: {
+            schema: spec.plannerRegistry.schema,
+            bridgeVersion: spec.plannerRegistry.bridgeVersion,
+            registryVersion: spec.plannerRegistry.registryVersion,
+            routerVersion: spec.plannerRegistry.routerVersion,
+            routingMode: spec.plannerRegistry.routingMode,
+            role: spec.plannerRegistry.role,
+            recommendedModel: spec.plannerRegistry.recommendedModel,
+            approvedPoolCount: spec.plannerRegistry.approvedModels.length,
+            candidateCount: spec.plannerRegistry.candidates.length
+          }
+        }
+      };
+    }
+  };
+
+  const bridge = new PhiBrowserBridge(fakeClient);
+  const envelope = await bridge.submitTask({
+    tabId: 1,
+    goal: 'Read NASA news',
+    plannerRegistry: {
+      schema: 'superphivessel.brain_registry.planner_hints.v1',
+      registryVersion: '1.1',
+      routerVersion: '1.2.0',
+      routingMode: 'auto',
+      role: 'utility',
+      approvedModels: ['gemma3:12b'],
+      recommendedModel: 'gemma3:12b',
+      candidates: [{ model: 'gemma3:12b', score: 0.91 }]
+    }
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].plannerRegistry.bridgeVersion, 'PV-BOP-BRR-0.1');
+  assert.equal(calls[0].plannerRegistry.routingMode, 'AUTO');
+  assert.equal(calls[0].plannerRegistry.recommendedModel, 'gemma3:12b');
+  assert.equal(envelope.payload.task.plannerRegistry.registryVersion, '1.1');
+});
+
+test('bridge exposes bounded planner failure provenance instead of replacing it with NONE', async () => {
+  const failedTask = {
+    ...completeTask(),
+    status: 'FAILED',
+    stepCount: 0,
+    result: null,
+    error: 'PLANNER_STRUCTURED_OUTPUT_FAILED',
+    planner: null,
+    plannerRegistry: {
+      schema: 'superphivessel.brain_registry.planner_hints.v1',
+      bridgeVersion: 'PV-BOP-BRR-0.1',
+      registryVersion: '1.1',
+      routerVersion: '1.2.0',
+      routingMode: 'AUTO',
+      role: 'utility',
+      recommendedModel: 'gemma3:12b',
+      approvedPoolCount: 1,
+      candidateCount: 1
+    },
+    failureDiagnostics: {
+      plannerVersion: 'PV-BOP-PLAN-0.5',
+      provider: 'OLLAMA_LOCAL',
+      model: 'gemma3:12b',
+      attempts: 2,
+      rawResponseChars: 321,
+      rawResponseSha256: 'a'.repeat(64),
+      validationError: 'PLANNER_INVALID_JSON',
+      brainRegistryRoute: {
+        version: 'PV-BOP-BRR-0.1',
+        registryUsed: true,
+        selectionBasis: 'REGISTRY_RECOMMENDED',
+        selectedModel: 'gemma3:12b',
+        registryVersion: '1.1',
+        routerVersion: '1.2.0',
+        routingMode: 'AUTO',
+        role: 'utility',
+        approvedPoolCount: 1,
+        candidateCount: 1
+      },
+      readOnlyResearch: {
+        version: 'PV-BOP-RRC-0.1',
+        mode: 'NORMAL',
+        stepCount: 0
+      }
+    }
+  };
+
+  const bridge = new PhiBrowserBridge({
+    waitForTask: async () => failedTask
+  });
+
+  const envelope = await bridge.waitTask('task-1');
+  assert.equal(envelope.payload.disposition, 'FAILED');
+  assert.equal(envelope.payload.task.failureDiagnostics.provider, 'OLLAMA_LOCAL');
+  assert.equal(envelope.payload.task.failureDiagnostics.model, 'gemma3:12b');
+  assert.equal(
+    envelope.payload.task.failureDiagnostics.brainRegistryRoute.selectionBasis,
+    'REGISTRY_RECOMMENDED'
+  );
+});
+
+test('bridge rejects an unrecognized planner registry schema instead of passing it through', async () => {
+  const bridge = new PhiBrowserBridge({
+    createTask: async () => {
+      throw new Error('createTask should not be reached');
+    }
+  });
+
+  await assert.rejects(
+    () => bridge.submitTask({
+      tabId: 1,
+      goal: 'Read NASA news',
+      plannerRegistry: { schema: 'evil.registry.v9' }
+    }),
+    /PLANNER_REGISTRY_HINT_SCHEMA_INVALID/
+  );
+});
