@@ -62,6 +62,10 @@ function getTab(id) {
   return tabs.get(Number(id)) || null;
 }
 
+function getTabByWebContentsId(webContentsId) {
+  return [...tabs.values()].find((tab) => tab.view.webContents.id === Number(webContentsId)) || null;
+}
+
 function getOperatorGrant() {
   if (operatorGrant && operatorGrant.expiresAt <= Date.now()) operatorGrant = null;
   return operatorGrant;
@@ -518,12 +522,18 @@ ipcMain.handle('trusted-page:status', async (event) => {
 ipcMain.handle('trusted-page:start-task', async (event, input) => {
   const caller = trustedCaller(event);
   if (!operatorService) throw new Error('OPERATOR_NOT_RUNNING');
+  const callerTab = getTabByWebContentsId(caller.webContentsId);
+  if (callerTab?.operatorTaskTab) {
+    throw Object.assign(new Error('NESTED_TRUSTED_PAGE_TASK_FORBIDDEN'), { statusCode: 403 });
+  }
   if (activeTrustedTasksForOwner(caller.owner) >= TRUSTED_PAGE_MAX_ACTIVE_TASKS) {
     throw Object.assign(new Error('TRUSTED_PAGE_TASK_LIMIT'), { statusCode: 429 });
   }
   watchTrustedSender(event, caller);
   const spec = normalizePageTaskSpec(input);
   const tabId = createTab(spec.url, false);
+  const taskTab = getTab(tabId);
+  if (taskTab) taskTab.operatorTaskTab = true;
   const record = {
     owner: caller.owner,
     origin: caller.origin,
