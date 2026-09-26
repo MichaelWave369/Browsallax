@@ -114,6 +114,26 @@ test('local operator API requires token and human grant for ordinary mutation', 
     assert.equal(task.status, 'COMPLETE');
     assert.equal(task.result.summary, 'READY verified.');
 
+    const internalPlanner = await service.internal.plannerStatus(false);
+    assert.equal(internalPlanner.selectedModel, 'test-local:1b');
+
+    const internalCreated = await service.internal.createTask({
+      tabId: 1,
+      goal: 'Verify READY internally',
+      successCriteria: ['READY is visible'],
+      acceptance: [{ kind: 'text_contains', value: 'READY' }],
+      maxSteps: 3
+    });
+    assert.ok(internalCreated.id);
+    let internalTask = service.internal.getTask(internalCreated.id);
+    const internalDeadline = Date.now() + 2000;
+    while (Date.now() < internalDeadline && internalTask.status !== 'COMPLETE') {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      internalTask = service.internal.getTask(internalCreated.id);
+    }
+    assert.equal(internalTask.status, 'COMPLETE');
+    assert.equal(internalTask.result.verification.mode, 'DETERMINISTIC_ASSERTIONS');
+
     const held = await fetch(`${base}/v1/action`, {
       method: 'POST', headers: auth,
       body: JSON.stringify({ tabId: 1, action: { type: 'click', selector: '#open' } })
