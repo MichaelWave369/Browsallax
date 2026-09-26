@@ -129,3 +129,43 @@ test('held task retains exclusive ownership of its tab', async () => {
     /TASK_ALREADY_RUNNING_ON_TAB/
   );
 });
+
+test('planner cannot self-certify completion when deterministic acceptance fails', async () => {
+  let checks = 0;
+  const log = ledger();
+  const engine = new BrowserTaskEngine({
+    planner: {
+      plan: async () => ({
+        thoughtSummary: 'I think the task is complete.',
+        action: { type: 'finish', status: 'complete', summary: 'Done.' },
+        successEvidence: 'planner claim',
+        planner: { model: 'test' }
+      })
+    },
+    ledger: log,
+    observe: async () => ({ url: 'https://example.test/', title: 'Example', text: '', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async () => {
+      checks += 1;
+      return checks === 1
+        ? { ok: false, pass: false, actual: 'NOT_READY' }
+        : { ok: true, pass: true, actual: 'READY' };
+    },
+    getGrant: () => null
+  });
+
+  const created = await engine.create({
+    tabId: 4,
+    goal: 'Wait until READY',
+    acceptance: [{ kind: 'text_contains', value: 'READY' }],
+    maxSteps: 4
+  });
+  const complete = await waitFor(engine, created.id, (task) => task.status === 'COMPLETE');
+
+  assert.equal(complete.stepCount, 2);
+  assert.equal(complete.result.verification.mode, 'DETERMINISTIC_ASSERTIONS');
+  assert.equal(complete.result.verification.pass, true);
+  assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_ACCEPTANCE_FAILED'));
+  assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_COMPLETE'));
+});
