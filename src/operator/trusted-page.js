@@ -3,7 +3,7 @@ const {
   normalizePlannerRegistryHint
 } = require('./brain-registry-router');
 
-const TRUSTED_PAGE_BRIDGE_VERSION = 'PV-PAGE-0.1';
+const TRUSTED_PAGE_BRIDGE_VERSION = 'PV-PAGE-0.2';
 const DEFAULT_TRUSTED_ORIGINS = Object.freeze([
   'https://superphivessel.netlify.app'
 ]);
@@ -75,6 +75,7 @@ function normalizePageTaskSpec(input = {}) {
     constraints,
     successCriteria,
     acceptance,
+    completeOnInitialAcceptance: Boolean(input.completeOnInitialAcceptance && acceptance.length),
     plannerRegistry,
     maxSteps: Math.max(1, Math.min(40, Number(input.maxSteps || 20))),
     maxDurationMs: Math.max(10000, Math.min(10 * 60 * 1000, Number(input.maxDurationMs || 180000))),
@@ -100,6 +101,11 @@ function publicPageBridgeManifest() {
     plannerRegistryHints: {
       supported: true,
       version: BRAIN_REGISTRY_ROUTER_VERSION
+    },
+    initialAcceptanceShortCircuit: {
+      supported: true,
+      deterministicAssertionsOnly: true,
+      authority: 'NONE'
     },
     methods: [
       'manifest',
