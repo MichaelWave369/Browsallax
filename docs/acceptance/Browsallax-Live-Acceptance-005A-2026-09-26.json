@@ -1,0 +1,45 @@
+{
+  "schema": "browsallax.live-acceptance.v1",
+  "id": "Browsallax-Live-Acceptance-005A-2026-09-26",
+  "date": "2026-09-26",
+  "status": "PASS",
+  "scope": "Brain Registry routed planner success path",
+  "command": "npm run accept:nasa-registry",
+  "runtime": {
+    "bridgeVersion": "PV-BRIDGE-0.2",
+    "plannerVersion": "PV-BOP-PLAN-0.5",
+    "brainRegistryRouterVersion": "PV-BOP-BRR-0.1",
+    "readOnlyResearchVersion": "PV-BOP-RRC-0.1",
+    "provider": "OLLAMA_LOCAL",
+    "model": "qwen3:4b"
+  },
+  "registry": {
+    "schema": "superphivessel.brain_registry.planner_hints.v1",
+    "registryVersion": "diag-live-1",
+    "routerVersion": "diag-live-1",
+    "routingMode": "AUTO",
+    "role": "utility",
+    "approvedModels": [
+      "qwen3:4b"
+    ],
+    "recommendedModel": "qwen3:4b"
+  },
+  "acceptance": {
+    "complete": true,
+    "registryPresent": true,
+    "registryUsed": true,
+    "selectionBasis": "REGISTRY_RECOMMENDED",
+    "selectedModel": "qwen3:4b",
+    "selectedModelMatches": true,
+    "stepCount": 1,
+    "authorityBasis": "BASELINE_LOCAL_OPERATOR",
+    "failureDiagnostics": null
+  },
+  "observedResult": {
+    "sourceUrl": "https://www.nasa.gov/news/",
+    "articleTitle": "NASA, Boeing to Provide Update on Starliner Development"
+  },
+  "pending": [
+    "Live adversarial missing-local-model fail-closed acceptance"
+  ]
+}
