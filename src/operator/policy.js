@@ -1,4 +1,4 @@
-const SENSITIVE_PATTERN = /\b(delete|remove|erase|destroy|purchase|buy|checkout|pay|payment|transfer|withdraw|send money|publish|deploy|merge|close account|cancel subscription|change password|reset password|enable 2fa|disable 2fa|revoke|terminate)\b/i;
+const SENSITIVE_PATTERN = /\b(delete|remove|erase|destroy|purchase|buy|checkout|pay|payment|card number|cvv|cvc|bank|routing number|account number|social security|ssn|api key|secret|token|passcode|verification code|otp|transfer|withdraw|send money|publish|deploy|merge|close account|cancel subscription|change password|reset password|enable 2fa|disable 2fa|revoke|terminate)\b/i;
 
 const ACTION_CLASSES = Object.freeze({
   READ_ONLY: 'READ_ONLY',
@@ -40,10 +40,24 @@ function classifyAction(action = {}, target = {}) {
     case 'navigate':
       return ACTION_CLASSES.NAVIGATION;
     case 'type':
-    case 'select':
-      return SENSITIVE_PATTERN.test(normalizeText(target.text))
+    case 'select': {
+      const inputType = normalizeText(target.type).toLowerCase();
+      const autocomplete = normalizeText(target.autocomplete).toLowerCase();
+      const descriptor = normalizeText([
+        target.text,
+        target.ariaLabel,
+        target.title,
+        target.name,
+        target.placeholder
+      ].filter(Boolean).join(' '));
+      const secretField = inputType === 'password' ||
+        inputType === 'file' ||
+        autocomplete.includes('password') ||
+        autocomplete === 'one-time-code';
+      return secretField || SENSITIVE_PATTERN.test(descriptor)
         ? ACTION_CLASSES.SENSITIVE_ACTION
         : ACTION_CLASSES.FORM_INPUT;
+    }
     case 'click':
       return classifyClick(target);
     default:

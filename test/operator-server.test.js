@@ -24,6 +24,15 @@ test('local operator API requires token and human grant for ordinary mutation', 
     getTitle: () => 'Example',
     isLoading: () => false,
     executeJavaScript: async (script) => {
+      if (script.includes("const candidates =")) {
+        return {
+          url: 'https://example.test/',
+          title: 'Example',
+          text: 'READY',
+          viewport: { width: 1200, height: 800, scrollX: 0, scrollY: 0 },
+          elements: []
+        };
+      }
       if (script.includes("tagName: el.tagName.toLowerCase()")) {
         return {
           selector: '#open', tagName: 'button', role: '', type: 'button', name: '',
@@ -36,6 +45,16 @@ test('local operator API requires token and human grant for ordinary mutation', 
   };
   const tab = { id: 1, title: 'Example', view: { webContents } };
 
+  const fakePlanner = {
+    status: async () => ({ available: true, selectedModel: 'test-local:1b', models: [{ name: 'test-local:1b' }] }),
+    plan: async () => ({
+      thoughtSummary: 'Acceptance condition is already visible.',
+      action: { type: 'finish', status: 'complete', summary: 'READY verified.' },
+      successEvidence: 'READY',
+      planner: { provider: 'TEST', model: 'test-local:1b' }
+    })
+  };
+
   let service;
   const status = await waitForStatus((onStatus) => {
     service = startOperatorServer({
@@ -44,7 +63,8 @@ test('local operator API requires token and human grant for ordinary mutation', 
       listTabs: () => [{ id: 1, title: 'Example', url: 'https://example.test/', active: true }],
       navigateTab: async () => {},
       getGrant: () => grant,
-      onStatus
+      onStatus,
+      planner: fakePlanner
     });
   });
 
@@ -55,13 +75,44 @@ test('local operator API requires token and human grant for ordinary mutation', 
 
     const health = await fetch(`${base}/v1/health`);
     assert.equal(health.status, 200);
-    assert.equal((await health.json()).version, 'PV-BOP-0.1');
+    assert.equal((await health.json()).version, 'PV-BOP-0.2');
 
     const deniedStatus = await fetch(`${base}/v1/status`);
     assert.equal(deniedStatus.status, 401);
 
     const allowedStatus = await fetch(`${base}/v1/status`, { headers: { authorization: `Bearer ${endpoint.token}` } });
     assert.equal(allowedStatus.status, 200);
+
+    const plannerStatus = await fetch(`${base}/v1/planner/status`, { headers: { authorization: `Bearer ${endpoint.token}` } });
+    assert.equal(plannerStatus.status, 200);
+    assert.equal((await plannerStatus.json()).planner.selectedModel, 'test-local:1b');
+
+    const createTask = await fetch(`${base}/v1/tasks`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({
+        tabId: 1,
+        goal: 'Verify READY',
+        successCriteria: ['READY is visible'],
+        maxSteps: 3
+      })
+    });
+    assert.equal(createTask.status, 202);
+    const createdTask = (await createTask.json()).task;
+    assert.ok(createdTask.id);
+
+    let task = createdTask;
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline && task.status !== 'COMPLETE') {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      const response = await fetch(`${base}/v1/tasks/${task.id}`, {
+        headers: { authorization: `Bearer ${endpoint.token}` }
+      });
+      assert.equal(response.status, 200);
+      task = (await response.json()).task;
+    }
+    assert.equal(task.status, 'COMPLETE');
+    assert.equal(task.result.summary, 'READY verified.');
 
     const held = await fetch(`${base}/v1/action`, {
       method: 'POST', headers: auth,

@@ -41,3 +41,21 @@ test('ordinary page button is remote mutation and grant-gated', () => {
   assert.equal(evaluateAuthority(cls, null).allowed, false);
   assert.equal(evaluateAuthority(cls, { enabled: true, id: 'g2', expiresAt: Date.now() + 10000 }).allowed, true);
 });
+
+test('credential and payment fields remain hard-held even with an interactive grant', () => {
+  const grant = { enabled: true, id: 'g3', expiresAt: Date.now() + 10000 };
+
+  const passwordClass = classifyAction(
+    { type: 'type', value: 'secret' },
+    { tagName: 'input', type: 'password', text: 'Password', autocomplete: 'current-password' }
+  );
+  assert.equal(passwordClass, ACTION_CLASSES.SENSITIVE_ACTION);
+  assert.equal(evaluateAuthority(passwordClass, grant).allowed, false);
+
+  const cardClass = classifyAction(
+    { type: 'type', value: '4111111111111111' },
+    { tagName: 'input', type: 'text', text: 'Card number', name: 'card-number' }
+  );
+  assert.equal(cardClass, ACTION_CLASSES.SENSITIVE_ACTION);
+  assert.equal(evaluateAuthority(cardClass, grant).held, true);
+});

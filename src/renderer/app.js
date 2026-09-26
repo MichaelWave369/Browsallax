@@ -67,7 +67,7 @@ function renderOperator(state) {
 
   operatorButton.className = 'operator-button';
   operatorButton.textContent = 'OPERATOR READ-ONLY';
-  operatorButton.title = `PV-BOP-0.1 at ${operator.host || '127.0.0.1'}:${operator.port || '…'}. Click to grant interactive page mutation for 5 minutes.`;
+  operatorButton.title = `${operator.version || 'PV-BOP-0.2'} at ${operator.host || '127.0.0.1'}:${operator.port || '…'}. Click to grant interactive page mutation for 5 minutes.`;
 }
 
 function renderState(state) {

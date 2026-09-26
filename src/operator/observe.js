@@ -84,6 +84,8 @@ const TARGET_SCRIPT = (selector) => `(() => {
     role: el.getAttribute('role') || '',
     type: el.getAttribute('type') || '',
     name: el.getAttribute('name') || '',
+    autocomplete: el.getAttribute('autocomplete') || '',
+    placeholder: el.getAttribute('placeholder') || '',
     text: normalize(el.innerText || label || el.getAttribute('placeholder') || el.textContent).slice(0, 500),
     ariaLabel: el.getAttribute('aria-label') || '',
     title: el.getAttribute('title') || '',
