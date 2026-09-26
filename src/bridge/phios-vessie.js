@@ -3,8 +3,12 @@ const {
   BrowsallaxOperatorClient,
   CLIENT_VERSION
 } = require('../client/operator-client');
+const {
+  BRAIN_REGISTRY_ROUTER_VERSION,
+  normalizePlannerRegistryHint
+} = require('../operator/brain-registry-router');
 
-const BRIDGE_VERSION = 'PV-BRIDGE-0.1';
+const BRIDGE_VERSION = 'PV-BRIDGE-0.2';
 
 function normalizeTaskSpec(input = {}) {
   const tabId = Number(input.tabId);
@@ -23,6 +27,9 @@ function normalizeTaskSpec(input = {}) {
       ? input.successCriteria.map((value) => String(value).trim()).filter(Boolean)
       : [],
     acceptance: Array.isArray(input.acceptance) ? input.acceptance : [],
+    plannerRegistry: input.plannerRegistry
+      ? normalizePlannerRegistryHint(input.plannerRegistry)
+      : null,
     maxSteps: input.maxSteps,
     maxDurationMs: input.maxDurationMs
   };
@@ -40,6 +47,11 @@ function bridgeManifest() {
       humanGrantRequired: ['FORM_INPUT', 'REMOTE_MUTATION'],
       hardHeld: ['SENSITIVE_ACTION'],
       bridgeCanGrantAuthority: false
+    },
+    plannerRegistryHints: {
+      supported: true,
+      version: BRAIN_REGISTRY_ROUTER_VERSION,
+      advisoryOnly: true
     },
     taskStates: ['QUEUED', 'RUNNING', 'HELD', 'COMPLETE', 'FAILED', 'CANCELLED'],
     verificationModes: ['PLANNER_DECLARED', 'DETERMINISTIC_ASSERTIONS'],
@@ -89,7 +101,9 @@ function summarizeTask(task) {
         }
       : null,
     error: task.error || null,
+    plannerRegistry: task.plannerRegistry || null,
     planner: task.planner || null,
+    failureDiagnostics: task.failureDiagnostics || null,
     updatedAt: task.updatedAt || null,
     finishedAt: task.finishedAt || null
   };

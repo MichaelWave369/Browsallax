@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
+const { normalizePlannerRegistryHint } = require('./brain-registry-router');
 
-const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.1';
+const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.2';
 const TERMINAL = new Set(['COMPLETE', 'FAILED', 'CANCELLED']);
 
 function sanitizeAction(action = {}) {
@@ -26,6 +27,62 @@ function normalizeAcceptance(value) {
     }
     return { kind, value: String(item.value || '').slice(0, 4000) };
   });
+}
+
+function boundedDiagnosticString(value, maxLength = 240) {
+  const text = String(value || '').trim();
+  return text ? text.slice(0, maxLength) : null;
+}
+
+function boundedDiagnosticInt(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? Math.floor(number) : null;
+}
+
+function normalizeFailureDiagnostics(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+
+  const routeInput = input.brainRegistryRoute;
+  const brainRegistryRoute = routeInput && typeof routeInput === 'object' && !Array.isArray(routeInput)
+    ? {
+        version: boundedDiagnosticString(routeInput.version, 64),
+        schema: boundedDiagnosticString(routeInput.schema, 128),
+        registryUsed: Boolean(routeInput.registryUsed),
+        selectionBasis: boundedDiagnosticString(routeInput.selectionBasis, 128),
+        selectedModel: boundedDiagnosticString(routeInput.selectedModel, 240),
+        registryVersion: boundedDiagnosticString(routeInput.registryVersion, 64),
+        routerVersion: boundedDiagnosticString(routeInput.routerVersion, 64),
+        routingMode: boundedDiagnosticString(routeInput.routingMode, 32),
+        role: boundedDiagnosticString(routeInput.role, 64),
+        approvedPoolCount: boundedDiagnosticInt(routeInput.approvedPoolCount),
+        candidateCount: boundedDiagnosticInt(routeInput.candidateCount)
+      }
+    : null;
+
+  const researchInput = input.readOnlyResearch;
+  const readOnlyResearch = researchInput && typeof researchInput === 'object' && !Array.isArray(researchInput)
+    ? {
+        version: boundedDiagnosticString(researchInput.version, 64),
+        mode: boundedDiagnosticString(researchInput.mode, 64),
+        stepCount: boundedDiagnosticInt(researchInput.stepCount)
+      }
+    : null;
+
+  const rawResponseSha256 = /^[a-f0-9]{64}$/i.test(String(input.rawResponseSha256 || ''))
+    ? String(input.rawResponseSha256).toLowerCase()
+    : null;
+
+  return {
+    plannerVersion: boundedDiagnosticString(input.plannerVersion, 64),
+    provider: boundedDiagnosticString(input.provider, 64),
+    model: boundedDiagnosticString(input.model, 240),
+    attempts: boundedDiagnosticInt(input.attempts),
+    rawResponseChars: boundedDiagnosticInt(input.rawResponseChars),
+    rawResponseSha256,
+    validationError: boundedDiagnosticString(input.validationError, 200),
+    brainRegistryRoute,
+    readOnlyResearch
+  };
 }
 
 function publicTask(task) {
@@ -59,6 +116,7 @@ function publicTask(task) {
     result: task.result,
     error: task.error,
     planner: task.planner,
+    failureDiagnostics: task.failureDiagnostics,
     history: task.history.slice(-20).map((entry) => ({
       step: entry.step,
       phase: entry.phase,
@@ -116,8 +174,8 @@ class BrowserTaskEngine {
       ? input.successCriteria.map((item) => String(item).trim()).filter(Boolean).slice(0, 30)
       : [];
     const acceptance = normalizeAcceptance(input.acceptance);
-    const plannerRegistry = input.plannerRegistry && typeof input.plannerRegistry === 'object'
-      ? input.plannerRegistry
+    const plannerRegistry = input.plannerRegistry
+      ? normalizePlannerRegistryHint(input.plannerRegistry)
       : null;
     const maxSteps = Math.max(1, Math.min(40, Number(input.maxSteps || 20)));
     const maxDurationMs = Math.max(10000, Math.min(10 * 60 * 1000, Number(input.maxDurationMs || 3 * 60 * 1000)));
@@ -143,6 +201,7 @@ class BrowserTaskEngine {
       result: null,
       error: null,
       planner: null,
+      failureDiagnostics: null,
       history: []
     };
 
@@ -320,7 +379,11 @@ class BrowserTaskEngine {
         if (task.status !== 'CANCELLED') return await this.cancel(task.id, 'TASK_CANCELLED');
         return publicTask(task);
       }
-      return await this.fail(task, error?.code || error?.message || 'TASK_ENGINE_ERROR');
+      return await this.fail(
+        task,
+        error?.code || error?.message || 'TASK_ENGINE_ERROR',
+        error?.diagnostics || null
+      );
     } finally {
       this.controllers.delete(task.id);
     }
@@ -435,16 +498,18 @@ class BrowserTaskEngine {
     return publicTask(task);
   }
 
-  async fail(task, reason) {
+  async fail(task, reason, diagnostics = null) {
     task.status = 'FAILED';
     task.error = String(reason || 'TASK_FAILED').slice(0, 4000);
+    task.failureDiagnostics = normalizeFailureDiagnostics(diagnostics);
     task.finishedAt = new Date().toISOString();
     task.updatedAt = task.finishedAt;
     await this.ledger.append('TASK_FAILED', {
       taskId: task.id,
       stepCount: task.stepCount,
       error: task.error,
-      planner: task.planner
+      planner: task.planner,
+      failureDiagnostics: task.failureDiagnostics
     });
     return publicTask(task);
   }
@@ -454,6 +519,7 @@ module.exports = {
   BrowserTaskEngine,
   TASK_ENGINE_VERSION,
   normalizeAcceptance,
+  normalizeFailureDiagnostics,
   publicTask,
   sanitizeAction
 };
