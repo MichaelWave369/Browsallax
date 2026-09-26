@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.2.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.3.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -79,7 +79,7 @@ Current desktop features:
 - `contextIsolation: true`
 - Deny-by-default sensitive permissions
 - Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
-- **Browser Operator `PV-BOP-0.1`** on localhost for DOM-first observation, screenshots, navigation, governed actions, assertions, and hash-chained receipts
+- **Browser Operator `PV-BOP-0.2`** on localhost for DOM-first observation, screenshots, governed actions, assertions, resumable local tasks, and hash-chained receipts
 - Rotating local bearer token plus a five-minute human interactive grant; sensitive actions remain HELD
 - Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
 
@@ -160,7 +160,7 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 
 ### Governed Browser Operator
 
-- [x] localhost-only Operator API (`PV-BOP-0.1`)
+- [x] localhost-only Operator API (`PV-BOP-0.2`)
 - [x] DOM-first bounded page observation
 - [x] screenshot fallback with SHA-256 receipt
 - [x] navigation, click/type/select/scroll/wait actions
@@ -169,11 +169,15 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [x] five-minute human mutation grant from browser chrome only
 - [x] sensitive actions HELD in v0.1
 - [x] hash-chained operator Reality Ledger receipts
-- [ ] autonomous task planner
+- [x] local Ollama task planner with deterministic model selection
+- [x] observe → plan → act → verify → replan task loop
+- [x] resumable HELD tasks across human authority grants
+- [x] deterministic task acceptance assertions before COMPLETE
+- [x] one non-terminal task owns a tab at a time
 - [ ] per-action approval for sensitive mutations
 - [ ] local vision interpretation and replay
 
-See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md).
+See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md) and [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md).
 
 ### Local intelligence
 
