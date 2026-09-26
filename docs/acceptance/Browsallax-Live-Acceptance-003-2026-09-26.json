@@ -1,0 +1,56 @@
+{
+  "schema": "browsallax.live_acceptance.v1",
+  "acceptance_id": "BROWSALLAX-LIVE-ACCEPTANCE-003",
+  "date": "2026-09-26",
+  "evidence_class": "HUMAN_OBSERVED_LIVE_END_TO_END_READ_ONLY_WEB_ACCEPTANCE",
+  "verdict": "PASS",
+  "release_context": {
+    "super_phi_vessel": "v2.0-alpha.11.0.51.6",
+    "browser_target_resolver": "PV-BTR-0.1",
+    "browser_failure_diagnostics": "PV-BFD-0.1",
+    "trusted_page_bridge": "PV-PAGE-0.1",
+    "browser_operator": "PV-BOP-0.2",
+    "planner_baseline": "PV-BOP-PLAN-0.3"
+  },
+  "visible_runtime_state": {
+    "local_ready": true,
+    "browse_ready": true,
+    "operator_mode": "READ_ONLY",
+    "interactive_mutation_grant_active": false
+  },
+  "request": "Browse https://www.enterthefield.org and tell me what page title and main heading you can currently observe.",
+  "observed_result": {
+    "page_title": "Arrival Field",
+    "main_heading": "Enter the Field",
+    "source_url": "https://www.enterthefield.org/",
+    "page_evidence_available": true,
+    "authority": "OBSERVED_PAGE_CONTEXT_ONLY"
+  },
+  "assertions": {
+    "quick_chat_initiated": "PASS",
+    "explicit_url_routed": "PASS",
+    "trusted_page_handoff": "PASS",
+    "read_only_authority": "PASS",
+    "interactive_grant_not_required": "PASS",
+    "live_page_observation": "PASS",
+    "page_evidence_returned": "PASS",
+    "conversational_synthesis": "PASS"
+  },
+  "evidence_boundary": {
+    "screenshot_observed": true,
+    "screenshot_embedded_in_repository": false,
+    "task_id_transcribed": false,
+    "local_task_receipt_imported": false,
+    "local_receipt_hash": null
+  },
+  "remaining_limitation": {
+    "multi_step_research_completion_proven": false,
+    "observed_failure": "MAX_STEPS_REACHED on a separate NASA news task",
+    "next_contract": "PV-BOP-RRC-0.1"
+  },
+  "related_evidence": [
+    "BROWSALLAX-LIVE-ACCEPTANCE-001",
+    "BROWSALLAX-LIVE-INTERACTION-001",
+    "BROWSALLAX-LIVE-ACCEPTANCE-002"
+  ]
+}
