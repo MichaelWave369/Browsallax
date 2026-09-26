@@ -1,8 +1,14 @@
 const crypto = require('node:crypto');
+const {
+  READ_ONLY_RESEARCH_COMPLETION_VERSION,
+  readOnlyResearchContext,
+  readOnlyResearchPrompt,
+  enforceReadOnlyResearchPlan
+} = require('./read-only-research');
 
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.3';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.4';
 const PLANNER_MAX_ATTEMPTS = 2;
 const PLANNER_ATTEMPT_TIMEOUT_MS = 30000;
 
@@ -325,6 +331,8 @@ class OllamaPlanner {
     }
 
     const taskPrompt = userPrompt({ task, snapshot, history });
+    const researchContext = readOnlyResearchContext(task, snapshot);
+    const researchPrompt = readOnlyResearchPrompt(researchContext);
     let lastStructuredError = null;
     let lastRawResponse = '';
 
@@ -334,6 +342,9 @@ class OllamaPlanner {
         const messages = [
           { role: 'system', content: systemPrompt() }
         ];
+        if (researchPrompt) {
+          messages.push({ role: 'system', content: researchPrompt });
+        }
         if (attempt > 1) {
           messages.push({ role: 'system', content: structuredRepairPrompt(lastStructuredError) });
         }
@@ -363,14 +374,22 @@ class OllamaPlanner {
           lastRawResponse = plannerResponseContent(body);
           const parsed = parseJsonObject(lastRawResponse);
           const plan = validatePlan(parsed);
+          const governed = enforceReadOnlyResearchPlan(plan, task, snapshot);
           return {
-            ...plan,
+            ...governed.plan,
             planner: {
               version: PLANNER_VERSION,
               provider: 'OLLAMA_LOCAL',
               model: status.selectedModel,
               schemaConstrained: true,
-              attempts: attempt
+              attempts: attempt,
+              readOnlyResearch: governed.context.active
+                ? {
+                    version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
+                    mode: governed.context.mode,
+                    stepCount: governed.context.stepCount
+                  }
+                : null
             }
           };
         } catch (error) {
@@ -385,6 +404,13 @@ class OllamaPlanner {
             status.selectedModel,
             attempt
           );
+          if (researchContext.active) {
+            failure.diagnostics.readOnlyResearch = {
+              version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
+              mode: researchContext.mode,
+              stepCount: researchContext.stepCount
+            };
+          }
           throw failure;
         }
       } finally {
@@ -392,14 +418,22 @@ class OllamaPlanner {
       }
     }
 
+    const terminalDiagnostics = structuredOutputDiagnostics(
+      lastRawResponse,
+      lastStructuredError,
+      status.selectedModel,
+      PLANNER_MAX_ATTEMPTS
+    );
+    if (researchContext.active) {
+      terminalDiagnostics.readOnlyResearch = {
+        version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
+        mode: researchContext.mode,
+        stepCount: researchContext.stepCount
+      };
+    }
     throw Object.assign(new Error('PLANNER_STRUCTURED_OUTPUT_FAILED'), {
       code: 'PLANNER_STRUCTURED_OUTPUT_FAILED',
-      diagnostics: structuredOutputDiagnostics(
-        lastRawResponse,
-        lastStructuredError,
-        status.selectedModel,
-        PLANNER_MAX_ATTEMPTS
-      )
+      diagnostics: terminalDiagnostics
     });
   }
 }
