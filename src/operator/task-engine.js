@@ -36,6 +36,17 @@ function publicTask(task) {
     constraints: task.constraints,
     successCriteria: task.successCriteria,
     acceptance: task.acceptance,
+    plannerRegistry: task.plannerRegistry ? {
+      schema: task.plannerRegistry.schema,
+      bridgeVersion: task.plannerRegistry.bridgeVersion,
+      registryVersion: task.plannerRegistry.registryVersion,
+      routerVersion: task.plannerRegistry.routerVersion,
+      routingMode: task.plannerRegistry.routingMode,
+      role: task.plannerRegistry.role,
+      recommendedModel: task.plannerRegistry.recommendedModel,
+      approvedPoolCount: task.plannerRegistry.approvedModels.length,
+      candidateCount: task.plannerRegistry.candidates.length
+    } : null,
     status: task.status,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -105,6 +116,9 @@ class BrowserTaskEngine {
       ? input.successCriteria.map((item) => String(item).trim()).filter(Boolean).slice(0, 30)
       : [];
     const acceptance = normalizeAcceptance(input.acceptance);
+    const plannerRegistry = input.plannerRegistry && typeof input.plannerRegistry === 'object'
+      ? input.plannerRegistry
+      : null;
     const maxSteps = Math.max(1, Math.min(40, Number(input.maxSteps || 20)));
     const maxDurationMs = Math.max(10000, Math.min(10 * 60 * 1000, Number(input.maxDurationMs || 3 * 60 * 1000)));
     const now = new Date().toISOString();
@@ -116,6 +130,7 @@ class BrowserTaskEngine {
       constraints,
       successCriteria,
       acceptance,
+      plannerRegistry,
       status: 'QUEUED',
       createdAt: now,
       updatedAt: now,
@@ -139,6 +154,17 @@ class BrowserTaskEngine {
       constraints,
       successCriteria,
       acceptance,
+      plannerRegistry: plannerRegistry ? {
+        schema: plannerRegistry.schema,
+        bridgeVersion: plannerRegistry.bridgeVersion,
+        registryVersion: plannerRegistry.registryVersion,
+        routerVersion: plannerRegistry.routerVersion,
+        routingMode: plannerRegistry.routingMode,
+        role: plannerRegistry.role,
+        recommendedModel: plannerRegistry.recommendedModel,
+        approvedModels: plannerRegistry.approvedModels,
+        candidates: plannerRegistry.candidates
+      } : null,
       maxSteps,
       maxDurationMs,
       taskEngineVersion: TASK_ENGINE_VERSION

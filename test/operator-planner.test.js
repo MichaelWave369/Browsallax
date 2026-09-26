@@ -80,7 +80,7 @@ test('planner system prompt explicitly treats webpage content as untrusted data'
 });
 
 test('planner schema constrains the outer packet and action vocabulary', () => {
-  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.4');
+  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.5');
   assert.equal(PLANNER_MAX_ATTEMPTS, 2);
   assert.equal(PLANNER_SCHEMA.type, 'object');
   assert.equal(PLANNER_SCHEMA.additionalProperties, false);
@@ -126,7 +126,7 @@ test('Ollama planner uses JSON Schema, think=false, temperature zero, and return
   assert.equal(plan.action.type, 'click');
   assert.equal(plan.action.selector, '#docs');
   assert.equal(plan.planner.model, 'qwen3:4b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.4');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
   assert.equal(plan.planner.schemaConstrained, true);
   assert.equal(plan.planner.attempts, 1);
   assert.equal(calls.length, 2);
@@ -208,7 +208,7 @@ test('two malformed responses fail with bounded hashed diagnostics and no raw re
     (error) => {
       assert.equal(error.code, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
       assert.equal(error.message, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
-      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.4');
+      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.5');
       assert.equal(error.diagnostics.provider, 'OLLAMA_LOCAL');
       assert.equal(error.diagnostics.model, 'qwen3:4b');
       assert.equal(error.diagnostics.attempts, 2);
@@ -293,7 +293,7 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.equal(plan.action.type, 'finish');
   assert.equal(plan.action.status, 'complete');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.4');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
   assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.1');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 
@@ -305,5 +305,95 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.match(
     repairBody.messages[2].content,
     /PLANNER_READ_ONLY_TERMINATION_REQUIRED/
+  );
+});
+
+
+test('planner uses a trusted Brain Registry recommendation only when it is locally installed and approved', async () => {
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).endsWith('/api/tags')) {
+      return new Response(JSON.stringify({
+        models: [
+          { name: 'qwen3:4b', size: 3_000_000_000, details: { parameter_size: '4B', family: 'qwen3' } },
+          { name: 'gemma3:12b', size: 8_000_000_000, details: { parameter_size: '12B', family: 'gemma3' } }
+        ]
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (String(url).endsWith('/api/chat')) return validPlanResponse();
+    throw new Error('unexpected URL');
+  };
+
+  const planner = new OllamaPlanner({
+    baseUrl: 'http://127.0.0.1:11434',
+    fetchImpl
+  });
+  const fixture = taskFixture();
+  fixture.task.plannerRegistry = {
+    schema: 'superphivessel.brain_registry.planner_hints.v1',
+    bridgeVersion: 'PV-BOP-BRR-0.1',
+    registryVersion: '1.1',
+    routerVersion: '1.2.0',
+    routingMode: 'AUTO',
+    role: 'utility',
+    approvedModels: ['gemma3:12b'],
+    configuredModel: null,
+    recommendedModel: 'gemma3:12b',
+    candidates: [{ model: 'gemma3:12b', score: 0.91 }]
+  };
+
+  const plan = await planner.plan(fixture);
+  assert.equal(plan.planner.model, 'gemma3:12b');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
+  assert.equal(plan.planner.brainRegistryRouterVersion, 'PV-BOP-BRR-0.1');
+  assert.equal(plan.planner.brainRegistryRoute.registryUsed, true);
+  assert.equal(plan.planner.brainRegistryRoute.selectionBasis, 'REGISTRY_RECOMMENDED');
+  assert.equal(plan.planner.brainRegistryRoute.registryVersion, '1.1');
+
+  const requestBody = JSON.parse(calls[1].options.body);
+  assert.equal(requestBody.model, 'gemma3:12b');
+});
+
+test('planner refuses a registry route when no approved registry model exists locally', async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).endsWith('/api/tags')) {
+      return new Response(JSON.stringify({
+        models: [
+          { name: 'qwen3:4b', size: 3_000_000_000, details: { parameter_size: '4B', family: 'qwen3' } }
+        ]
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('chat should not be called');
+  };
+
+  const planner = new OllamaPlanner({
+    baseUrl: 'http://127.0.0.1:11434',
+    fetchImpl
+  });
+  const fixture = taskFixture();
+  fixture.task.plannerRegistry = {
+    schema: 'superphivessel.brain_registry.planner_hints.v1',
+    bridgeVersion: 'PV-BOP-BRR-0.1',
+    registryVersion: '1.1',
+    routerVersion: '1.2.0',
+    routingMode: 'AUTO',
+    role: 'utility',
+    approvedModels: ['gemma3:12b'],
+    configuredModel: null,
+    recommendedModel: 'gemma3:12b',
+    candidates: [{ model: 'gemma3:12b', score: 0.91 }]
+  };
+
+  await assert.rejects(
+    planner.plan(fixture),
+    (error) => {
+      assert.equal(error.code, 'NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL');
+      assert.equal(
+        error.diagnostics.brainRegistryRoute.selectionBasis,
+        'NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL'
+      );
+      return true;
+    }
   );
 });

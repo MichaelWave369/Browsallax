@@ -1,3 +1,8 @@
+const {
+  BRAIN_REGISTRY_ROUTER_VERSION,
+  normalizePlannerRegistryHint
+} = require('./brain-registry-router');
+
 const TRUSTED_PAGE_BRIDGE_VERSION = 'PV-PAGE-0.1';
 const DEFAULT_TRUSTED_ORIGINS = Object.freeze([
   'https://superphivessel.netlify.app'
@@ -60,6 +65,9 @@ function normalizePageTaskSpec(input = {}) {
   const acceptance = Array.isArray(input.acceptance)
     ? input.acceptance.slice(0, 20)
     : [];
+  const plannerRegistry = input.plannerRegistry
+    ? normalizePlannerRegistryHint(input.plannerRegistry)
+    : null;
 
   return {
     url: parsed.toString(),
@@ -67,6 +75,7 @@ function normalizePageTaskSpec(input = {}) {
     constraints,
     successCriteria,
     acceptance,
+    plannerRegistry,
     maxSteps: Math.max(1, Math.min(40, Number(input.maxSteps || 20))),
     maxDurationMs: Math.max(10000, Math.min(10 * 60 * 1000, Number(input.maxDurationMs || 180000))),
     closeOnTerminal: input.closeOnTerminal !== false
@@ -81,11 +90,17 @@ function publicPageBridgeManifest() {
     authority: {
       invariant: 'CAPABILITY != AUTHORITY',
       pageCanGrantAuthority: false,
+      pageCanSelectExecutor: false,
+      plannerHintsAreAdvisory: true,
       arbitraryTabAccess: false,
       bearerTokenExposed: false,
       dedicatedTaskTabOnly: true
     },
     trustedOrigins: [...DEFAULT_TRUSTED_ORIGINS],
+    plannerRegistryHints: {
+      supported: true,
+      version: BRAIN_REGISTRY_ROUTER_VERSION
+    },
     methods: [
       'manifest',
       'status',
