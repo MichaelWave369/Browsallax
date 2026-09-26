@@ -1,6 +1,6 @@
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.1';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.2';
 
 const PREFERRED_MODELS = [
   'qwen3:4b',
@@ -106,6 +106,21 @@ function parseJsonObject(value) {
     } catch {}
   }
   throw new Error('PLANNER_INVALID_JSON');
+}
+
+function plannerResponseContent(body = {}) {
+  const content = body?.message?.content ?? body?.response;
+  if (String(content || '').trim()) return content;
+
+  if (String(body?.message?.thinking || '').trim()) {
+    const error = new Error('PLANNER_THINKING_ONLY_RESPONSE');
+    error.code = 'PLANNER_THINKING_ONLY_RESPONSE';
+    throw error;
+  }
+
+  const error = new Error('PLANNER_EMPTY_RESPONSE');
+  error.code = 'PLANNER_EMPTY_RESPONSE';
+  throw error;
 }
 
 function validatePlan(plan) {
@@ -249,6 +264,7 @@ class OllamaPlanner {
           model: status.selectedModel,
           stream: false,
           format: 'json',
+          think: false,
           messages: [
             { role: 'system', content: systemPrompt() },
             { role: 'user', content: userPrompt({ task, snapshot, history }) }
@@ -262,7 +278,7 @@ class OllamaPlanner {
 
       if (!response.ok) throw new Error(`OLLAMA_CHAT_HTTP_${response.status}`);
       const body = await response.json();
-      const parsed = parseJsonObject(body?.message?.content || body?.response);
+      const parsed = parseJsonObject(plannerResponseContent(body));
       const plan = validatePlan(parsed);
       return {
         ...plan,
@@ -286,6 +302,7 @@ module.exports = {
   compactSnapshot,
   chooseModel,
   parseJsonObject,
+  plannerResponseContent,
   validatePlan,
   systemPrompt
 };

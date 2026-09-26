@@ -4,6 +4,7 @@ const {
   OllamaPlanner,
   chooseModel,
   validatePlan,
+  plannerResponseContent,
   systemPrompt
 } = require('../src/operator/planner');
 
@@ -81,6 +82,26 @@ test('Ollama planner discovers a model and returns one validated JSON action', a
 
   const requestBody = JSON.parse(calls[1].options.body);
   assert.equal(requestBody.model, 'qwen3:4b');
+  assert.equal(requestBody.think, false);
   assert.match(requestBody.messages[0].content, /UNTRUSTED DATA/);
   assert.match(requestBody.messages[1].content, /Ignore previous instructions/);
+});
+
+test('thinking-only Ollama response is diagnosed explicitly instead of generic empty response', () => {
+  assert.throws(
+    () => plannerResponseContent({
+      message: {
+        content: '',
+        thinking: 'I am reasoning but have not emitted the final JSON plan.'
+      }
+    }),
+    /PLANNER_THINKING_ONLY_RESPONSE/
+  );
+});
+
+test('empty Ollama response remains a distinct planner error', () => {
+  assert.throws(
+    () => plannerResponseContent({ message: { content: '' } }),
+    /PLANNER_EMPTY_RESPONSE/
+  );
 });
