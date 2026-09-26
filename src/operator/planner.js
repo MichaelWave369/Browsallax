@@ -5,10 +5,15 @@ const {
   readOnlyResearchPrompt,
   enforceReadOnlyResearchPlan
 } = require('./read-only-research');
+const {
+  BRAIN_REGISTRY_ROUTER_VERSION,
+  selectPlannerModel,
+  registryRouteReceipt
+} = require('./brain-registry-router');
 
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.4';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.5';
 const PLANNER_MAX_ATTEMPTS = 2;
 const PLANNER_ATTEMPT_TIMEOUT_MS = 30000;
 
@@ -118,25 +123,13 @@ function modelName(entry) {
   return String(entry?.name || entry?.model || '').trim();
 }
 
-function chooseModel(models = []) {
-  const names = models.map(modelName).filter(Boolean);
-  if (CONFIGURED_MODEL) {
-    const exact = names.find((name) => name === CONFIGURED_MODEL);
-    if (exact) return exact;
-    return null;
-  }
-
-  for (const preferred of PREFERRED_MODELS) {
-    const exact = names.find((name) => name === preferred);
-    if (exact) return exact;
-  }
-
-  const candidates = models
-    .map((entry) => ({ name: modelName(entry), size: Number(entry?.size || Number.MAX_SAFE_INTEGER) }))
-    .filter((entry) => entry.name)
-    .sort((a, b) => a.size - b.size);
-
-  return candidates[0]?.name || null;
+function chooseModel(models = [], registryHint = null) {
+  return selectPlannerModel({
+    localModels: models,
+    registryHint,
+    configuredModel: CONFIGURED_MODEL,
+    fallbackModels: PREFERRED_MODELS
+  }).model;
 }
 
 function parseJsonObject(value) {
@@ -325,10 +318,28 @@ class OllamaPlanner {
   async plan({ task, snapshot, history = [], signal }) {
     const status = await this.status({ signal, refresh: !this.cached?.selectedModel });
     if (!status.available) throw Object.assign(new Error('LOCAL_PLANNER_UNAVAILABLE'), { code: 'LOCAL_PLANNER_UNAVAILABLE' });
-    if (!status.selectedModel) {
-      const code = CONFIGURED_MODEL ? 'CONFIGURED_PLANNER_MODEL_NOT_FOUND' : 'NO_LOCAL_PLANNER_MODEL';
-      throw Object.assign(new Error(code), { code });
+
+    const modelSelection = selectPlannerModel({
+      localModels: status.models,
+      registryHint: task.plannerRegistry || null,
+      configuredModel: CONFIGURED_MODEL,
+      fallbackModels: PREFERRED_MODELS
+    });
+    const selectedModel = modelSelection.model;
+    if (!selectedModel) {
+      const code = modelSelection.basis === 'LOCAL_OPERATOR_OVERRIDE_NOT_INSTALLED'
+        ? 'CONFIGURED_PLANNER_MODEL_NOT_FOUND'
+        : modelSelection.basis === 'NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL'
+          ? 'NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL'
+          : 'NO_LOCAL_PLANNER_MODEL';
+      const error = new Error(code);
+      error.code = code;
+      error.diagnostics = {
+        brainRegistryRoute: registryRouteReceipt(modelSelection, task.plannerRegistry || null)
+      };
+      throw error;
     }
+    const brainRegistryRoute = registryRouteReceipt(modelSelection, task.plannerRegistry || null);
 
     const taskPrompt = userPrompt({ task, snapshot, history });
     const researchContext = readOnlyResearchContext(task, snapshot);
@@ -355,7 +366,7 @@ class OllamaPlanner {
           headers: { 'content-type': 'application/json' },
           signal: timed.signal,
           body: JSON.stringify({
-            model: status.selectedModel,
+            model: selectedModel,
             stream: false,
             format: PLANNER_SCHEMA,
             think: false,
@@ -380,9 +391,11 @@ class OllamaPlanner {
             planner: {
               version: PLANNER_VERSION,
               provider: 'OLLAMA_LOCAL',
-              model: status.selectedModel,
+              model: selectedModel,
               schemaConstrained: true,
               attempts: attempt,
+              brainRegistryRouterVersion: BRAIN_REGISTRY_ROUTER_VERSION,
+              brainRegistryRoute,
               readOnlyResearch: governed.context.active
                 ? {
                     version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
@@ -401,9 +414,10 @@ class OllamaPlanner {
           failure.diagnostics = structuredOutputDiagnostics(
             lastRawResponse,
             error,
-            status.selectedModel,
+            selectedModel,
             attempt
           );
+          failure.diagnostics.brainRegistryRoute = brainRegistryRoute;
           if (researchContext.active) {
             failure.diagnostics.readOnlyResearch = {
               version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
@@ -421,9 +435,10 @@ class OllamaPlanner {
     const terminalDiagnostics = structuredOutputDiagnostics(
       lastRawResponse,
       lastStructuredError,
-      status.selectedModel,
+      selectedModel,
       PLANNER_MAX_ATTEMPTS
     );
+    terminalDiagnostics.brainRegistryRoute = brainRegistryRoute;
     if (researchContext.active) {
       terminalDiagnostics.readOnlyResearch = {
         version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
@@ -443,6 +458,7 @@ module.exports = {
   PLANNER_VERSION,
   PLANNER_SCHEMA,
   PLANNER_MAX_ATTEMPTS,
+  BRAIN_REGISTRY_ROUTER_VERSION,
   PREFERRED_MODELS,
   ALLOWED_ACTIONS,
   compactSnapshot,
