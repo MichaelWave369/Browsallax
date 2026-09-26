@@ -14,6 +14,7 @@ function normalizeTaskSpec(input = {}) {
 
   return {
     tabId,
+    url: input.url ? String(input.url).trim() : null,
     goal,
     constraints: Array.isArray(input.constraints)
       ? input.constraints.map((value) => String(value).trim()).filter(Boolean)
@@ -162,9 +163,16 @@ class PhiBrowserBridge {
 
   async submitTask(input, options = {}) {
     const spec = normalizeTaskSpec(input);
-    const response = await this.client.createTask(spec, options);
+    let navigation = null;
+    if (spec.url) {
+      navigation = await this.client.navigate(spec.tabId, spec.url, options);
+    }
+    const taskSpec = { ...spec };
+    delete taskSpec.url;
+    const response = await this.client.createTask(taskSpec, options);
     return bridgeEnvelope('TASK_SUBMITTED', {
       disposition: mapTaskDisposition(response.task),
+      navigation,
       task: summarizeTask(response.task)
     }, {
       taskId: response.task?.id || null,
@@ -176,13 +184,20 @@ class PhiBrowserBridge {
     const task = await this.client.waitForTask(id, options);
     return bridgeEnvelope('TASK_STATE', {
       disposition: mapTaskDisposition(task),
+      navigation,
       task: summarizeTask(task)
     }, { taskId: id, tabId: task?.tabId ?? null });
   }
 
   async runTask(input, options = {}) {
     const spec = normalizeTaskSpec(input);
-    const task = await this.client.runTask(spec, options);
+    let navigation = null;
+    if (spec.url) {
+      navigation = await this.client.navigate(spec.tabId, spec.url, options);
+    }
+    const taskSpec = { ...spec };
+    delete taskSpec.url;
+    const task = await this.client.runTask(taskSpec, options);
     return bridgeEnvelope('TASK_RESULT', {
       disposition: mapTaskDisposition(task),
       task: summarizeTask(task)
