@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-26  
 **Status:** PASS  
-**Scope:** Success half of Live Acceptance 005. The adversarial missing-local-model half remains pending live execution.
+**Scope:** Success half of Live Acceptance 005. The adversarial half is preserved separately as 005B.
 
 ## Purpose
 
@@ -99,21 +99,11 @@ No interactive mutation grant was required or promoted by this task.
 - Is route provenance preserved in the final task receipt? **Yes.**
 - Does bounded NASA read-only research still complete? **Yes.**
 
-## What remains open
+## Companion acceptance
 
-Live Acceptance 005 is not complete until the adversarial case is executed:
+The adversarial half is now complete:
 
-```powershell
-npm run accept:registry-fail-closed
-```
+- [005B — Registry/local inventory disagreement fails closed](Browsallax-Live-Acceptance-005B-2026-09-26.md)
+- [Combined Live Acceptance 005](Browsallax-Live-Acceptance-005-2026-09-26.md)
 
-That run must prove that when a valid registry hint supplies only approved models that are absent from local Ollama inventory:
-
-- the task fails at step 0;
-- the error is `NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL`;
-- `registryUsed=true`;
-- the selection basis is `NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL`;
-- no planner model is selected;
-- no legacy/local fallback preference is used.
-
-Until that live result is observed, the fail-closed half remains **PENDING LIVE ACCEPTANCE**.
+005A remains the positive-path evidence record; 005B preserves the fail-closed disagreement path.
