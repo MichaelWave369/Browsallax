@@ -198,6 +198,7 @@ See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/bro
 - [Browsallax Live Acceptance 001 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-001-2026-09-26.md) — first observed live Super PhiVessel trusted-page task completion using local `qwen3:4b`, `PV-PAGE-0.1`, and `PV-BOP-0.2`, completed in one step with no interactive grant.
 - [Browsallax Live Interaction 001 · 2026-09-26](docs/interaction/Browsallax-Live-Interaction-001-2026-09-26.md) — first documented successful live conversational exchange inside Browsallax: collaborator `Hello!` → Super PhiVessel `Hello! How can I help you today?`, with the response lane visibly labeled `BrainC Hosted`.
 - [Browsallax Live Acceptance 002 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-002-2026-09-26.md) — live `.51.5` regression acceptance for capability distinction, current Browser Operator state grounding, runtime UI truth, and turn-local discipline inside Browsallax.
+- [Browsallax Live Acceptance 003 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-003-2026-09-26.md) — first successful conversational end-to-end live web observation with `PAGE_EVIDENCE_AVAILABLE=YES` while Browsallax visibly remained `OPERATOR READ-ONLY` and no interactive mutation grant was active.
 
 
 ### Local intelligence
