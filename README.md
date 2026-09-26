@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.1.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.2.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -79,6 +79,8 @@ Current desktop features:
 - `contextIsolation: true`
 - Deny-by-default sensitive permissions
 - Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
+- **Browser Operator `PV-BOP-0.1`** on localhost for DOM-first observation, screenshots, navigation, governed actions, assertions, and hash-chained receipts
+- Rotating local bearer token plus a five-minute human interactive grant; sensitive actions remain HELD
 - Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
 
 ## Reality Ledger capture
@@ -121,7 +123,8 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 │ real browser tabs    │ launch/search         │
 │ browser permissions  │ local workspaces      │
 │ page capture         │ Research Mode         │
-│ planned Ollama AI    │ Reality Ledger        │
+│ Browser Operator     │ Reality Ledger        │
+│ planned Ollama AI    │ Free Tools Dock       │
 │                      │ Free Tools Dock       │
 │                      │ Field Products link   │
 │                      │ offline app shell     │
@@ -154,6 +157,23 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [ ] bookmarks
 - [ ] private windows
 - [ ] site information panel
+
+### Governed Browser Operator
+
+- [x] localhost-only Operator API (`PV-BOP-0.1`)
+- [x] DOM-first bounded page observation
+- [x] screenshot fallback with SHA-256 receipt
+- [x] navigation, click/type/select/scroll/wait actions
+- [x] URL/text/visibility assertions
+- [x] rotating bearer token
+- [x] five-minute human mutation grant from browser chrome only
+- [x] sensitive actions HELD in v0.1
+- [x] hash-chained operator Reality Ledger receipts
+- [ ] autonomous task planner
+- [ ] per-action approval for sensitive mutations
+- [ ] local vision interpretation and replay
+
+See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md).
 
 ### Local intelligence
 

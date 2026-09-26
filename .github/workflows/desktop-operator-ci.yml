@@ -1,0 +1,32 @@
+name: Desktop Operator CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'package.json'
+      - '.github/workflows/desktop-operator-ci.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'package.json'
+      - '.github/workflows/desktop-operator-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  operator-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax contract
+        run: npm run check
+      - name: Operator policy and API tests
+        run: npm test
