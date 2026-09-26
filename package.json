@@ -20,5 +20,10 @@
   },
   "bin": {
     "browsallax": "bin/browsallax.js"
+  },
+  "exports": {
+    ".": "./src/main.js",
+    "./client": "./src/client/index.js",
+    "./bridge": "./src/bridge/index.js"
   }
 }
