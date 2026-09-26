@@ -192,9 +192,10 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 
 See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md), and [`docs/browser-operator-v0.4.md`](docs/browser-operator-v0.4.md).
 
-### Live acceptance evidence
+### Live evidence
 
 - [Browsallax Live Acceptance 001 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-001-2026-09-26.md) — first observed live Super PhiVessel trusted-page task completion using local `qwen3:4b`, `PV-PAGE-0.1`, and `PV-BOP-0.2`, completed in one step with no interactive grant.
+- [Browsallax Live Interaction 001 · 2026-09-26](docs/interaction/Browsallax-Live-Interaction-001-2026-09-26.md) — first documented successful live conversational exchange inside Browsallax: collaborator `Hello!` → Super PhiVessel `Hello! How can I help you today?`, with the response lane visibly labeled `BrainC Hosted`.
 
 
 ### Local intelligence
