@@ -8,9 +8,10 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check bin/browsallax.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check bin/browsallax.js && node --check examples/vessie-live-acceptance.js",
     "test": "node --test test/*.test.js",
-    "operator": "node bin/browsallax.js"
+    "operator": "node bin/browsallax.js",
+    "accept:vessie": "node examples/vessie-live-acceptance.js"
   },
   "devDependencies": {
     "electron": "44.3.0"
