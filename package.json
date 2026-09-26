@@ -1,14 +1,14 @@
 {
   "name": "browsallax",
-  "version": "0.2.0-alpha.1",
-  "description": "A free, local-first Chromium browser with transparent permissions, a governed local Browser Operator, and optional local AI.",
+  "version": "0.3.0-alpha.1",
+  "description": "A free, local-first Chromium browser with a governed local Browser Operator, resumable local task planning, and optional local AI.",
   "main": "src/main.js",
   "license": "MIT",
   "private": false,
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/server.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/task-engine.js && node --check src/operator/server.js",
     "test": "node --test test/*.test.js"
   },
   "devDependencies": {
