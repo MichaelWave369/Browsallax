@@ -15,7 +15,7 @@ let mainWindow = null;
 let nextTabId = 1;
 let activeTabId = null;
 let operatorService = null;
-let operatorStatus = { running: false, version: 'PV-BOP-0.1', host: '127.0.0.1', port: null };
+let operatorStatus = { running: false, version: 'PV-BOP-0.2', host: '127.0.0.1', port: null };
 let operatorGrant = null;
 const tabs = new Map();
 
