@@ -296,6 +296,27 @@ class BrowserTaskEngine {
     return publicTask(task);
   }
 
+  async shutdown() {
+    for (const controller of this.controllers.values()) {
+      controller.abort(new Error('OPERATOR_SHUTDOWN'));
+    }
+    const pending = [...this.tasks.values()].filter((task) => !TERMINAL.has(task.status));
+    for (const task of pending) {
+      if (task.status !== 'CANCELLED') {
+        task.status = 'CANCELLED';
+        task.result = { summary: 'OPERATOR_SHUTDOWN' };
+        task.finishedAt = new Date().toISOString();
+        task.updatedAt = task.finishedAt;
+        await this.ledger.append('TASK_CANCELLED', {
+          taskId: task.id,
+          reason: 'OPERATOR_SHUTDOWN',
+          stepCount: task.stepCount
+        });
+      }
+    }
+    this.controllers.clear();
+  }
+
   async complete(task, summary) {
     task.status = 'COMPLETE';
     task.result = { summary: String(summary || 'Task complete.').slice(0, 4000) };
