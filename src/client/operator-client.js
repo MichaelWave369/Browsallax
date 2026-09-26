@@ -87,6 +87,31 @@ async function discoverEndpoint(options = {}) {
   throw error;
 }
 
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal?.removeEventListener?.('abort', abort);
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const abort = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      cleanup();
+      reject(signal?.reason || new Error('CLIENT_ABORTED'));
+    };
+    const timer = setTimeout(finish, ms);
+    if (signal) {
+      if (signal.aborted) abort();
+      else signal.addEventListener('abort', abort, { once: true });
+    }
+  });
+}
+
 function timeoutSignal(ms, parentSignal) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error('CLIENT_TIMEOUT')), ms);
@@ -255,17 +280,7 @@ class BrowsallaxOperatorClient {
       if (TERMINAL_TASK_STATES.has(task.status)) return task;
       if (stopOnHeld && task.status === 'HELD') return task;
 
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, Math.max(50, pollMs));
-        const abort = () => {
-          clearTimeout(timer);
-          reject(signal.reason || new Error('CLIENT_ABORTED'));
-        };
-        if (signal) {
-          if (signal.aborted) abort();
-          else signal.addEventListener('abort', abort, { once: true });
-        }
-      });
+      await sleep(Math.max(50, pollMs), signal);
     }
 
     const error = new Error('TASK_WAIT_TIMEOUT');
@@ -290,5 +305,6 @@ module.exports = {
   candidateEndpointFiles,
   validateEndpoint,
   readEndpointFile,
-  discoverEndpoint
+  discoverEndpoint,
+  sleep
 };
