@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 const { normalizePlannerRegistryHint } = require('./brain-registry-router');
 
-const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.2';
+const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.3';
 const TERMINAL = new Set(['COMPLETE', 'FAILED', 'CANCELLED']);
 
 function sanitizeAction(action = {}) {
@@ -93,6 +93,7 @@ function publicTask(task) {
     constraints: task.constraints,
     successCriteria: task.successCriteria,
     acceptance: task.acceptance,
+    completeOnInitialAcceptance: task.completeOnInitialAcceptance,
     plannerRegistry: task.plannerRegistry ? {
       schema: task.plannerRegistry.schema,
       bridgeVersion: task.plannerRegistry.bridgeVersion,
@@ -174,6 +175,7 @@ class BrowserTaskEngine {
       ? input.successCriteria.map((item) => String(item).trim()).filter(Boolean).slice(0, 30)
       : [];
     const acceptance = normalizeAcceptance(input.acceptance);
+    const completeOnInitialAcceptance = Boolean(input.completeOnInitialAcceptance && acceptance.length);
     const plannerRegistry = input.plannerRegistry
       ? normalizePlannerRegistryHint(input.plannerRegistry)
       : null;
@@ -188,6 +190,7 @@ class BrowserTaskEngine {
       constraints,
       successCriteria,
       acceptance,
+      completeOnInitialAcceptance,
       plannerRegistry,
       status: 'QUEUED',
       createdAt: now,
@@ -213,6 +216,7 @@ class BrowserTaskEngine {
       constraints,
       successCriteria,
       acceptance,
+      completeOnInitialAcceptance,
       plannerRegistry: plannerRegistry ? {
         schema: plannerRegistry.schema,
         bridgeVersion: plannerRegistry.bridgeVersion,
@@ -259,6 +263,25 @@ class BrowserTaskEngine {
         }
         if (Date.now() - startedMs > task.maxDurationMs) {
           return await this.fail(task, 'MAX_DURATION_REACHED');
+        }
+
+        if (task.completeOnInitialAcceptance && task.stepCount === 0 && task.acceptance.length) {
+          const verification = await this.verifyAcceptance(task, {
+            step: 0,
+            preflight: true
+          });
+          await this.ledger.append('TASK_INITIAL_ACCEPTANCE_CHECK', {
+            taskId: task.id,
+            step: 0,
+            verification
+          });
+          if (verification.pass) {
+            return await this.complete(
+              task,
+              'Initial deterministic acceptance satisfied.',
+              verification
+            );
+          }
         }
 
         const snapshot = await this.observe(task.tabId);
