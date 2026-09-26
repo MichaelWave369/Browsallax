@@ -460,6 +460,16 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
 
   return {
     version: VERSION,
+    internal: {
+      plannerStatus: (refresh = false) => localPlanner.status({ refresh }),
+      createTask: async (input) => {
+        requireTab(input?.tabId);
+        return taskEngine.create(input);
+      },
+      getTask: (id) => taskEngine.get(id),
+      resumeTask: (id) => taskEngine.resume(id),
+      cancelTask: (id, reason = 'INTERNAL_CANCELLED') => taskEngine.cancel(id, reason)
+    },
     close: async () => {
       if (server?.listening) await new Promise((resolve) => server.close(() => resolve()));
       await taskEngine.shutdown?.();

@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.4.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.5.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -81,6 +81,7 @@ Current desktop features:
 - Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
 - **Browser Operator `PV-BOP-0.2`** on localhost for DOM-first observation, screenshots, governed actions, assertions, resumable local tasks, and hash-chained receipts
 - **PhiOS / Super PhiVessel Bridge `PV-BRIDGE-0.1`** with automatic endpoint discovery, portable Node client, CLI, task handoff envelopes, and a live Vessie acceptance example
+- **Trusted Super PhiVessel Page Bridge `PV-PAGE-0.1`** using origin-validated Electron IPC and dedicated task tabs without exposing the bearer token or arbitrary user tabs
 - Rotating local bearer token plus a five-minute human interactive grant; sensitive actions remain HELD
 - Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
 
@@ -106,7 +107,7 @@ In both editions, receipts are explicitly marked `SOURCE_ONLY` and `derived: fal
 
 Browsallax treats arbitrary web content as untrusted.
 
-In Desktop, the application chrome and web pages are separate. Web pages do not receive Node.js access. The renderer bridge exposes only a small set of browser-navigation messages, while loaded sites run in sandboxed `WebContentsView` instances.
+In Desktop, the application chrome and web pages are separate. Web pages do not receive Node.js access. The renderer bridge exposes only a small set of browser-navigation messages, while loaded sites run in sandboxed `WebContentsView` instances. A page preload may expose the bounded `window.browsallaxOperator` surface, but the main process accepts that surface only from explicitly trusted origins and never exposes the Browser Operator bearer token or arbitrary-tab access.
 
 For the Desktop alpha, camera, microphone, geolocation, and notifications are denied by default. A human-readable permission ledger and per-site permission controls are planned rather than silently granting capabilities.
 
@@ -180,10 +181,16 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [x] `browsallax` local CLI for status, observation, screenshots, tasks, resume, and cancel
 - [x] governed starting-URL handoff with preserved navigation provenance
 - [x] Super PhiVessel live acceptance example
+- [x] trusted Super PhiVessel page bridge (`PV-PAGE-0.1`)
+- [x] exact-origin validation with explicit-only development origins
+- [x] dedicated Browser Operator task tabs instead of arbitrary user-tab access
+- [x] trusted-page task ownership bound to origin + WebContents identity
+- [x] trusted-page concurrency bound and nested-task prevention
+- [x] page never receives endpoint token or authority-grant methods
 - [ ] per-action approval for sensitive mutations
 - [ ] local vision interpretation and replay
 
-See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), and [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md).
+See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md), and [`docs/browser-operator-v0.4.md`](docs/browser-operator-v0.4.md).
 
 ### Local intelligence
 

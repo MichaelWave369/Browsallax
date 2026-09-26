@@ -3,6 +3,13 @@ const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu } = require('electron');
 const { startOperatorServer } = require('./operator/server');
+const {
+  isTrustedPageUrl,
+  callerOrigin,
+  ownerKey,
+  normalizePageTaskSpec,
+  publicPageBridgeManifest
+} = require('./operator/trusted-page');
 
 const TOOLBAR_HEIGHT = 96;
 const START_URL = 'https://duckduckgo.com/';
@@ -18,6 +25,9 @@ let operatorService = null;
 let operatorStatus = { running: false, version: 'PV-BOP-0.2', host: '127.0.0.1', port: null };
 let operatorGrant = null;
 const tabs = new Map();
+const trustedPageTasks = new Map();
+const trustedPageSenderWatchers = new Set();
+const TRUSTED_PAGE_MAX_ACTIVE_TASKS = 3;
 
 function normalizeInput(input) {
   const value = String(input || '').trim();
@@ -52,6 +62,10 @@ function getTab(id) {
   return tabs.get(Number(id)) || null;
 }
 
+function getTabByWebContentsId(webContentsId) {
+  return [...tabs.values()].find((tab) => tab.view.webContents.id === Number(webContentsId)) || null;
+}
+
 function getOperatorGrant() {
   if (operatorGrant && operatorGrant.expiresAt <= Date.now()) operatorGrant = null;
   return operatorGrant;
@@ -70,6 +84,100 @@ function listOperatorTabs() {
     active: tab.id === activeTabId,
     loading: tab.view.webContents.isLoading()
   }));
+}
+
+function trustedCaller(event) {
+  const url = event.senderFrame?.url || event.sender?.getURL?.() || '';
+  if (!isTrustedPageUrl(url)) {
+    throw Object.assign(new Error('TRUSTED_PAGE_ORIGIN_REQUIRED'), { statusCode: 403 });
+  }
+  const origin = callerOrigin(url);
+  return {
+    origin,
+    webContentsId: event.sender.id,
+    owner: ownerKey(origin, event.sender.id)
+  };
+}
+
+function requireTrustedTask(event, taskId) {
+  const caller = trustedCaller(event);
+  const record = trustedPageTasks.get(String(taskId || ''));
+  if (!record || record.owner !== caller.owner) {
+    throw Object.assign(new Error('TRUSTED_PAGE_TASK_NOT_OWNED'), { statusCode: 403 });
+  }
+  return { caller, record };
+}
+
+function waitForTabReady(tabId, timeoutMs = 20000) {
+  const tab = getTab(tabId);
+  if (!tab) return Promise.reject(new Error('TAB_NOT_FOUND'));
+  const wc = tab.view.webContents;
+  if (!wc.isLoading() && wc.getURL() && wc.getURL() !== 'about:blank') return Promise.resolve(tab);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timer);
+      wc.removeListener('did-finish-load', finish);
+      wc.removeListener('did-fail-load', fail);
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(tab);
+    };
+    const fail = (_event, code, description, validatedURL, isMainFrame) => {
+      if (!isMainFrame || code === -3 || settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(`TASK_TAB_LOAD_FAILED_${code}_${description || validatedURL || ''}`));
+    };
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('TASK_TAB_LOAD_TIMEOUT'));
+    }, timeoutMs);
+    wc.once('did-finish-load', finish);
+    wc.on('did-fail-load', fail);
+  });
+}
+
+function cleanupTrustedTaskTab(record, task) {
+  if (!record || record.tabClosed || record.closeOnTerminal === false) return;
+  if (!task || !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) return;
+  record.tabClosed = true;
+  closeTab(record.tabId);
+}
+
+function activeTrustedTasksForOwner(owner) {
+  let count = 0;
+  for (const [taskId, record] of trustedPageTasks.entries()) {
+    if (record.owner !== owner) continue;
+    const task = operatorService?.internal.getTask(taskId);
+    if (task && !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) count += 1;
+  }
+  return count;
+}
+
+function watchTrustedSender(event, caller) {
+  if (trustedPageSenderWatchers.has(caller.webContentsId)) return;
+  trustedPageSenderWatchers.add(caller.webContentsId);
+  event.sender.once('destroyed', () => {
+    trustedPageSenderWatchers.delete(caller.webContentsId);
+    for (const [taskId, record] of trustedPageTasks.entries()) {
+      if (record.owner !== caller.owner) continue;
+      const task = operatorService?.internal.getTask(taskId);
+      if (task && !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) {
+        operatorService.internal.cancelTask(taskId, 'TRUSTED_PAGE_CLOSED').catch(() => {});
+      }
+      if (!record.tabClosed) {
+        record.tabClosed = true;
+        closeTab(record.tabId);
+      }
+    }
+  });
 }
 
 function ledgerPath() {
@@ -217,6 +325,7 @@ function createTab(url = START_URL, makeActive = true) {
       contextIsolation: true,
       sandbox: true,
       partition: PARTITION,
+      preload: path.join(__dirname, 'page-preload.js'),
       spellcheck: true
     }
   });
@@ -253,7 +362,7 @@ function closeTab(id) {
   if (!tab || !mainWindow || mainWindow.isDestroyed()) return;
 
   const wasActive = numericId === activeTabId;
-  mainWindow.contentView.removeChildView(tab.view);
+  try { mainWindow.contentView.removeChildView(tab.view); } catch {}
   tab.view.webContents.close();
   tabs.delete(numericId);
 
@@ -370,6 +479,118 @@ ipcMain.on('operator:grant-interactive', () => {
 ipcMain.on('operator:revoke-interactive', () => {
   operatorGrant = null;
   sendState();
+});
+
+ipcMain.handle('trusted-page:manifest', (event) => {
+  const caller = trustedCaller(event);
+  return {
+    ...publicPageBridgeManifest(),
+    connected: Boolean(operatorService),
+    callerOrigin: caller.origin
+  };
+});
+
+ipcMain.handle('trusted-page:status', async (event) => {
+  const caller = trustedCaller(event);
+  if (!operatorService) return {
+    ok: false,
+    connected: false,
+    bridge: publicPageBridgeManifest(),
+    callerOrigin: caller.origin
+  };
+
+  const rawStatus = operatorService.getStatus();
+  const planner = await operatorService.internal.plannerStatus(false).catch((error) => ({
+    available: false,
+    error: error?.message || 'PLANNER_STATUS_FAILED'
+  }));
+  return {
+    ok: true,
+    connected: true,
+    bridge: publicPageBridgeManifest(),
+    callerOrigin: caller.origin,
+    operator: {
+      running: rawStatus.running,
+      version: rawStatus.version,
+      taskCount: rawStatus.taskCount
+    },
+    planner,
+    interactiveGrant: operatorGrantSummary()
+  };
+});
+
+ipcMain.handle('trusted-page:start-task', async (event, input) => {
+  const caller = trustedCaller(event);
+  if (!operatorService) throw new Error('OPERATOR_NOT_RUNNING');
+  const callerTab = getTabByWebContentsId(caller.webContentsId);
+  if (callerTab?.operatorTaskTab) {
+    throw Object.assign(new Error('NESTED_TRUSTED_PAGE_TASK_FORBIDDEN'), { statusCode: 403 });
+  }
+  if (activeTrustedTasksForOwner(caller.owner) >= TRUSTED_PAGE_MAX_ACTIVE_TASKS) {
+    throw Object.assign(new Error('TRUSTED_PAGE_TASK_LIMIT'), { statusCode: 429 });
+  }
+  watchTrustedSender(event, caller);
+  const spec = normalizePageTaskSpec(input);
+  const tabId = createTab(spec.url, false);
+  const taskTab = getTab(tabId);
+  if (taskTab) taskTab.operatorTaskTab = true;
+  const record = {
+    owner: caller.owner,
+    origin: caller.origin,
+    webContentsId: caller.webContentsId,
+    tabId,
+    closeOnTerminal: spec.closeOnTerminal,
+    tabClosed: false,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await waitForTabReady(tabId);
+    const task = await operatorService.internal.createTask({
+      tabId,
+      goal: spec.goal,
+      constraints: spec.constraints,
+      successCriteria: spec.successCriteria,
+      acceptance: spec.acceptance,
+      maxSteps: spec.maxSteps,
+      maxDurationMs: spec.maxDurationMs
+    });
+    record.taskId = task.id;
+    trustedPageTasks.set(task.id, record);
+    return {
+      ok: true,
+      task,
+      bridge: publicPageBridgeManifest()
+    };
+  } catch (error) {
+    closeTab(tabId);
+    throw error;
+  }
+});
+
+ipcMain.handle('trusted-page:get-task', (event, taskId) => {
+  const { record } = requireTrustedTask(event, taskId);
+  const task = operatorService?.internal.getTask(taskId);
+  if (!task) throw new Error('TASK_NOT_FOUND');
+  cleanupTrustedTaskTab(record, task);
+  return { ok: true, task };
+});
+
+ipcMain.handle('trusted-page:resume-task', async (event, taskId) => {
+  const { record } = requireTrustedTask(event, taskId);
+  const task = await operatorService.internal.resumeTask(taskId);
+  cleanupTrustedTaskTab(record, task);
+  return { ok: true, task };
+});
+
+ipcMain.handle('trusted-page:cancel-task', async (event, taskId, reason) => {
+  const { record } = requireTrustedTask(event, taskId);
+  const task = await operatorService.internal.cancelTask(
+    taskId,
+    String(reason || 'TRUSTED_PAGE_CANCELLED').slice(0, 500)
+  );
+  cleanupTrustedTaskTab(record, task);
+  return { ok: true, task };
 });
 
 app.whenReady().then(() => {
