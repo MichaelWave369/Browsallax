@@ -8,12 +8,13 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/brain-registry-router.js && node --check src/operator/read-only-research.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check bin/browsallax.js && node --check examples/vessie-live-acceptance.js && node --check examples/nasa-registry-acceptance.js && node --check src/page-preload.js && node --check src/operator/trusted-page.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/brain-registry-router.js && node --check src/operator/read-only-research.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check bin/browsallax.js && node --check examples/vessie-live-acceptance.js && node --check examples/nasa-registry-acceptance.js && node --check examples/registry-fail-closed-acceptance.js && node --check src/page-preload.js && node --check src/operator/trusted-page.js",
     "test": "node --test test/*.test.js",
     "operator": "node bin/browsallax.js",
     "accept:vessie": "node examples/vessie-live-acceptance.js",
     "accept:nasa-direct": "node examples/nasa-direct-acceptance.js",
-    "accept:nasa-registry": "node examples/nasa-registry-acceptance.js"
+    "accept:nasa-registry": "node examples/nasa-registry-acceptance.js",
+    "accept:registry-fail-closed": "node examples/registry-fail-closed-acceptance.js"
   },
   "devDependencies": {
     "electron": "44.3.0"
