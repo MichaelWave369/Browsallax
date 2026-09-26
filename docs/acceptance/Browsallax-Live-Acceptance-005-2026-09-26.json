@@ -1,0 +1,37 @@
+{
+  "schema": "browsallax.live-acceptance.v1",
+  "id": "Browsallax-Live-Acceptance-005-2026-09-26",
+  "date": "2026-09-26",
+  "status": "COMPLETE_PASS",
+  "claim": "Brain Registry planner hints are advisory, locally verified, successful when an approved model is installed, and fail closed without legacy fallback when no approved model exists locally.",
+  "acceptanceA": {
+    "command": "npm run accept:nasa-registry",
+    "complete": true,
+    "registryPresent": true,
+    "registryUsed": true,
+    "selectionBasis": "REGISTRY_RECOMMENDED",
+    "selectedModel": "qwen3:4b",
+    "provider": "OLLAMA_LOCAL",
+    "stepCount": 1
+  },
+  "acceptanceB": {
+    "command": "npm run accept:registry-fail-closed",
+    "dispositionFailed": true,
+    "stepCountZero": true,
+    "error": "NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL",
+    "registryPresent": true,
+    "registryUsed": true,
+    "selectionBasis": "NO_LOCAL_REGISTRY_APPROVED_PLANNER_MODEL",
+    "selectedModel": null,
+    "planner": null,
+    "provider": null,
+    "noLegacyFallback": true
+  },
+  "contracts": {
+    "bridge": "PV-BRIDGE-0.2",
+    "planner": "PV-BOP-PLAN-0.5",
+    "router": "PV-BOP-BRR-0.1",
+    "readOnlyResearch": "PV-BOP-RRC-0.1"
+  },
+  "nextBoundary": "Super PhiVessel browser-intent/provider orchestration before or around trusted Browser Operator task creation"
+}
