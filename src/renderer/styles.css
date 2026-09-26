@@ -223,3 +223,34 @@ button { color: inherit; }
   .status-pill { display: none; }
   .tab { min-width: 100px; }
 }
+
+
+.operator-button {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(143, 199, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(143, 199, 255, 0.06);
+  color: var(--accent-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+}
+.operator-button:hover { background: rgba(143, 199, 255, 0.12); }
+.operator-button.granted {
+  border-color: rgba(93, 214, 192, 0.65);
+  background: rgba(93, 214, 192, 0.11);
+  color: var(--accent);
+}
+.operator-button.offline {
+  border-color: rgba(255, 122, 138, 0.45);
+  color: var(--danger);
+  cursor: default;
+}
+
+@media (max-width: 1100px) {
+  .status-pill { display: none; }
+  .operator-button { font-size: 9px; padding: 0 8px; }
+}
