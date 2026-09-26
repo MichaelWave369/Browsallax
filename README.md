@@ -4,253 +4,369 @@
 
 Browsallax is an MIT-licensed, local-first browser project with two complementary editions:
 
-- **Browsallax Desktop** is the Chromium/Electron browser shell with real tabs, browser permissions, page-level capture, and planned local AI.
-- **Browsallax Web** is the zero-install React/PWA companion for GitHub Pages with search/launch, local workspaces, Research Mode, a persistent free-tools dock, and a browser-local Reality Ledger.
+- **Browsallax Desktop** — Chromium/Electron with real tabs, browser permissions, Reality Ledger capture, a governed local Browser Operator, local Ollama planning, and a bounded Super Φ.Vessel / Brain Registry bridge.
+- **Browsallax Web** — a zero-install React/PWA companion with search/launch, local workspaces, Research Mode, a persistent Free Tools Dock, and a browser-local Reality Ledger.
 
-The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
+The goal is not to invent another rendering engine. The goal is to build transparent browser tooling around the web with stronger privacy boundaries, local intelligence, explicit authority, evidence capture, and an open ecosystem of useful tools.
 
-> **Status:** Desktop `v0.5.0-alpha.5`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Current status:** Desktop `0.5.0-alpha.6`; Web `0.2.0-alpha.1`. Both are alpha software.
 
-## Browsallax Web
+## Try it
 
-Live site: **https://michaelwave369.github.io/Browsallax/**
+### Web / PWA
 
-The React edition lives in [`web/`](web/) and is designed for instant use from GitHub Pages without installing the desktop app.
+Live site:
 
-Current web features:
+**https://michaelwave369.github.io/Browsallax/**
 
-- React 19.3 + Vite 8.3
-- responsive Browsallax interface
-- URL/search omnibox that opens destinations in normal browser tabs
-- quick-launch panel for useful public tools and Browsallax projects
-- local workspaces and saved links
-- **Research Mode** with named investigations, guiding questions, sources, notes, unresolved questions, session export, and Ledger handoff
-- **persistent Free Tools Dock** with Research, Workspaces, Reality Ledger, PhiOffice369, Enter the Field, and Browsallax source
-- a separate **Field Products · Paid** link to Field Supply for RackMap and other commercial products
-- browser-local Reality Ledger receipts
-- SHA-256 evidence digests using the Web Crypto API
-- Reality Ledger JSON export
-- installable PWA manifest
-- offline application shell/service worker
-- no account and no backend required
-
-### Product boundary
-
-Browsallax keeps free tools and paid products visibly separate. Free utilities live in the Free Tools Dock. Commercial products such as RackMap are discovered through **Field Supply** at `https://field-supply-369.netlify.app/`, under a clearly labeled paid-products section rather than being represented as free software.
-
-### Research Mode authority boundary
-
-Research Mode organizes user-supplied material. It does not claim that a saved source, note, or research conclusion is true. When a source or note is preserved into the Reality Ledger, the resulting receipt is explicitly stamped `SOURCE_ONLY` and keeps provenance separate from interpretation.
-
-### Important web boundary
-
-Browsallax Web does **not** pretend it can embed and control arbitrary websites. Modern browsers enforce same-origin security, and sites can block framing with CSP or `X-Frame-Options`. External destinations therefore open as normal browser tabs. Deep capabilities such as page inspection, permission control, selected-text capture from arbitrary sites, and local-model page analysis belong in Browsallax Desktop.
-
-### Run the web edition locally
+Run locally:
 
 ```bash
-cd web
+git clone https://github.com/MichaelWave369/Browsallax.git
+cd Browsallax/web
 npm install
 npm run dev
 ```
 
-Production build:
+### Desktop
+
+Requires Node.js 24+.
 
 ```bash
-cd web
-npm run build
+git clone https://github.com/MichaelWave369/Browsallax.git
+cd Browsallax
+npm install
+npm start
 ```
 
-The GitHub Pages workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) builds `web/` and deploys `web/dist` on pushes to `main`.
+Development checks:
+
+```bash
+npm run check
+npm test
+```
+
+Live Browser Operator acceptance commands require Browsallax Desktop to be running:
+
+```bash
+npm run accept:nasa-direct
+npm run accept:nasa-registry
+npm run accept:registry-fail-closed
+```
+
+## Project status
+
+| Area | Status |
+|---|---|
+| Web/PWA shell | **Available · alpha** |
+| Research Mode | **Working** |
+| Browser-local Reality Ledger | **Working** |
+| Desktop Chromium browser | **Alpha** |
+| Desktop selected-text Ledger capture | **Working** |
+| Browser Operator | **Experimental · live-tested** |
+| Local Ollama planner | **Working · experimental** |
+| Brain Registry routed planner | **Working · live-tested success path** |
+| Governed read-only research | **Working · live-tested** |
+| Mutation automation | **Restricted · experimental** |
+| Sensitive mutation | **HELD pending per-action approval design** |
+| Local vision interpretation | **Planned** |
+| Signed release/update chain | **Not implemented** |
+
+## Design laws
+
+1. **Capability is not authority.**
+2. **A webpage is data, not an instruction source.**
+3. **A model recommendation is not execution permission.**
+4. **Brain Registry hints are advisory.**
+5. **Browsallax policy enforces browser authority.**
+6. **Local Ollama inventory is execution reality for local planner routing.**
+7. **Sources survive transformations.**
+8. **Receipts record events; receipts do not grant authority.**
+9. **Local first does not mean every local process is trusted.**
+10. **Missing evidence stays missing.**
+
+In compact form:
+
+```text
+WEBPAGE != authority
+MODEL != authority
+BRAIN REGISTRY != authority
+PLANNER HINT != authority
+RECEIPT != authority
+
+LOCAL OPERATOR = authority source
+BROWSALLAX POLICY = enforcement
+HUMAN GRANT = bounded mutation authority
+OLLAMA INVENTORY = execution reality
+```
+
+## Browsallax Web
+
+The React/PWA edition lives in [`web/`](web/) and is designed for instant use without installing the desktop app.
+
+Current features include:
+
+- React 19.3 + Vite 8.3;
+- responsive Browsallax interface;
+- URL/search omnibox that launches destinations in normal browser tabs;
+- local workspaces and saved links;
+- **Research Mode** with investigations, guiding questions, sources, notes, unresolved questions, export, and Reality Ledger handoff;
+- persistent **Free Tools Dock**;
+- browser-local Reality Ledger receipts;
+- SHA-256 evidence digests using the Web Crypto API;
+- JSON export;
+- installable PWA manifest;
+- offline application shell/service worker;
+- no account or backend required for core use.
+
+### Web authority boundary
+
+Browsallax Web does **not** pretend it can embed and control arbitrary websites. Same-origin rules, CSP, and `X-Frame-Options` still apply. External destinations open as normal browser tabs.
+
+Page inspection, permission control, arbitrary-site selected-text capture, local planner execution, and governed browser automation belong in Browsallax Desktop.
+
+### Web data durability
+
+Current workspaces, research sessions, and Ledger data are browser-local. JSON export exists today.
+
+Planned hardening includes IndexedDB-backed storage, schema-versioned migrations, import/restore, and larger research-session support.
 
 ## Browsallax Desktop
 
-Current desktop features:
+Current desktop capabilities include:
 
-- Chromium web rendering through Electron 44
-- Multi-tab browsing
-- Address + search omnibox
-- DuckDuckGo default search/home
-- Back, forward, reload, and home navigation
-- `target=_blank` / popup links routed into Browsallax tabs
-- Persistent browser session
-- Sandboxed web content
-- `nodeIntegration: false`
-- `contextIsolation: true`
-- Deny-by-default sensitive permissions
-- Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
-- **Browser Operator `PV-BOP-0.2`** on localhost for DOM-first observation, screenshots, governed actions, assertions, resumable local tasks, and hash-chained receipts
-- **PhiOS / Super PhiVessel Bridge `PV-BRIDGE-0.1`** with automatic endpoint discovery, portable Node client, CLI, task handoff envelopes, and a live Vessie acceptance example
-- **Trusted Super PhiVessel Page Bridge `PV-PAGE-0.1`** using origin-validated Electron IPC and dedicated task tabs without exposing the bearer token or arbitrary user tabs
-- Rotating local bearer token plus a five-minute human interactive grant; sensitive actions remain HELD
-- Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
+- Chromium rendering through Electron `44.3.0`;
+- multi-tab browsing;
+- address/search omnibox;
+- DuckDuckGo default search/home;
+- back, forward, reload, and home navigation;
+- popup / `target=_blank` routing into Browsallax tabs;
+- persistent browser session;
+- Electron sandbox enabled;
+- `nodeIntegration: false`;
+- `contextIsolation: true`;
+- deny-by-default sensitive browser permissions;
+- selected-text Reality Ledger capture;
+- governed local Browser Operator;
+- local Ollama planner;
+- advisory Brain Registry planner routing;
+- trusted Super Φ.Vessel task bridge.
 
-## Reality Ledger capture
+Browsallax depends on Electron/Chromium security updates. The current pin should be kept current where compatibility allows; no signed automatic update chain is claimed yet.
 
-### Desktop
+## Browser Operator
+
+The Browser Operator is a localhost-only governed automation layer.
+
+Current runtime contracts:
+
+| Contract | Version | Purpose |
+|---|---|---|
+| Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
+| Planner | `PV-BOP-PLAN-0.5` | schema-constrained local planning |
+| Task engine | `PV-BOP-TASK-0.2` | observe → plan → act → verify task state |
+| Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
+| Read-only research completion | `PV-BOP-RRC-0.1` | bounded no-mutation research termination |
+| Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
+| PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
+| Trusted page bridge | `PV-PAGE-0.1` | exact-origin dedicated task lane |
+
+### Task loop
+
+```text
+observe
+   ↓
+plan
+   ↓
+classify action
+   ↓
+authority check
+   ↓
+act / hold
+   ↓
+verify
+   ↓
+finish or replan
+```
+
+The planner does not receive browser authority merely because it produced valid JSON.
+
+### Human grants
+
+Read-only actions and ordinary navigation are baseline local capabilities.
+
+Form input and ordinary remote mutation require a current human interactive grant from Browsallax chrome. The current grant lasts five minutes and can be revoked.
+
+Sensitive actions remain **HELD** even when a broad interactive grant exists. Per-action sensitive approval is not implemented yet.
+
+### Brain Registry routing
+
+A Super Φ.Vessel Brain Registry hint may contain:
+
+- registry/router versions;
+- routing mode;
+- planner role;
+- approved local model pool;
+- configured role model;
+- recommended model;
+- ordered scored candidates.
+
+Browsallax independently compares that hint with live Ollama inventory.
+
+Selection order is bounded:
+
+1. explicit local Browsallax operator override, when configured and installed;
+2. installed + registry-approved recommended model;
+3. installed + registry-approved candidate;
+4. installed + registry-approved configured role model;
+5. fail closed when a registry hint exists but no approved model exists locally;
+6. local fallback preferences only when no registry hint was supplied.
+
+A webpage cannot choose its executor directly.
+
+## Reality Ledger
+
+### Desktop selected-text capture
 
 Select text on a webpage, right-click, and choose **Capture selection to Reality Ledger**.
 
-Browsallax appends a JSON Lines receipt locally under the Electron user-data directory at:
+Browsallax appends a JSON Lines receipt under the Electron user-data directory:
 
 ```text
 reality-ledger/web-captures.jsonl
 ```
 
-### Web
+Receipts preserve source URL, title, UTC timestamp, content digest, and explicit `SOURCE_ONLY` semantics.
 
-Browsallax Web lets a user type or paste an observation, optionally attach a source URL, and create a local receipt in browser storage. Research Mode can also hand selected sources and notes into the same Ledger. Receipts can be exported as JSON.
+### Browser Operator receipts
 
-In both editions, receipts are explicitly marked `SOURCE_ONLY` and `derived: false`. The capture records provenance and integrity; it does not claim the captured text is true.
+Operator receipts are appended to:
+
+```text
+reality-ledger/browser-operator.jsonl
+```
+
+Each receipt includes a sequence number, timestamp, previous hash, canonicalized data, and SHA-256 receipt hash.
+
+The chain is **tamper-evident by structure, not tamper-proof storage**. A process with local filesystem access can edit or delete the file. External anchoring/signing is not currently implemented.
 
 ## Security posture
 
-Browsallax treats arbitrary web content as untrusted.
+Browsallax treats arbitrary web content and model output as untrusted.
 
-In Desktop, the application chrome and web pages are separate. Web pages do not receive Node.js access. The renderer bridge exposes only a small set of browser-navigation messages, while loaded sites run in sandboxed `WebContentsView` instances. A page preload may expose the bounded `window.browsallaxOperator` surface, but the main process accepts that surface only from explicitly trusted origins and never exposes the Browser Operator bearer token or arbitrary-tab access.
+Implemented boundaries include:
 
-For the Desktop alpha, camera, microphone, geolocation, and notifications are denied by default. A human-readable permission ledger and per-site permission controls are planned rather than silently granting capabilities.
+- sandboxed web content;
+- exact trusted-origin checks;
+- loopback-only Browser Operator endpoint discovery;
+- per-start random bearer token;
+- bearer token withheld from page bridges;
+- dedicated trusted-page task tabs;
+- task ownership bound to origin + Electron `WebContents`;
+- bounded trusted-page concurrency;
+- nested trusted-page task prevention;
+- expiring human mutation grants;
+- sensitive-action hard holds;
+- schema-constrained planner output;
+- bounded planner repair;
+- raw malformed model output withheld from public diagnostics;
+- Brain Registry/local inventory intersection;
+- registry-present/no-approved-local-model fail-closed behavior in contract tests.
 
-Browsallax Web has no privileged backend. Its workspaces, research sessions, and Reality Ledger are kept in local browser storage unless the user explicitly exports them.
+Read the full [Threat Model](docs/THREAT_MODEL.md) and [Security Test Matrix](docs/SECURITY_TEST_MATRIX.md).
 
 ## Architecture
 
 ```text
-┌──────────────────────────────────────────────┐
-│                 BROWSALLAX                   │
-├──────────────────────┬───────────────────────┤
-│ DESKTOP              │ WEB / PWA             │
-│ Electron + Chromium  │ React + Vite          │
-├──────────────────────┼───────────────────────┤
-│ real browser tabs    │ launch/search         │
-│ browser permissions  │ local workspaces      │
-│ page capture         │ Research Mode         │
-│ Browser Operator     │ Reality Ledger        │
-│ PhiOS/Vessie Bridge  │ Free Tools Dock       │
-│ planned Ollama AI    │ Field Products link   │
-│                      │ offline app shell     │
-├──────────────────────┴───────────────────────┤
-│ Shared design rules                          │
-│ local-first • evidence • explicit authority  │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                         BROWSALLAX                           │
+├────────────────────────────┬─────────────────────────────────┤
+│ DESKTOP                    │ WEB / PWA                       │
+│ Electron + Chromium        │ React + Vite                    │
+├────────────────────────────┼─────────────────────────────────┤
+│ real tabs                  │ launch/search                   │
+│ browser permissions        │ local workspaces                │
+│ selected-text capture      │ Research Mode                   │
+│ Browser Operator           │ Reality Ledger                  │
+│ Ollama planner             │ Free Tools Dock                 │
+│ Brain Registry bridge      │ offline app shell               │
+│ trusted page task lane     │ JSON export                     │
+├────────────────────────────┴─────────────────────────────────┤
+│ Shared laws                                                   │
+│ local-first · source custody · explicit authority · receipts │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Repository map
+
+| Path | Purpose |
+|---|---|
+| [`src/`](src/) | Electron desktop runtime, Browser Operator, policy, planner, bridges, and renderer |
+| [`src/operator/`](src/operator/) | Browser observation, policy, planner, task engine, trusted-page bridge, receipts |
+| [`src/client/`](src/client/) | Portable Browser Operator client and endpoint discovery |
+| [`src/bridge/`](src/bridge/) | PhiOS / Super Φ.Vessel bridge |
+| [`web/`](web/) | React/Vite PWA companion |
+| [`bin/`](bin/) | local `browsallax` CLI entrypoint |
+| [`examples/`](examples/) | live acceptance and bridge examples |
+| [`test/`](test/) | Node contract/unit tests |
+| [`docs/`](docs/) | architecture, threat model, roadmap, acceptance, and interaction records |
+| [`.github/workflows/`](.github/workflows/) | CI and GitHub Pages workflows |
+
+## Automated quality gates
+
+Desktop/Operator CI currently runs:
+
+- JavaScript syntax contract;
+- Node unit/contract tests;
+- React web production build in the repository CI suite.
+
+Current tests cover trusted origins, local endpoint validation, authority grants, sensitive actions, Brain Registry routing, structured planner output, task acceptance, read-only research behavior, bridge semantics, and receipt chaining.
+
+The remaining gaps are tracked explicitly rather than implied away in [SECURITY_TEST_MATRIX.md](docs/SECURITY_TEST_MATRIX.md).
+
+## Live evidence
+
+Browsallax keeps observed runtime acceptance separate from unit-test claims.
+
+- [Live Acceptance 001](docs/acceptance/Browsallax-Live-Acceptance-001-2026-09-26.md) — first live trusted-page task completion.
+- [Live Interaction 001](docs/interaction/Browsallax-Live-Interaction-001-2026-09-26.md) — first documented live conversational exchange inside Browsallax.
+- [Live Acceptance 002](docs/acceptance/Browsallax-Live-Acceptance-002-2026-09-26.md) — capability/state truth regression.
+- [Live Acceptance 003](docs/acceptance/Browsallax-Live-Acceptance-003-2026-09-26.md) — successful conversational read-only web observation.
+- [Live Acceptance 004](docs/acceptance/Browsallax-Live-Acceptance-004-2026-09-26.md) — bounded NASA read-only research completion after `PV-BOP-RRC-0.1`.
+- [Live Acceptance 005A](docs/acceptance/Browsallax-Live-Acceptance-005A-2026-09-26.md) — Brain Registry routed NASA success with `REGISTRY_RECOMMENDED`, local inventory verification, `qwen3:4b`, one-step completion, and read-only authority.
+
+The adversarial 005B live run remains pending:
+
+```bash
+npm run accept:registry-fail-closed
 ```
 
 ## Roadmap
 
-### Foundation
+The active roadmap now lives in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-- [x] secure Electron shell
-- [x] tabs and omnibox
-- [x] navigation history
-- [x] persistent browsing session
-- [x] popup-to-tab routing
-- [x] deny-by-default sensitive permissions
-- [x] selected-text Reality Ledger capture
-- [x] React/PWA web companion
-- [x] local web workspaces
-- [x] local web Reality Ledger + JSON export
-- [x] GitHub Pages deployment workflow
-- [x] Research Mode
-- [x] persistent Free Tools Dock
-- [x] separate paid-products link to Field Supply
-- [ ] downloads UI
-- [ ] history UI
-- [ ] bookmarks
-- [ ] private windows
-- [ ] site information panel
+Current priorities:
 
-### Governed Browser Operator
+1. finish Live Acceptance 005 with the missing-local-model fail-closed run;
+2. continue trust/presentation hardening, including real screenshots and release/security documentation;
+3. repair Super Φ.Vessel browser-intent handoff so explicit browser tasks do not depend on an unrelated provider completion before reaching Browsallax.
 
-- [x] localhost-only Operator API (`PV-BOP-0.2`)
-- [x] DOM-first bounded page observation
-- [x] screenshot fallback with SHA-256 receipt
-- [x] navigation, click/type/select/scroll/wait actions
-- [x] URL/text/visibility assertions
-- [x] rotating bearer token
-- [x] five-minute human mutation grant from browser chrome only
-- [x] sensitive actions HELD in v0.1
-- [x] hash-chained operator Reality Ledger receipts
-- [x] local Ollama task planner with deterministic model selection
-- [x] schema-constrained local planner with one bounded repair attempt (`PV-BOP-PLAN-0.5`)
-- [x] advisory Super Φ.Vessel Brain Registry planner routing with local Ollama verification (`PV-BOP-BRR-0.1`)
-- [x] bounded read-only research completion and no-mutation planning contract (`PV-BOP-RRC-0.1`)
-- [x] observe → plan → act → verify → replan task loop
-- [x] resumable HELD tasks across human authority grants
-- [x] deterministic task acceptance assertions before COMPLETE
-- [x] one non-terminal task owns a tab at a time
-- [x] portable local Operator client (`PV-BOP-CLIENT-0.1`)
-- [x] PhiOS / Super PhiVessel bridge (`PV-BRIDGE-0.1`)
-- [x] loopback-only endpoint discovery with bearer-token redaction
-- [x] `browsallax` local CLI for status, observation, screenshots, tasks, resume, and cancel
-- [x] governed starting-URL handoff with preserved navigation provenance
-- [x] Super PhiVessel live acceptance example
-- [x] trusted Super PhiVessel page bridge (`PV-PAGE-0.1`)
-- [x] exact-origin validation with explicit-only development origins
-- [x] dedicated Browser Operator task tabs instead of arbitrary user-tab access
-- [x] trusted-page task ownership bound to origin + WebContents identity
-- [x] trusted-page concurrency bound and nested-task prevention
-- [x] page never receives endpoint token or authority-grant methods
-- [ ] per-action approval for sensitive mutations
-- [ ] local vision interpretation and replay
+## Visual tour
 
-See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md), and [`docs/browser-operator-v0.4.md`](docs/browser-operator-v0.4.md).
-
-### Live evidence
-
-- [Browsallax Live Acceptance 001 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-001-2026-09-26.md) — first observed live Super PhiVessel trusted-page task completion using local `qwen3:4b`, `PV-PAGE-0.1`, and `PV-BOP-0.2`, completed in one step with no interactive grant.
-- [Browsallax Live Interaction 001 · 2026-09-26](docs/interaction/Browsallax-Live-Interaction-001-2026-09-26.md) — first documented successful live conversational exchange inside Browsallax: collaborator `Hello!` → Super PhiVessel `Hello! How can I help you today?`, with the response lane visibly labeled `BrainC Hosted`.
-- [Browsallax Live Acceptance 002 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-002-2026-09-26.md) — live `.51.5` regression acceptance for capability distinction, current Browser Operator state grounding, runtime UI truth, and turn-local discipline inside Browsallax.
-- [Browsallax Live Acceptance 003 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-003-2026-09-26.md) — first successful conversational end-to-end live web observation with `PAGE_EVIDENCE_AVAILABLE=YES` while Browsallax visibly remained `OPERATOR READ-ONLY` and no interactive mutation grant was active.
-- [Browsallax Live Acceptance 004 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-004-2026-09-26.md) — first successful bounded multi-step read-only research completion after `PV-BOP-RRC-0.1`, closing the earlier NASA `MAX_STEPS_REACHED` regression while preserving the known-good Enter the Field control path.
-
-
-### Local intelligence
-
-- [ ] optional Ollama discovery on localhost
-- [ ] model picker
-- [ ] Ask This Page
-- [ ] Summarize This Page
-- [ ] selected-text AI actions
-- [ ] page extraction with explicit source boundaries
-- [ ] no cloud dependency required
-
-### Research evolution
-
-- [ ] source annotations and tags
-- [ ] contradiction / unresolved-question views
-- [ ] research session import
-- [ ] cross-session search
-- [ ] desktop tab workspaces
-- [ ] optional local-model analysis that never overwrites source evidence
-
-### Free tools ecosystem
-
-- [x] web tools dock
-- [x] PhiOffice369 launcher
-- [x] Enter the Field launcher
-- [ ] extensible tool manifest
-- [ ] optional user-added tool links
-- [ ] tighter integrations with additional free products as stable public URLs are available
-
-### Field products
-
-- [x] Field Supply discovery link
-- [x] RackMap remains outside the Free Tools classification
-- [ ] optional richer product cards without mixing free and paid categories
-
-## Design rules
-
-1. **Capability is not authority.** AI output is assistance, not truth.
-2. **Local first.** Features should work without an account whenever practical.
-3. **No hidden behavioral profiling.** Telemetry must never be a surprise.
-4. **Permissions are visible.** Powerful capabilities require explicit boundaries.
-5. **Sources survive transformations.** Summaries and AI interpretations do not replace evidence.
-6. **Free means free.** Core Browsallax functionality is MIT-licensed and does not require a subscription.
-7. **Paid means paid.** Commercial products are labeled and routed separately rather than being presented as free ecosystem tools.
+Real screenshots and a short demo are intentionally **not fabricated from mockups**. They should be captured from live Browsallax Desktop/Web builds and added as a documentation milestone.
 
 ## Contributing
 
-Early contributions are welcome. Keep changes small, reviewable, and explicit about any new privilege or data flow they introduce.
+Early contributions are welcome.
+
+Keep changes:
+
+- small and reviewable;
+- explicit about new privilege or data flow;
+- accompanied by tests when they affect authority, routing, receipts, or trusted boundaries;
+- honest about what was unit-tested versus live-tested.
+
+Start with the [Repository Map](#repository-map), [Threat Model](docs/THREAT_MODEL.md), [Security Test Matrix](docs/SECURITY_TEST_MATRIX.md), and [Roadmap](docs/ROADMAP.md).
 
 ## License
 
