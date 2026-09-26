@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.5.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.5.0-alpha.2`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -191,6 +191,11 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [ ] local vision interpretation and replay
 
 See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md), and [`docs/browser-operator-v0.4.md`](docs/browser-operator-v0.4.md).
+
+### Live acceptance evidence
+
+- [Browsallax Live Acceptance 001 · 2026-09-26](docs/acceptance/Browsallax-Live-Acceptance-001-2026-09-26.md) — first observed live Super PhiVessel trusted-page task completion using local `qwen3:4b`, `PV-PAGE-0.1`, and `PV-BOP-0.2`, completed in one step with no interactive grant.
+
 
 ### Local intelligence
 
