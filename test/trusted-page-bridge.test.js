@@ -73,3 +73,42 @@ test('task ownership is scoped to origin and webContents identity', () => {
     ownerKey('https://superphivessel.netlify.app', 8)
   );
 });
+
+
+test('trusted page task spec accepts only bounded Brain Registry planner hints', () => {
+  const spec = normalizePageTaskSpec({
+    url: 'https://example.com/',
+    goal: 'Read the page',
+    plannerRegistry: {
+      schema: 'superphivessel.brain_registry.planner_hints.v1',
+      registryVersion: '1.1',
+      routerVersion: '1.2.0',
+      routingMode: 'AUTO',
+      role: 'utility',
+      approvedModels: ['qwen3:4b'],
+      recommendedModel: 'qwen3:4b',
+      candidates: [{ model: 'qwen3:4b', score: 0.9 }]
+    }
+  });
+
+  assert.equal(spec.plannerRegistry.registryVersion, '1.1');
+  assert.equal(spec.plannerRegistry.recommendedModel, 'qwen3:4b');
+  assert.deepEqual(spec.plannerRegistry.approvedModels, ['qwen3:4b']);
+
+  assert.throws(
+    () => normalizePageTaskSpec({
+      url: 'https://example.com/',
+      goal: 'Read the page',
+      plannerRegistry: { schema: 'evil.registry.v9' }
+    }),
+    /PLANNER_REGISTRY_HINT_SCHEMA_INVALID/
+  );
+});
+
+test('page bridge exposes planner hints as advisory and not executor authority', () => {
+  const manifest = publicPageBridgeManifest();
+  assert.equal(manifest.authority.pageCanSelectExecutor, false);
+  assert.equal(manifest.authority.plannerHintsAreAdvisory, true);
+  assert.equal(manifest.plannerRegistryHints.supported, true);
+  assert.equal(manifest.plannerRegistryHints.version, 'PV-BOP-BRR-0.1');
+});
