@@ -66,8 +66,7 @@ class BrowserTaskEngine {
   activeForTab(tabId) {
     return [...this.tasks.values()].find((task) => (
       Number(task.tabId) === Number(tabId) &&
-      !TERMINAL.has(task.status) &&
-      task.status !== 'HELD'
+      !TERMINAL.has(task.status)
     )) || null;
   }
 
