@@ -184,7 +184,6 @@ class PhiBrowserBridge {
     const task = await this.client.waitForTask(id, options);
     return bridgeEnvelope('TASK_STATE', {
       disposition: mapTaskDisposition(task),
-      navigation,
       task: summarizeTask(task)
     }, { taskId: id, tabId: task?.tabId ?? null });
   }
@@ -200,6 +199,7 @@ class PhiBrowserBridge {
     const task = await this.client.runTask(taskSpec, options);
     return bridgeEnvelope('TASK_RESULT', {
       disposition: mapTaskDisposition(task),
+      navigation,
       task: summarizeTask(task)
     }, {
       taskId: task?.id || null,
