@@ -6,9 +6,11 @@ const forwardButton = document.getElementById('forward');
 const reloadButton = document.getElementById('reload');
 const homeButton = document.getElementById('home');
 const newTabButton = document.getElementById('new-tab');
+const operatorButton = document.getElementById('operator-grant');
 
 let lastState = null;
 let editingOmnibox = false;
+let grantTimer = null;
 
 function renderTabs(state) {
   tabsEl.replaceChildren();
@@ -41,9 +43,37 @@ function renderTabs(state) {
   }
 }
 
+function renderOperator(state) {
+  if (!operatorButton) return;
+  const operator = state.operator || {};
+  const grant = operator.grant;
+  const seconds = grant ? Math.max(0, Math.ceil((grant.expiresAt - Date.now()) / 1000)) : 0;
+
+  if (!operator.running) {
+    operatorButton.className = 'operator-button offline';
+    operatorButton.textContent = 'OPERATOR OFFLINE';
+    operatorButton.title = 'Local Browser Operator is not listening';
+    return;
+  }
+
+  if (grant && seconds > 0) {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = String(seconds % 60).padStart(2, '0');
+    operatorButton.className = 'operator-button granted';
+    operatorButton.textContent = `OPERATOR GRANT ${minutes}:${remainder}`;
+    operatorButton.title = `Interactive page mutation granted until ${new Date(grant.expiresAt).toLocaleTimeString()}. Click to revoke.`;
+    return;
+  }
+
+  operatorButton.className = 'operator-button';
+  operatorButton.textContent = 'OPERATOR READ-ONLY';
+  operatorButton.title = `PV-BOP-0.1 at ${operator.host || '127.0.0.1'}:${operator.port || '…'}. Click to grant interactive page mutation for 5 minutes.`;
+}
+
 function renderState(state) {
   lastState = state;
   renderTabs(state);
+  renderOperator(state);
 
   const active = state.active;
   backButton.disabled = !active?.canGoBack;
@@ -56,6 +86,11 @@ function renderState(state) {
   }
 
   document.title = active?.title ? `${active.title} — Browsallax` : 'Browsallax';
+
+  clearTimeout(grantTimer);
+  if (state.operator?.grant?.expiresAt) {
+    grantTimer = setTimeout(() => renderOperator(lastState), 1000);
+  }
 }
 
 omniboxForm.addEventListener('submit', (event) => {
@@ -79,6 +114,10 @@ forwardButton.addEventListener('click', () => window.browsallax.forward());
 reloadButton.addEventListener('click', () => window.browsallax.reload());
 homeButton.addEventListener('click', () => window.browsallax.home());
 newTabButton.addEventListener('click', () => window.browsallax.newTab());
+operatorButton.addEventListener('click', () => {
+  if (lastState?.operator?.grant) window.browsallax.revokeOperatorInteractive();
+  else window.browsallax.grantOperatorInteractive();
+});
 
 window.addEventListener('keydown', (event) => {
   const modifier = event.ctrlKey || event.metaKey;
