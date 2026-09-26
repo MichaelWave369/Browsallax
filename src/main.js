@@ -2,16 +2,21 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const crypto = require('node:crypto');
 const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu } = require('electron');
+const { startOperatorServer } = require('./operator/server');
 
 const TOOLBAR_HEIGHT = 96;
 const START_URL = 'https://duckduckgo.com/';
 const PARTITION = 'persist:browsallax';
+const OPERATOR_GRANT_MS = 5 * 60 * 1000;
 
 app.enableSandbox();
 
 let mainWindow = null;
 let nextTabId = 1;
 let activeTabId = null;
+let operatorService = null;
+let operatorStatus = { running: false, version: 'PV-BOP-0.1', host: '127.0.0.1', port: null };
+let operatorGrant = null;
 const tabs = new Map();
 
 function normalizeInput(input) {
@@ -40,6 +45,31 @@ function safePageUrl(rawUrl) {
 
 function getActiveTab() {
   return activeTabId ? tabs.get(activeTabId) : null;
+}
+
+function getTab(id) {
+  if (id === undefined || id === null || id === '') return getActiveTab();
+  return tabs.get(Number(id)) || null;
+}
+
+function getOperatorGrant() {
+  if (operatorGrant && operatorGrant.expiresAt <= Date.now()) operatorGrant = null;
+  return operatorGrant;
+}
+
+function operatorGrantSummary() {
+  const grant = getOperatorGrant();
+  return grant ? { id: grant.id, expiresAt: grant.expiresAt } : null;
+}
+
+function listOperatorTabs() {
+  return [...tabs.values()].map((tab) => ({
+    id: tab.id,
+    title: tab.title,
+    url: tab.view.webContents.getURL(),
+    active: tab.id === activeTabId,
+    loading: tab.view.webContents.isLoading()
+  }));
 }
 
 function ledgerPath() {
@@ -99,7 +129,11 @@ function sendState() {
       title: tab.title,
       url: tab.view.webContents.getURL(),
       active: tab.id === activeTabId
-    }))
+    })),
+    operator: {
+      ...operatorStatus,
+      grant: operatorGrantSummary()
+    }
   };
 
   mainWindow.webContents.send('browser:state', state);
@@ -282,6 +316,26 @@ function createWindow() {
   });
 }
 
+function startLocalOperator() {
+  operatorService = startOperatorServer({
+    userDataPath: app.getPath('userData'),
+    getTab,
+    listTabs: listOperatorTabs,
+    navigateTab: async (tabId, input) => {
+      const tab = getTab(tabId);
+      if (!tab) throw Object.assign(new Error('TAB_NOT_FOUND'), { statusCode: 404 });
+      const url = normalizeInput(input);
+      if (!safePageUrl(url)) throw Object.assign(new Error('UNSAFE_URL'), { statusCode: 400 });
+      await tab.view.webContents.loadURL(url);
+    },
+    getGrant: getOperatorGrant,
+    onStatus: (status) => {
+      operatorStatus = status;
+      sendState();
+    }
+  });
+}
+
 ipcMain.on('browser:navigate', (_event, input) => {
   const active = getActiveTab();
   if (active) active.view.webContents.loadURL(normalizeInput(input));
@@ -303,13 +357,34 @@ ipcMain.on('browser:new-tab', () => createTab(START_URL, true));
 ipcMain.on('browser:activate-tab', (_event, id) => activateTab(id));
 ipcMain.on('browser:close-tab', (_event, id) => closeTab(id));
 
+ipcMain.on('operator:grant-interactive', () => {
+  operatorGrant = {
+    id: crypto.randomUUID(),
+    enabled: true,
+    grantedAt: Date.now(),
+    expiresAt: Date.now() + OPERATOR_GRANT_MS
+  };
+  sendState();
+});
+
+ipcMain.on('operator:revoke-interactive', () => {
+  operatorGrant = null;
+  sendState();
+});
+
 app.whenReady().then(() => {
   configureSession();
   createWindow();
+  startLocalOperator();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('before-quit', () => {
+  operatorGrant = null;
+  operatorService?.close().catch(() => {});
 });
 
 app.on('window-all-closed', () => {
