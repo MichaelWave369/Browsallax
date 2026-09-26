@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent, useful browser tooling around the web with better privacy boundaries, local intelligence, evidence capture, and an open ecosystem of free tools.
 
-> **Status:** Desktop `v0.3.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
+> **Status:** Desktop `v0.4.0-alpha.1`; Web `v0.2.0-alpha.1`. Both editions are early software and should be treated as experimental.
 
 ## Browsallax Web
 
@@ -80,6 +80,7 @@ Current desktop features:
 - Deny-by-default sensitive permissions
 - Local Reality Ledger selected-text capture with source URL, title, UTC timestamp, and SHA-256 integrity digest
 - **Browser Operator `PV-BOP-0.2`** on localhost for DOM-first observation, screenshots, governed actions, assertions, resumable local tasks, and hash-chained receipts
+- **PhiOS / Super PhiVessel Bridge `PV-BRIDGE-0.1`** with automatic endpoint discovery, portable Node client, CLI, task handoff envelopes, and a live Vessie acceptance example
 - Rotating local bearer token plus a five-minute human interactive grant; sensitive actions remain HELD
 - Keyboard shortcuts for address focus, tabs, closing tabs, and history navigation
 
@@ -124,9 +125,8 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 │ browser permissions  │ local workspaces      │
 │ page capture         │ Research Mode         │
 │ Browser Operator     │ Reality Ledger        │
-│ planned Ollama AI    │ Free Tools Dock       │
-│                      │ Free Tools Dock       │
-│                      │ Field Products link   │
+│ PhiOS/Vessie Bridge  │ Free Tools Dock       │
+│ planned Ollama AI    │ Field Products link   │
 │                      │ offline app shell     │
 ├──────────────────────┴───────────────────────┤
 │ Shared design rules                          │
@@ -174,10 +174,16 @@ Browsallax Web has no privileged backend. Its workspaces, research sessions, and
 - [x] resumable HELD tasks across human authority grants
 - [x] deterministic task acceptance assertions before COMPLETE
 - [x] one non-terminal task owns a tab at a time
+- [x] portable local Operator client (`PV-BOP-CLIENT-0.1`)
+- [x] PhiOS / Super PhiVessel bridge (`PV-BRIDGE-0.1`)
+- [x] loopback-only endpoint discovery with bearer-token redaction
+- [x] `browsallax` local CLI for status, observation, screenshots, tasks, resume, and cancel
+- [x] governed starting-URL handoff with preserved navigation provenance
+- [x] Super PhiVessel live acceptance example
 - [ ] per-action approval for sensitive mutations
 - [ ] local vision interpretation and replay
 
-See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md) and [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md).
+See [`docs/browser-operator-v0.1.md`](docs/browser-operator-v0.1.md), [`docs/browser-operator-v0.2.md`](docs/browser-operator-v0.2.md), and [`docs/browser-operator-v0.3.md`](docs/browser-operator-v0.3.md).
 
 ### Local intelligence
 
