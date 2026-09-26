@@ -5,10 +5,12 @@ const crypto = require('node:crypto');
 const { classifyAction, evaluateAuthority } = require('./policy');
 const { OBSERVE_SCRIPT, TARGET_SCRIPT } = require('./observe');
 const { OperatorReceiptLedger } = require('./receipts');
+const { OllamaPlanner } = require('./planner');
+const { BrowserTaskEngine } = require('./task-engine');
 
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = 3697;
-const VERSION = 'PV-BOP-0.1';
+const VERSION = 'PV-BOP-0.2';
 const BODY_LIMIT = 1024 * 1024;
 
 function json(res, status, body) {
@@ -84,7 +86,7 @@ async function writeEndpointFile(userDataPath, token, port) {
   return filePath;
 }
 
-function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getGrant, onStatus }) {
+function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getGrant, onStatus, planner: providedPlanner }) {
   const token = crypto.randomBytes(32).toString('hex');
   const ledger = new OperatorReceiptLedger(userDataPath);
   let port = DEFAULT_PORT;
@@ -98,6 +100,151 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
     return tab;
   };
 
+  const observeForTask = async (tabId, meta = {}) => {
+    const tab = requireTab(tabId);
+    const snapshot = await tab.view.webContents.executeJavaScript(OBSERVE_SCRIPT, true);
+    await ledger.append('OBSERVATION', {
+      tabId: tab.id,
+      url: snapshot.url,
+      title: snapshot.title,
+      elementCount: snapshot.elements.length,
+      ...meta
+    });
+    return snapshot;
+  };
+
+  const navigateForTask = async (tabId, targetUrl, meta = {}) => {
+    const tab = requireTab(tabId);
+    const authority = evaluateAuthority('NAVIGATION', getGrant());
+    if (!authority.allowed) {
+      return { ok: false, status: 'HELD', actionClass: 'NAVIGATION', authority };
+    }
+    try {
+      await navigateTab(tab.id, targetUrl);
+      const receipt = await ledger.append('NAVIGATION', {
+        tabId: tab.id,
+        url: targetUrl,
+        authority,
+        ...meta
+      });
+      return { ok: true, actionClass: 'NAVIGATION', authority, receipt };
+    } catch (error) {
+      return { ok: false, error: error?.message || 'NAVIGATION_FAILED', actionClass: 'NAVIGATION', authority };
+    }
+  };
+
+  const executeForTask = async (tabId, action = {}, meta = {}) => {
+    const tab = requireTab(tabId);
+    const type = String(action.type || '').toLowerCase();
+
+    if (type === 'scroll') {
+      const dx = Math.max(-10000, Math.min(10000, Number(action.dx || 0)));
+      const dy = Math.max(-10000, Math.min(10000, Number(action.dy || 0)));
+      await tab.view.webContents.executeJavaScript(`window.scrollBy(${JSON.stringify(dx)}, ${JSON.stringify(dy)}); true`, true);
+      const receipt = await ledger.append('ACTION', {
+        tabId: tab.id,
+        action: { type, dx, dy },
+        actionClass: 'READ_ONLY',
+        authority: 'BASELINE_LOCAL_OPERATOR',
+        ...meta
+      });
+      return { ok: true, actionClass: 'READ_ONLY', authority: 'BASELINE_LOCAL_OPERATOR', receipt };
+    }
+
+    if (type === 'wait') {
+      const ms = Math.max(0, Math.min(30000, Number(action.ms || 0)));
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      const receipt = await ledger.append('ACTION', {
+        tabId: tab.id,
+        action: { type, ms },
+        actionClass: 'READ_ONLY',
+        authority: 'BASELINE_LOCAL_OPERATOR',
+        ...meta
+      });
+      return { ok: true, actionClass: 'READ_ONLY', authority: 'BASELINE_LOCAL_OPERATOR', receipt };
+    }
+
+    const selector = selectorFrom(action);
+    const target = await tab.view.webContents.executeJavaScript(TARGET_SCRIPT(selector), true);
+    if (!target) return { ok: false, error: 'TARGET_NOT_FOUND' };
+
+    const actionClass = classifyAction(action, target);
+    const authority = evaluateAuthority(actionClass, getGrant());
+    if (!authority.allowed) {
+      const receipt = await ledger.append('HELD', {
+        tabId: tab.id,
+        action: { ...action, value: action.value != null ? '[REDACTED]' : undefined },
+        target,
+        actionClass,
+        authority,
+        ...meta
+      });
+      return { ok: false, status: 'HELD', actionClass, authority, receipt };
+    }
+
+    const result = await tab.view.webContents.executeJavaScript(actionScript(action, selector), true);
+    const receipt = await ledger.append('ACTION', {
+      tabId: tab.id,
+      action: { ...action, value: action.value != null ? '[REDACTED]' : undefined },
+      target,
+      actionClass,
+      authority,
+      result,
+      ...meta
+    });
+    return {
+      ok: result?.ok !== false,
+      actionClass,
+      authority,
+      result,
+      receipt,
+      error: result?.ok === false ? result?.error || 'ACTION_FAILED' : null
+    };
+  };
+
+  const assertForTask = async (tabId, assertion = {}, meta = {}) => {
+    const tab = requireTab(tabId);
+    const kind = String(assertion.kind || '').toLowerCase();
+    let pass = false;
+    let actual = null;
+
+    if (kind === 'url_contains') {
+      actual = tab.view.webContents.getURL();
+      pass = actual.includes(String(assertion.value || ''));
+    } else if (kind === 'text_contains') {
+      const needle = String(assertion.value || '');
+      actual = await tab.view.webContents.executeJavaScript('document.body ? document.body.innerText : ""', true);
+      pass = String(actual).includes(needle);
+      actual = pass ? needle : String(actual).slice(0, 2000);
+    } else if (kind === 'visible') {
+      const selector = selectorFrom(assertion);
+      actual = await tab.view.webContents.executeJavaScript(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; const s=getComputedStyle(el), r=el.getBoundingClientRect(); return s.display!=='none' && s.visibility!=='hidden' && r.width>0 && r.height>0; })()`, true);
+      pass = Boolean(actual);
+    } else {
+      return { ok: false, pass: false, error: 'UNSUPPORTED_ASSERTION' };
+    }
+
+    const receipt = await ledger.append('ASSERTION', {
+      tabId: tab.id,
+      assertion,
+      pass,
+      actual,
+      ...meta
+    });
+    return { ok: pass, pass, actual, receipt };
+  };
+
+  const localPlanner = providedPlanner || new OllamaPlanner();
+  const taskEngine = new BrowserTaskEngine({
+    planner: localPlanner,
+    ledger,
+    observe: observeForTask,
+    navigate: navigateForTask,
+    executeAction: executeForTask,
+    assert: assertForTask,
+    getGrant
+  });
+
   const handler = async (req, res) => {
     try {
       const url = new URL(req.url, `http://${HOST}`);
@@ -107,6 +254,44 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
 
       if (!authorize(req)) return json(res, 401, { ok: false, error: 'UNAUTHORIZED' });
 
+      if (req.method === 'GET' && url.pathname === '/v1/planner/status') {
+        const refresh = url.searchParams.get('refresh') === '1';
+        const plannerStatus = await localPlanner.status({ refresh });
+        return json(res, 200, { ok: true, planner: plannerStatus });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/v1/tasks') {
+        return json(res, 200, { ok: true, tasks: taskEngine.list() });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/v1/tasks') {
+        const body = await readJson(req);
+        requireTab(body.tabId);
+        const task = await taskEngine.create(body);
+        return json(res, 202, { ok: true, task });
+      }
+
+      const taskMatch = /^\/v1\/tasks\/([^/]+)(?:\/(resume|cancel))?$/.exec(url.pathname);
+      if (taskMatch && req.method === 'GET' && !taskMatch[2]) {
+        const task = taskEngine.get(decodeURIComponent(taskMatch[1]));
+        if (!task) return json(res, 404, { ok: false, error: 'TASK_NOT_FOUND' });
+        return json(res, 200, { ok: true, task });
+      }
+
+      if (taskMatch && req.method === 'POST' && taskMatch[2] === 'resume') {
+        const task = await taskEngine.resume(decodeURIComponent(taskMatch[1]));
+        return json(res, 202, { ok: true, task });
+      }
+
+      if (taskMatch && req.method === 'POST' && taskMatch[2] === 'cancel') {
+        const body = await readJson(req);
+        const task = await taskEngine.cancel(
+          decodeURIComponent(taskMatch[1]),
+          String(body.reason || 'USER_CANCELLED').slice(0, 500)
+        );
+        return json(res, 200, { ok: true, task });
+      }
+
       if (req.method === 'GET' && url.pathname === '/v1/status') {
         const grant = getGrant();
         return json(res, 200, {
@@ -114,7 +299,12 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
           version: VERSION,
           tabs: listTabs(),
           grant: grant && grant.enabled ? { id: grant.id, expiresAt: grant.expiresAt } : null,
-          receiptLedger: ledger.filePath
+          receiptLedger: ledger.filePath,
+          tasks: {
+            total: taskEngine.list().length,
+            running: taskEngine.list().filter((task) => task.status === 'RUNNING' || task.status === 'QUEUED').length,
+            held: taskEngine.list().filter((task) => task.status === 'HELD').length
+          }
         });
       }
 
@@ -272,9 +462,17 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
     version: VERSION,
     close: async () => {
       if (server?.listening) await new Promise((resolve) => server.close(() => resolve()));
+      await taskEngine.shutdown?.();
       if (endpointFile) await fs.unlink(endpointFile).catch(() => {});
     },
-    getStatus: () => ({ running: Boolean(server?.listening), version: VERSION, host: HOST, port, endpointFile })
+    getStatus: () => ({
+      running: Boolean(server?.listening),
+      version: VERSION,
+      host: HOST,
+      port,
+      endpointFile,
+      taskCount: taskEngine.list().length
+    })
   };
 }
 
