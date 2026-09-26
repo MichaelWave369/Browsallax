@@ -80,7 +80,7 @@ test('planner system prompt explicitly treats webpage content as untrusted data'
 });
 
 test('planner schema constrains the outer packet and action vocabulary', () => {
-  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.3');
+  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.4');
   assert.equal(PLANNER_MAX_ATTEMPTS, 2);
   assert.equal(PLANNER_SCHEMA.type, 'object');
   assert.equal(PLANNER_SCHEMA.additionalProperties, false);
@@ -126,7 +126,7 @@ test('Ollama planner uses JSON Schema, think=false, temperature zero, and return
   assert.equal(plan.action.type, 'click');
   assert.equal(plan.action.selector, '#docs');
   assert.equal(plan.planner.model, 'qwen3:4b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.3');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.4');
   assert.equal(plan.planner.schemaConstrained, true);
   assert.equal(plan.planner.attempts, 1);
   assert.equal(calls.length, 2);
@@ -208,7 +208,7 @@ test('two malformed responses fail with bounded hashed diagnostics and no raw re
     (error) => {
       assert.equal(error.code, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
       assert.equal(error.message, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
-      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.3');
+      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.4');
       assert.equal(error.diagnostics.provider, 'OLLAMA_LOCAL');
       assert.equal(error.diagnostics.model, 'qwen3:4b');
       assert.equal(error.diagnostics.attempts, 2);
@@ -240,5 +240,70 @@ test('empty Ollama response remains a distinct planner error', () => {
   assert.throws(
     () => plannerResponseContent({ message: { content: '' } }),
     /PLANNER_EMPTY_RESPONSE/
+  );
+});
+
+
+test('read-only research termination pressure repairs a wandering action into finish', async () => {
+  const calls = [];
+  let chats = 0;
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).endsWith('/api/tags')) return tagsResponse();
+    if (String(url).endsWith('/api/chat')) {
+      chats += 1;
+      const content = chats === 1
+        ? {
+            thought_summary: 'Scroll again to keep looking.',
+            action: { type: 'scroll', dy: 900 },
+            success_evidence: 'Current page has some relevant text.'
+          }
+        : {
+            thought_summary: 'The current observation is sufficient and the bounded research budget requires termination.',
+            action: {
+              type: 'finish',
+              status: 'complete',
+              summary: 'Observed page title is Example News and the visible text contains the requested result.'
+            },
+            success_evidence: 'Current observed title and visible page text support the answer.'
+          };
+      return new Response(JSON.stringify({
+        message: { content: JSON.stringify(content) }
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected URL');
+  };
+
+  const planner = new OllamaPlanner({
+    baseUrl: 'http://127.0.0.1:11434',
+    fetchImpl
+  });
+
+  const fixture = taskFixture();
+  fixture.task.constraints = ['READ-ONLY information gathering only.'];
+  fixture.task.stepCount = 6;
+  fixture.task.maxSteps = 10;
+  fixture.snapshot.url = 'https://example.test/news/';
+  fixture.snapshot.title = 'Example News';
+  fixture.snapshot.text = 'Latest article: Example result';
+
+  const plan = await planner.plan(fixture);
+
+  assert.equal(chats, 2);
+  assert.equal(plan.action.type, 'finish');
+  assert.equal(plan.action.status, 'complete');
+  assert.equal(plan.planner.attempts, 2);
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.4');
+  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.1');
+  assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
+
+  const firstBody = JSON.parse(calls[1].options.body);
+  assert.match(firstBody.messages[1].content, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.1/);
+  assert.match(firstBody.messages[1].content, /TERMINATE_NOW=YES/);
+
+  const repairBody = JSON.parse(calls[2].options.body);
+  assert.match(
+    repairBody.messages[2].content,
+    /PLANNER_READ_ONLY_TERMINATION_REQUIRED/
   );
 });
