@@ -26,6 +26,8 @@ let operatorStatus = { running: false, version: 'PV-BOP-0.2', host: '127.0.0.1',
 let operatorGrant = null;
 const tabs = new Map();
 const trustedPageTasks = new Map();
+const trustedPageSenderWatchers = new Set();
+const TRUSTED_PAGE_MAX_ACTIVE_TASKS = 3;
 
 function normalizeInput(input) {
   const value = String(input || '').trim();
@@ -143,6 +145,35 @@ function cleanupTrustedTaskTab(record, task) {
   if (!task || !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) return;
   record.tabClosed = true;
   closeTab(record.tabId);
+}
+
+function activeTrustedTasksForOwner(owner) {
+  let count = 0;
+  for (const [taskId, record] of trustedPageTasks.entries()) {
+    if (record.owner !== owner) continue;
+    const task = operatorService?.internal.getTask(taskId);
+    if (task && !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) count += 1;
+  }
+  return count;
+}
+
+function watchTrustedSender(event, caller) {
+  if (trustedPageSenderWatchers.has(caller.webContentsId)) return;
+  trustedPageSenderWatchers.add(caller.webContentsId);
+  event.sender.once('destroyed', () => {
+    trustedPageSenderWatchers.delete(caller.webContentsId);
+    for (const [taskId, record] of trustedPageTasks.entries()) {
+      if (record.owner !== caller.owner) continue;
+      const task = operatorService?.internal.getTask(taskId);
+      if (task && !['COMPLETE', 'FAILED', 'CANCELLED'].includes(task.status)) {
+        operatorService.internal.cancelTask(taskId, 'TRUSTED_PAGE_CLOSED').catch(() => {});
+      }
+      if (!record.tabClosed) {
+        record.tabClosed = true;
+        closeTab(record.tabId);
+      }
+    }
+  });
 }
 
 function ledgerPath() {
@@ -487,6 +518,10 @@ ipcMain.handle('trusted-page:status', async (event) => {
 ipcMain.handle('trusted-page:start-task', async (event, input) => {
   const caller = trustedCaller(event);
   if (!operatorService) throw new Error('OPERATOR_NOT_RUNNING');
+  if (activeTrustedTasksForOwner(caller.owner) >= TRUSTED_PAGE_MAX_ACTIVE_TASKS) {
+    throw Object.assign(new Error('TRUSTED_PAGE_TASK_LIMIT'), { statusCode: 429 });
+  }
+  watchTrustedSender(event, caller);
   const spec = normalizePageTaskSpec(input);
   const tabId = createTab(spec.url, false);
   const record = {
