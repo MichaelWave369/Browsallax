@@ -169,3 +169,79 @@ test('planner cannot self-certify completion when deterministic acceptance fails
   assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_ACCEPTANCE_FAILED'));
   assert.ok(log.receipts.some((receipt) => receipt.kind === 'TASK_COMPLETE'));
 });
+
+
+test('task engine preserves bounded planner failure diagnostics without exposing raw response data', async () => {
+  const log = ledger();
+  const plannerError = Object.assign(new Error('PLANNER_STRUCTURED_OUTPUT_FAILED'), {
+    code: 'PLANNER_STRUCTURED_OUTPUT_FAILED',
+    diagnostics: {
+      plannerVersion: 'PV-BOP-PLAN-0.5',
+      provider: 'OLLAMA_LOCAL',
+      model: 'gemma3:12b',
+      attempts: 2,
+      rawResponseChars: 321,
+      rawResponseSha256: 'a'.repeat(64),
+      validationError: 'PLANNER_INVALID_JSON',
+      rawResponse: 'SECRET_MUST_NOT_ESCAPE',
+      brainRegistryRoute: {
+        version: 'PV-BOP-BRR-0.1',
+        schema: 'superphivessel.brain_registry.planner_hints.v1',
+        registryUsed: true,
+        selectionBasis: 'REGISTRY_RECOMMENDED',
+        selectedModel: 'gemma3:12b',
+        registryVersion: '1.1',
+        routerVersion: '1.2.0',
+        routingMode: 'AUTO',
+        role: 'utility',
+        approvedPoolCount: 1,
+        candidateCount: 1
+      },
+      readOnlyResearch: {
+        version: 'PV-BOP-RRC-0.1',
+        mode: 'NORMAL',
+        stepCount: 0
+      }
+    }
+  });
+
+  const engine = new BrowserTaskEngine({
+    planner: { plan: async () => { throw plannerError; } },
+    ledger: log,
+    observe: async () => ({ url: 'https://www.nasa.gov/news/', title: 'NASA', text: '', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async () => ({ ok: true }),
+    getGrant: () => null
+  });
+
+  const created = await engine.create({
+    tabId: 5,
+    goal: 'Read NASA news',
+    plannerRegistry: {
+      schema: 'superphivessel.brain_registry.planner_hints.v1',
+      registryVersion: '1.1',
+      routerVersion: '1.2.0',
+      routingMode: 'AUTO',
+      role: 'utility',
+      approvedModels: ['gemma3:12b'],
+      recommendedModel: 'gemma3:12b',
+      candidates: [{ model: 'gemma3:12b', score: 0.91 }]
+    }
+  });
+
+  const failed = await waitFor(engine, created.id, (task) => task.status === 'FAILED');
+  assert.equal(failed.stepCount, 0);
+  assert.equal(failed.error, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
+  assert.equal(failed.failureDiagnostics.provider, 'OLLAMA_LOCAL');
+  assert.equal(failed.failureDiagnostics.model, 'gemma3:12b');
+  assert.equal(failed.failureDiagnostics.validationError, 'PLANNER_INVALID_JSON');
+  assert.equal(failed.failureDiagnostics.brainRegistryRoute.registryUsed, true);
+  assert.equal(failed.failureDiagnostics.brainRegistryRoute.selectionBasis, 'REGISTRY_RECOMMENDED');
+  assert.equal(failed.plannerRegistry.registryVersion, '1.1');
+  assert.doesNotMatch(JSON.stringify(failed), /SECRET_MUST_NOT_ESCAPE/);
+
+  const failureReceipt = log.receipts.find((receipt) => receipt.kind === 'TASK_FAILED');
+  assert.equal(failureReceipt.data.failureDiagnostics.model, 'gemma3:12b');
+  assert.doesNotMatch(JSON.stringify(failureReceipt), /SECRET_MUST_NOT_ESCAPE/);
+});
