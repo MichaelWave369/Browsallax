@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('browsallax', {
   newTab: () => ipcRenderer.send('browser:new-tab'),
   activateTab: (id) => ipcRenderer.send('browser:activate-tab', id),
   closeTab: (id) => ipcRenderer.send('browser:close-tab', id),
+  grantOperatorInteractive: () => ipcRenderer.send('operator:grant-interactive'),
+  revokeOperatorInteractive: () => ipcRenderer.send('operator:revoke-interactive'),
   onState: (handler) => {
     const listener = (_event, state) => handler(state);
     ipcRenderer.on('browser:state', listener);
