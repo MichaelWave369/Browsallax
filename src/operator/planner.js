@@ -1,6 +1,10 @@
+const crypto = require('node:crypto');
+
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.2';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.3';
+const PLANNER_MAX_ATTEMPTS = 2;
+const PLANNER_ATTEMPT_TIMEOUT_MS = 30000;
 
 const PREFERRED_MODELS = [
   'qwen3:4b',
@@ -20,6 +24,45 @@ const ALLOWED_ACTIONS = new Set([
   'assert',
   'finish'
 ]);
+
+const PLANNER_SCHEMA = Object.freeze({
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    thought_summary: { type: 'string' },
+    action: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        type: {
+          type: 'string',
+          enum: ['navigate', 'click', 'type', 'select', 'scroll', 'wait', 'assert', 'finish']
+        },
+        url: { type: 'string' },
+        selector: { type: 'string' },
+        value: { type: 'string' },
+        dx: { type: 'number' },
+        dy: { type: 'number' },
+        ms: { type: 'number' },
+        assertion: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            kind: { type: 'string', enum: ['url_contains', 'text_contains', 'visible'] },
+            value: { type: 'string' },
+            selector: { type: 'string' }
+          },
+          required: ['kind']
+        },
+        status: { type: 'string', enum: ['complete', 'failed'] },
+        summary: { type: 'string' }
+      },
+      required: ['type']
+    },
+    success_evidence: { type: 'string' }
+  },
+  required: ['thought_summary', 'action', 'success_evidence']
+});
 
 function timeoutSignal(ms, parentSignal) {
   const controller = new AbortController();
@@ -121,6 +164,33 @@ function plannerResponseContent(body = {}) {
   const error = new Error('PLANNER_EMPTY_RESPONSE');
   error.code = 'PLANNER_EMPTY_RESPONSE';
   throw error;
+}
+
+function plannerErrorCode(error) {
+  return String(error?.code || error?.message || 'PLANNER_UNKNOWN_ERROR').slice(0, 200);
+}
+
+function structuredOutputDiagnostics(rawResponse, error, model, attempts) {
+  const raw = String(rawResponse || '');
+  return {
+    plannerVersion: PLANNER_VERSION,
+    provider: 'OLLAMA_LOCAL',
+    model: String(model || ''),
+    attempts: Number(attempts || 0),
+    rawResponseChars: raw.length,
+    rawResponseSha256: crypto.createHash('sha256').update(raw, 'utf8').digest('hex'),
+    validationError: plannerErrorCode(error)
+  };
+}
+
+function structuredRepairPrompt(error) {
+  return [
+    'STRUCTURED_OUTPUT_REPAIR=1',
+    'The previous planner response failed local validation with '+plannerErrorCode(error)+'.',
+    'Return exactly one JSON object that conforms to the supplied JSON Schema.',
+    'Do not add Markdown, prose, code fences, comments, or alternative candidates.',
+    'Preserve the same task goal and authority boundaries.'
+  ].join('\n');
 }
 
 function validatePlan(plan) {
@@ -254,55 +324,99 @@ class OllamaPlanner {
       throw Object.assign(new Error(code), { code });
     }
 
-    const timed = timeoutSignal(60000, signal);
-    try {
-      const response = await this.fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        signal: timed.signal,
-        body: JSON.stringify({
-          model: status.selectedModel,
-          stream: false,
-          format: 'json',
-          think: false,
-          messages: [
-            { role: 'system', content: systemPrompt() },
-            { role: 'user', content: userPrompt({ task, snapshot, history }) }
-          ],
-          options: {
-            temperature: 0.1,
-            num_predict: 900
-          }
-        })
-      });
+    const taskPrompt = userPrompt({ task, snapshot, history });
+    let lastStructuredError = null;
+    let lastRawResponse = '';
 
-      if (!response.ok) throw new Error(`OLLAMA_CHAT_HTTP_${response.status}`);
-      const body = await response.json();
-      const parsed = parseJsonObject(plannerResponseContent(body));
-      const plan = validatePlan(parsed);
-      return {
-        ...plan,
-        planner: {
-          version: PLANNER_VERSION,
-          provider: 'OLLAMA_LOCAL',
-          model: status.selectedModel
+    for (let attempt = 1; attempt <= PLANNER_MAX_ATTEMPTS; attempt += 1) {
+      const timed = timeoutSignal(PLANNER_ATTEMPT_TIMEOUT_MS, signal);
+      try {
+        const messages = [
+          { role: 'system', content: systemPrompt() }
+        ];
+        if (attempt > 1) {
+          messages.push({ role: 'system', content: structuredRepairPrompt(lastStructuredError) });
         }
-      };
-    } finally {
-      timed.cleanup();
+        messages.push({ role: 'user', content: taskPrompt });
+
+        const response = await this.fetch(`${this.baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          signal: timed.signal,
+          body: JSON.stringify({
+            model: status.selectedModel,
+            stream: false,
+            format: PLANNER_SCHEMA,
+            think: false,
+            messages,
+            options: {
+              temperature: 0,
+              num_predict: 900
+            }
+          })
+        });
+
+        if (!response.ok) throw new Error(`OLLAMA_CHAT_HTTP_${response.status}`);
+        const body = await response.json();
+
+        try {
+          lastRawResponse = plannerResponseContent(body);
+          const parsed = parseJsonObject(lastRawResponse);
+          const plan = validatePlan(parsed);
+          return {
+            ...plan,
+            planner: {
+              version: PLANNER_VERSION,
+              provider: 'OLLAMA_LOCAL',
+              model: status.selectedModel,
+              schemaConstrained: true,
+              attempts: attempt
+            }
+          };
+        } catch (error) {
+          lastStructuredError = error;
+          if (attempt < PLANNER_MAX_ATTEMPTS) continue;
+
+          const failure = new Error('PLANNER_STRUCTURED_OUTPUT_FAILED');
+          failure.code = 'PLANNER_STRUCTURED_OUTPUT_FAILED';
+          failure.diagnostics = structuredOutputDiagnostics(
+            lastRawResponse,
+            error,
+            status.selectedModel,
+            attempt
+          );
+          throw failure;
+        }
+      } finally {
+        timed.cleanup();
+      }
     }
+
+    throw Object.assign(new Error('PLANNER_STRUCTURED_OUTPUT_FAILED'), {
+      code: 'PLANNER_STRUCTURED_OUTPUT_FAILED',
+      diagnostics: structuredOutputDiagnostics(
+        lastRawResponse,
+        lastStructuredError,
+        status.selectedModel,
+        PLANNER_MAX_ATTEMPTS
+      )
+    });
   }
 }
 
 module.exports = {
   OllamaPlanner,
   PLANNER_VERSION,
+  PLANNER_SCHEMA,
+  PLANNER_MAX_ATTEMPTS,
   PREFERRED_MODELS,
   ALLOWED_ACTIONS,
   compactSnapshot,
   chooseModel,
   parseJsonObject,
   plannerResponseContent,
+  structuredOutputDiagnostics,
+  structuredRepairPrompt,
   validatePlan,
   systemPrompt
 };
