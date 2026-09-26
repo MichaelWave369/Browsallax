@@ -1,0 +1,35 @@
+{
+  "schema": "browsallax.live_acceptance.v1",
+  "acceptance_id": "BROWSALLAX-LIVE-ACCEPTANCE-001",
+  "date": "2026-09-26",
+  "evidence_class": "HUMAN_OBSERVED_LIVE_ACCEPTANCE",
+  "verdict": "PASS",
+  "task_status": "COMPLETE",
+  "task_steps": 1,
+  "target_url": "https://superphivessel.netlify.app/",
+  "super_phivessel_release": ".51.2 Browsallax Trusted Page Bridge",
+  "page_bridge": "PV-PAGE-0.1",
+  "browser_operator": "PV-BOP-0.2",
+  "planner_model": "qwen3:4b",
+  "browsallax_package_baseline": "0.5.0-alpha.2",
+  "planner_contract_baseline": "PV-BOP-PLAN-0.2",
+  "interactive_grant": "NONE",
+  "deterministic_acceptance": {
+    "kind": "text_contains",
+    "value": "Super Φ.Vessel"
+  },
+  "observed_result": "Application loads and identifies itself with 'Super Φ.Vessel' text present in the page content.",
+  "prior_regression": {
+    "status": "FAILED",
+    "step": 0,
+    "error": "PLANNER_EMPTY_RESPONSE",
+    "repaired_before_this_acceptance": true
+  },
+  "evidence_boundary": {
+    "human_live_observation": true,
+    "repository_record": true,
+    "local_runtime_receipt_imported": false,
+    "local_runtime_receipt_hash": null,
+    "task_uuid": null
+  }
+}
