@@ -77,7 +77,7 @@ After production health passes, start the local outbound agent with a fresh cred
 npm run agent:bootstrap
 ```
 
-The bootstrap is compatible with Windows PowerShell 5.1 and newer PowerShell versions. It generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
+The bootstrap is compatible with Windows PowerShell 5.1 and newer PowerShell versions. It generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project's production context as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
 
 The production health check must report:
 
