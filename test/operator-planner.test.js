@@ -8,6 +8,7 @@ const {
   chooseModel,
   validatePlan,
   observedElementForPlannerTarget,
+  groundObservedInteractiveTarget,
   groundObservedClickTarget,
   plannerResponseContent,
   structuredRepairPrompt,
@@ -83,7 +84,7 @@ test('planner system prompt explicitly treats webpage content as untrusted data'
 });
 
 test('planner schema constrains the outer packet and action vocabulary', () => {
-  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.8');
+  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.9');
   assert.equal(PLANNER_MAX_ATTEMPTS, 2);
   assert.equal(PLANNER_SCHEMA.type, 'object');
   assert.equal(PLANNER_SCHEMA.additionalProperties, false);
@@ -129,7 +130,7 @@ test('Ollama planner uses JSON Schema, think=false, temperature zero, and return
   assert.equal(plan.action.type, 'click');
   assert.equal(plan.action.selector, '#docs');
   assert.equal(plan.planner.model, 'qwen3:4b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.9');
   assert.equal(plan.planner.schemaConstrained, true);
   assert.equal(plan.planner.attempts, 1);
   assert.equal(calls.length, 2);
@@ -211,7 +212,7 @@ test('two malformed responses fail with bounded hashed diagnostics and no raw re
     (error) => {
       assert.equal(error.code, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
       assert.equal(error.message, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
-      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.8');
+      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.9');
       assert.equal(error.diagnostics.provider, 'OLLAMA_LOCAL');
       assert.equal(error.diagnostics.model, 'qwen3:4b');
       assert.equal(error.diagnostics.attempts, 2);
@@ -296,8 +297,8 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.equal(plan.action.type, 'finish');
   assert.equal(plan.action.status, 'complete');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
-  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.4');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.9');
+  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.5');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 
   const firstBody = JSON.parse(calls[1].options.body);
@@ -348,7 +349,7 @@ test('planner uses a trusted Brain Registry recommendation only when it is local
 
   const plan = await planner.plan(fixture);
   assert.equal(plan.planner.model, 'gemma3:12b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.9');
   assert.equal(plan.planner.brainRegistryRouterVersion, 'PV-BOP-BRR-0.1');
   assert.equal(plan.planner.brainRegistryRoute.registryUsed, true);
   assert.equal(plan.planner.brainRegistryRoute.selectionBasis, 'REGISTRY_RECOMMENDED');
@@ -539,7 +540,7 @@ test('planner repairs premature search-result failure by selecting an observed r
   assert.equal(plan.action.ref, 'e17');
   assert.equal(plan.action.selector, '#result-flight');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.9');
 
   const repairBody = JSON.parse(calls[2].options.body);
   const repairMessage = repairBody.messages.find((message) => (
@@ -596,4 +597,62 @@ test('hard read-only ceiling deterministically fails closed if planner ignores b
   assert.equal(plan.planner.deterministicTermination, true);
   assert.equal(plan.planner.terminationReason, 'PLANNER_READ_ONLY_TERMINATION_REQUIRED');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
+});
+
+
+test('planner grounds observed type target ref to its exact selector', () => {
+  const fixture = taskFixture();
+  fixture.snapshot.elements.push({
+    ref: 'e2',
+    selector: 'input[name="origin"]',
+    tagName: 'input',
+    type: 'text',
+    name: 'origin',
+    placeholder: 'From',
+    text: ''
+  });
+
+  const validated = validatePlan({
+    thought_summary: 'Enter the requested origin airport.',
+    action: { type: 'type', ref: 'e2', value: 'SMF' },
+    success_evidence: 'Origin query field is observed.'
+  });
+  const grounded = groundObservedInteractiveTarget(validated, fixture.snapshot);
+
+  assert.equal(grounded.action.type, 'type');
+  assert.equal(grounded.action.ref, 'e2');
+  assert.equal(grounded.action.selector, 'input[name="origin"]');
+  assert.equal(grounded.action.value, 'SMF');
+});
+
+test('planner rejects invented type targets before browser policy', () => {
+  const fixture = taskFixture();
+  const validated = validatePlan({
+    thought_summary: 'Invented target.',
+    action: { type: 'type', selector: '#not-observed', value: 'CVG' },
+    success_evidence: ''
+  });
+
+  assert.throws(
+    () => groundObservedInteractiveTarget(validated, fixture.snapshot),
+    /PLANNER_INTERACTIVE_TARGET_UNOBSERVED/
+  );
+});
+
+test('planner compact observation carries query field hints without broad DOM access', () => {
+  const fixture = taskFixture();
+  fixture.snapshot.elements.push({
+    ref: 'e2',
+    selector: '#origin',
+    tagName: 'input',
+    type: 'search',
+    name: 'origin',
+    placeholder: 'Where from?',
+    autocomplete: 'off',
+    text: ''
+  });
+  const compact = require('../src/operator/planner').compactSnapshot(fixture.snapshot);
+  const field = compact.elements.find((element) => element.ref === 'e2');
+  assert.equal(field.placeholder, 'Where from?');
+  assert.equal(field.autocomplete, 'off');
 });
