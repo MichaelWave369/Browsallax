@@ -1,0 +1,20 @@
+{
+  "name": "phi-chatgpt-browsallax-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/relay-core.mjs && node --check test/relay-core.test.mjs",
+    "test": "node --test test/*.test.mjs",
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^23.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

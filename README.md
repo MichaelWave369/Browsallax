@@ -171,6 +171,7 @@ Current runtime contracts:
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
 | ChatGPT ↔ Browsallax bridge | `PV-CBR-0.1` | bounded semantic Vessie connector over local operator client |
 | ChatGPT outbound relay agent | `PV-CBR-AGENT-0.1` | outbound-only transport client for the public relay |
+| ChatGPT transport relay | `PV-CBR-RELAY-0.1` | Netlify-hosted transport-only queue owned by Browsallax |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
 
 ### Task loop
@@ -225,7 +226,7 @@ Super Φ.Vessel / Vessie
 
 The v0.1 bridge exposes only semantic operations: status, bounded Vessie observation, ask Vessie, and resume a Vessie-bound held task. It does not expose raw selector actions, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
-The bridge uses a separate bearer token and never returns the local Browser Operator token. Sending a message to Vessie still requires the normal Browsallax human interactive grant. For remote ChatGPT transport without an inbound PC port, `PV-CBR-AGENT-0.1` polls the transport-only relay over outbound HTTPS and dispatches only the four semantic bridge operations. See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
+The bridge uses a separate bearer token and never returns the local Browser Operator token. Sending a message to Vessie still requires the normal Browsallax human interactive grant. For remote ChatGPT transport without an inbound PC port, `PV-CBR-AGENT-0.1` polls the Browsallax-owned `PV-CBR-RELAY-0.1` transport relay over outbound HTTPS and dispatches only the four semantic bridge operations. See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
 
 ### Brain Registry routing
 
@@ -333,6 +334,7 @@ Read the full [Threat Model](docs/THREAT_MODEL.md) and [Security Test Matrix](do
 | [`src/operator/`](src/operator/) | Browser observation, policy, planner, task engine, trusted-page bridge, receipts |
 | [`src/client/`](src/client/) | Portable Browser Operator client and endpoint discovery |
 | [`src/bridge/`](src/bridge/) | PhiOS / Super Φ.Vessel bridge + bounded ChatGPT connector |
+| [`relay/`](relay/) | Browsallax-owned transport-only ChatGPT ↔ Vessie relay |
 | [`web/`](web/) | React/Vite PWA companion |
 | [`bin/`](bin/) | local `browsallax` CLI entrypoint |
 | [`examples/`](examples/) | live acceptance and bridge examples |
