@@ -1,0 +1,26 @@
+name: relay
+
+on:
+  push:
+    paths:
+      - "relay/**"
+      - ".github/workflows/relay.yml"
+  pull_request:
+    paths:
+      - "relay/**"
+      - ".github/workflows/relay.yml"
+
+jobs:
+  relay-contract:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm install
+      - run: npm run check
+      - run: npm test
