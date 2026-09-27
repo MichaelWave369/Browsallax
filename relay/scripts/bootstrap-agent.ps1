@@ -2,6 +2,12 @@ $ErrorActionPreference = 'Stop'
 
 $RelayUrl = 'https://phi-browsallax-relay.netlify.app'
 
+Write-Host '[Phi Relay Bootstrap] Checking local Browsallax Browser Operator...'
+& node scripts/preflight-local-operator.mjs
+if ($LASTEXITCODE -ne 0) {
+  throw 'BROWSALLAX_LOCAL_OPERATOR_PREFLIGHT_FAILED'
+}
+
 Write-Host '[Phi Relay Bootstrap] Generating a fresh local agent credential...'
 
 # Windows PowerShell 5.1 runs on .NET Framework and does not provide

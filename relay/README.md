@@ -71,13 +71,13 @@ npm run health:prod
 
 `netlify link` stores local site linkage under `.netlify/`, which is ignored by Git.
 
-After production health passes, start the local outbound agent with a fresh credential generated on the machine:
+After production health passes, start Browsallax Desktop in a separate terminal and leave it running:\n\n```powershell\ncd C:\\Browsallax\nnpm start\n```\n\nThen start the local outbound agent with a fresh credential generated on the machine:
 
 ```powershell
 npm run agent:bootstrap
 ```
 
-The bootstrap is compatible with Windows PowerShell 5.1 and newer PowerShell versions. It generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project's production context as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
+The bootstrap first verifies that the local Browsallax Browser Operator endpoint is available, then proceeds. If Browsallax Desktop is not running, it stops before rotating the Netlify agent secret and prints the exact startup commands. It is compatible with Windows PowerShell 5.1 and newer PowerShell versions. It generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project's production context as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
 
 The production health check must report:
 
