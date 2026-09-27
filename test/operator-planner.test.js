@@ -7,6 +7,8 @@ const {
   PLANNER_MAX_ATTEMPTS,
   chooseModel,
   validatePlan,
+  observedElementForPlannerTarget,
+  groundObservedClickTarget,
   plannerResponseContent,
   systemPrompt
 } = require('../src/operator/planner');
@@ -80,7 +82,7 @@ test('planner system prompt explicitly treats webpage content as untrusted data'
 });
 
 test('planner schema constrains the outer packet and action vocabulary', () => {
-  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.5');
+  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.6');
   assert.equal(PLANNER_MAX_ATTEMPTS, 2);
   assert.equal(PLANNER_SCHEMA.type, 'object');
   assert.equal(PLANNER_SCHEMA.additionalProperties, false);
@@ -126,7 +128,7 @@ test('Ollama planner uses JSON Schema, think=false, temperature zero, and return
   assert.equal(plan.action.type, 'click');
   assert.equal(plan.action.selector, '#docs');
   assert.equal(plan.planner.model, 'qwen3:4b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.6');
   assert.equal(plan.planner.schemaConstrained, true);
   assert.equal(plan.planner.attempts, 1);
   assert.equal(calls.length, 2);
@@ -396,4 +398,73 @@ test('planner refuses a registry route when no approved registry model exists lo
       return true;
     }
   );
+});
+
+
+test('planner click target can use an observed ref and is grounded to its exact selector', () => {
+  const fixture = taskFixture();
+  const validated = validatePlan({
+    thought_summary: 'Open the observed docs link by ref.',
+    action: { type: 'click', ref: 'e1' },
+    success_evidence: 'Docs link is observed.'
+  });
+
+  const grounded = groundObservedClickTarget(validated, fixture.snapshot);
+  assert.equal(grounded.action.ref, 'e1');
+  assert.equal(grounded.action.selector, '#docs');
+});
+
+test('legacy selector field containing an observed ref is deterministically grounded', () => {
+  const fixture = taskFixture();
+  const validated = validatePlan({
+    thought_summary: 'Open the observed docs link.',
+    action: { type: 'click', selector: 'e1' },
+    success_evidence: 'Docs link is observed.'
+  });
+
+  const grounded = groundObservedClickTarget(validated, fixture.snapshot);
+  assert.equal(grounded.action.ref, 'e1');
+  assert.equal(grounded.action.selector, '#docs');
+});
+
+test('planner refuses an unobserved click target before policy or execution', () => {
+  const fixture = taskFixture();
+  const validated = validatePlan({
+    thought_summary: 'Click a target that was not observed.',
+    action: { type: 'click', selector: '#invented-flight-link' },
+    success_evidence: ''
+  });
+
+  assert.throws(
+    () => groundObservedClickTarget(validated, fixture.snapshot),
+    /PLANNER_CLICK_TARGET_UNOBSERVED/
+  );
+});
+
+test('planner refuses mismatched ref and selector target claims', () => {
+  const fixture = taskFixture();
+  const validated = validatePlan({
+    thought_summary: 'Contradictory target fields.',
+    action: { type: 'click', ref: 'e1', selector: '#somewhere-else' },
+    success_evidence: ''
+  });
+
+  assert.throws(
+    () => groundObservedClickTarget(validated, fixture.snapshot),
+    /PLANNER_CLICK_TARGET_MISMATCH/
+  );
+});
+
+test('observed target lookup accepts exact selector or exact ref only', () => {
+  const fixture = taskFixture();
+  assert.equal(observedElementForPlannerTarget(fixture.snapshot, '#docs').ref, 'e1');
+  assert.equal(observedElementForPlannerTarget(fixture.snapshot, 'e1').selector, '#docs');
+  assert.equal(observedElementForPlannerTarget(fixture.snapshot, 'docs'), null);
+});
+
+test('planner system prompt distinguishes refs from selectors', () => {
+  const prompt = systemPrompt();
+  assert.match(prompt, /exact observation\.elements\[\]\.ref/i);
+  assert.match(prompt, /Never invent a selector/i);
+  assert.match(prompt, /never copy an element ref into selector/i);
 });
