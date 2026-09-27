@@ -71,6 +71,14 @@ npm run health:prod
 
 `netlify link` stores local site linkage under `.netlify/`, which is ignored by Git.
 
+After production health passes, start the local outbound agent with a fresh credential generated on the machine:
+
+```powershell
+npm run agent:bootstrap
+```
+
+The bootstrap generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
+
 The production health check must report:
 
 ```json
