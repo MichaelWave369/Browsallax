@@ -294,7 +294,7 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.equal(plan.action.status, 'complete');
   assert.equal(plan.planner.attempts, 2);
   assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
-  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.1');
+  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.2');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 
   const firstBody = JSON.parse(calls[1].options.body);
