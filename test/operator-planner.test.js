@@ -83,7 +83,7 @@ test('planner system prompt explicitly treats webpage content as untrusted data'
 });
 
 test('planner schema constrains the outer packet and action vocabulary', () => {
-  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.7');
+  assert.equal(PLANNER_VERSION, 'PV-BOP-PLAN-0.8');
   assert.equal(PLANNER_MAX_ATTEMPTS, 2);
   assert.equal(PLANNER_SCHEMA.type, 'object');
   assert.equal(PLANNER_SCHEMA.additionalProperties, false);
@@ -129,7 +129,7 @@ test('Ollama planner uses JSON Schema, think=false, temperature zero, and return
   assert.equal(plan.action.type, 'click');
   assert.equal(plan.action.selector, '#docs');
   assert.equal(plan.planner.model, 'qwen3:4b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.7');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
   assert.equal(plan.planner.schemaConstrained, true);
   assert.equal(plan.planner.attempts, 1);
   assert.equal(calls.length, 2);
@@ -211,7 +211,7 @@ test('two malformed responses fail with bounded hashed diagnostics and no raw re
     (error) => {
       assert.equal(error.code, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
       assert.equal(error.message, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
-      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.7');
+      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.8');
       assert.equal(error.diagnostics.provider, 'OLLAMA_LOCAL');
       assert.equal(error.diagnostics.model, 'qwen3:4b');
       assert.equal(error.diagnostics.attempts, 2);
@@ -284,7 +284,7 @@ test('read-only research termination pressure repairs a wandering action into fi
 
   const fixture = taskFixture();
   fixture.task.constraints = ['READ-ONLY information gathering only.'];
-  fixture.task.stepCount = 6;
+  fixture.task.stepCount = 9;
   fixture.task.maxSteps = 10;
   fixture.snapshot.url = 'https://example.test/news/';
   fixture.snapshot.title = 'Example News';
@@ -296,8 +296,8 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.equal(plan.action.type, 'finish');
   assert.equal(plan.action.status, 'complete');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.7');
-  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.3');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
+  assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.4');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 
   const firstBody = JSON.parse(calls[1].options.body);
@@ -348,7 +348,7 @@ test('planner uses a trusted Brain Registry recommendation only when it is local
 
   const plan = await planner.plan(fixture);
   assert.equal(plan.planner.model, 'gemma3:12b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.7');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
   assert.equal(plan.planner.brainRegistryRouterVersion, 'PV-BOP-BRR-0.1');
   assert.equal(plan.planner.brainRegistryRoute.registryUsed, true);
   assert.equal(plan.planner.brainRegistryRoute.selectionBasis, 'REGISTRY_RECOMMENDED');
@@ -539,7 +539,7 @@ test('planner repairs premature search-result failure by selecting an observed r
   assert.equal(plan.action.ref, 'e17');
   assert.equal(plan.action.selector, '#result-flight');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.7');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.8');
 
   const repairBody = JSON.parse(calls[2].options.body);
   const repairMessage = repairBody.messages.find((message) => (
@@ -547,4 +547,53 @@ test('planner repairs premature search-result failure by selecting an observed r
   ));
   assert.ok(repairMessage);
   assert.match(repairMessage.content, /do not return finish failed/i);
+});
+
+
+test('termination repair prompt explicitly requires a finish action', () => {
+  const error = Object.assign(new Error('PLANNER_READ_ONLY_TERMINATION_REQUIRED'), {
+    code: 'PLANNER_READ_ONLY_TERMINATION_REQUIRED'
+  });
+  const prompt = structuredRepairPrompt(error);
+  assert.match(prompt, /REPAIR_REQUIREMENT=TERMINAL_FINISH_ACTION/);
+  assert.match(prompt, /MUST return a finish action/i);
+  assert.match(prompt, /Do not navigate, click, scroll, wait, type, select, or assert/i);
+});
+
+test('hard read-only ceiling deterministically fails closed if planner ignores both termination attempts', async () => {
+  let chats = 0;
+  const fetchImpl = async (url) => {
+    if (String(url).endsWith('/api/tags')) return tagsResponse();
+    if (String(url).endsWith('/api/chat')) {
+      chats += 1;
+      return new Response(JSON.stringify({
+        message: {
+          content: JSON.stringify({
+            thought_summary: 'Keep browsing despite the hard ceiling.',
+            action: { type: 'scroll', dy: 700 },
+            success_evidence: ''
+          })
+        }
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    throw new Error('unexpected URL');
+  };
+
+  const planner = new OllamaPlanner({
+    baseUrl: 'http://127.0.0.1:11434',
+    fetchImpl
+  });
+  const fixture = taskFixture();
+  fixture.task.constraints = ['READ-ONLY information gathering only.'];
+  fixture.task.stepCount = 9;
+  fixture.task.maxSteps = 10;
+
+  const plan = await planner.plan(fixture);
+  assert.equal(chats, 2);
+  assert.equal(plan.action.type, 'finish');
+  assert.equal(plan.action.status, 'failed');
+  assert.equal(plan.planner.attempts, 2);
+  assert.equal(plan.planner.deterministicTermination, true);
+  assert.equal(plan.planner.terminationReason, 'PLANNER_READ_ONLY_TERMINATION_REQUIRED');
+  assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 });
