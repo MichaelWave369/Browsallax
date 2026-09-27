@@ -552,6 +552,7 @@ ipcMain.handle('trusted-page:start-task', async (event, input) => {
       constraints: spec.constraints,
       successCriteria: spec.successCriteria,
       acceptance: spec.acceptance,
+      completeOnInitialAcceptance: spec.completeOnInitialAcceptance,
       plannerRegistry: spec.plannerRegistry,
       maxSteps: spec.maxSteps,
       maxDurationMs: spec.maxDurationMs

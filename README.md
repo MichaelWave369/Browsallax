@@ -164,12 +164,12 @@ Current runtime contracts:
 |---|---|---|
 | Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
 | Planner | `PV-BOP-PLAN-0.5` | schema-constrained local planning |
-| Task engine | `PV-BOP-TASK-0.2` | observe → plan → act → verify task state |
+| Task engine | `PV-BOP-TASK-0.3` | observe → plan → act → verify, with opt-in initial deterministic acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
 | Read-only research completion | `PV-BOP-RRC-0.1` | bounded no-mutation research termination |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
-| Trusted page bridge | `PV-PAGE-0.1` | exact-origin dedicated task lane |
+| Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
 
 ### Task loop
 
@@ -190,6 +190,8 @@ finish or replan
 ```
 
 The planner does not receive browser authority merely because it produced valid JSON.
+
+Trusted-page self-checks may opt into **initial deterministic acceptance**. When explicitly enabled and all supplied acceptance assertions already pass on the loaded task page, the task completes at step 0 without dispatching a planner. This is deterministic verification only; it grants no mutation authority and is disabled by default.
 
 ### Human grants
 
