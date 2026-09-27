@@ -1,6 +1,6 @@
 # ChatGPT ↔ Browsallax ↔ Vessie Bridge
 
-**Contract:** `PV-CBR-0.1`  
+**Contract:** `PV-CBR-0.2`  
 **Status:** experimental local bridge  
 **Goal:** let a connected ChatGPT tool interact with the user's local Super Φ.Vessel / Vessie through Browsallax without TinyFish or another paid remote-browser agent.
 
@@ -15,7 +15,7 @@ authenticated tunnel / relay
       |
       | outbound/local transport only
       v
-PV-CBR-0.1 on the user's machine
+PV-CBR-0.2 on the user's machine
       |
       | local protected operator token
       v
@@ -25,7 +25,7 @@ Browsallax Browser Operator
 Super Φ.Vessel / Vessie
 ```
 
-The first version deliberately exposes semantic Vessie operations instead of raw browser controls.
+The bridge deliberately exposes semantic Vessie operations instead of raw browser controls. In `PV-CBR-0.2`, `vessie.ask` uses deterministic observed controls on the exact Vessie origin rather than planner-discovered selectors.
 
 ## Exposed methods
 
@@ -79,7 +79,7 @@ npm run bridge:chatgpt
 Expected:
 
 ```text
-[Phi ChatGPT Bridge] PV-CBR-0.1 listening at http://127.0.0.1:3698
+[Phi ChatGPT Bridge] PV-CBR-0.2 listening at http://127.0.0.1:3698
 ```
 
 The service binds to loopback only.
@@ -128,7 +128,7 @@ Bearer authentication required. Returns a bounded visible-text observation plus 
 }
 ```
 
-Bearer authentication required. Requires an already-active Browsallax human interactive grant. The bridge creates no grant.
+Bearer authentication required. Requires an already-active Browsallax human interactive grant. The bridge creates no grant. The bridge first observes the exact Vessie tab, identifies the visible Vessie composer and visible `Send` control from the observation, types only through that observed selector, verifies the exact composer value, clicks only the freshly observed Send selector, and waits for a new completed Vessie response. The type and click still pass through normal Browser Operator policy.
 
 ### Resume held Vessie task
 
@@ -148,6 +148,6 @@ See `docs/chatgpt-browsallax.openapi.yaml` for the intentionally small OpenAPI s
 
 ## TinyFish replacement boundary
 
-`PV-CBR-0.1` replaces the transport path needed for ChatGPT to reach the user's local browser stack. Browsallax still performs browser execution and local planning.
+`PV-CBR-0.2` replaces the transport path needed for ChatGPT to reach the user's local browser stack. Browsallax still performs browser execution and local planning.
 
-No claim is made that this first bridge is production hardened. Persistent deployment should add stable tunnel identity, token rotation, request replay protection, rate limiting, and connector-specific authentication.
+No claim is made that this bridge is production hardened. Persistent deployment should add stable tunnel identity, token rotation, request replay protection, rate limiting, and connector-specific authentication.

@@ -2,7 +2,7 @@
 
 **Contract:** `PV-CBR-AGENT-0.1`
 
-This process connects the user's local `PV-CBR-0.1` bridge to the transport-only public relay without exposing an inbound port.
+This process connects the user's local `PV-CBR-0.2` bridge to the transport-only public relay without exposing an inbound port.
 
 ```text
 ChatGPT connector
@@ -11,7 +11,7 @@ HTTPS relay
       ↑ outbound polling only
 PV-CBR-AGENT-0.1
       ↓
-PV-CBR-0.1
+PV-CBR-0.2
       ↓
 Browsallax
       ↓

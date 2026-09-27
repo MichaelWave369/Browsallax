@@ -7,6 +7,9 @@ const {
   findVessieTab,
   sanitizeOperatorStatus,
   boundedObservation,
+  findObservedVessieComposer,
+  findObservedVessieSendButton,
+  completedVessieResponseCount,
   ChatGPTBrowsallaxBridge,
   startChatGPTBridgeServer
 } = require('../src/bridge/chatgpt-browsallax');
@@ -25,8 +28,46 @@ function fakeOperatorStatus({ grant = null } = {}) {
   };
 }
 
-function fakeClient({ grant = null, task = null } = {}) {
+function composerSnapshot({ value = '', busy = false, completed = 0, text = null } = {}) {
+  const elements = [
+    {
+      ref: 'e-composer',
+      selector: 'div.pv-input-shell > div > textarea',
+      tagName: 'textarea',
+      placeholder: 'Speak or type into the field...',
+      value
+    },
+    {
+      ref: 'e-send',
+      selector: 'div.pv-input-shell > div > button:nth-of-type(4)',
+      tagName: 'button',
+      title: busy ? 'Stop generation' : 'Send',
+      text: busy ? '■' : '∴'
+    }
+  ];
+  for (let i = 0; i < completed; i += 1) {
+    elements.push({
+      ref: `e-regen-${i + 1}`,
+      selector: `div.response-${i + 1} > button.regenerate`,
+      tagName: 'button',
+      title: '',
+      text: '↻ regenerate'
+    });
+  }
+  return {
+    url: 'https://superphivessel.netlify.app/',
+    title: 'Super PhiVessel',
+    text: text || (busy ? 'Request executing.' : 'Machine idle.'),
+    elements
+  };
+}
+
+function fakeClient({ grant = null } = {}) {
   const calls = [];
+  let composerValue = '';
+  let sent = false;
+  let postSendObserves = 0;
+
   return {
     calls,
     status: async () => fakeOperatorStatus({ grant }),
@@ -36,19 +77,39 @@ function fakeClient({ grant = null, task = null } = {}) {
     }),
     observe: async (tabId) => {
       calls.push(['observe', tabId]);
+      if (!sent) {
+        return { ok: true, snapshot: composerSnapshot({ value: composerValue, completed: 0 }) };
+      }
+      postSendObserves += 1;
+      if (postSendObserves === 1) {
+        return { ok: true, snapshot: composerSnapshot({ value: '', busy: true, completed: 0 }) };
+      }
       return {
         ok: true,
-        snapshot: {
-          url: 'https://superphivessel.netlify.app/',
-          title: 'Super PhiVessel',
-          text: 'Vessie says hello.',
-          elements: [{ ref: 'e1' }, { ref: 'e2' }]
-        }
+        snapshot: composerSnapshot({
+          value: '',
+          busy: false,
+          completed: 1,
+          text: 'Machine idle. You What mode are you in? Super Φ.Vessel I am ready.'
+        })
       };
+    },
+    action: async (tabId, action) => {
+      calls.push(['action', tabId, action]);
+      if (action.type === 'type') {
+        composerValue = action.value;
+        return { ok: true, actionClass: 'FORM_INPUT' };
+      }
+      if (action.type === 'click') {
+        sent = true;
+        composerValue = '';
+        return { ok: true, actionClass: 'REMOTE_MUTATION' };
+      }
+      throw new Error('unexpected action');
     },
     runTask: async (spec) => {
       calls.push(['runTask', spec]);
-      return task || {
+      return {
         id: 'task-1',
         tabId: 2,
         status: 'COMPLETE',
@@ -79,7 +140,7 @@ function fakeClient({ grant = null, task = null } = {}) {
 
 test('manifest exposes a narrow semantic surface and no grant authority', () => {
   const manifest = bridgeManifest();
-  assert.equal(CHATGPT_BROWSALLAX_BRIDGE_VERSION, 'PV-CBR-0.1');
+  assert.equal(CHATGPT_BROWSALLAX_BRIDGE_VERSION, 'PV-CBR-0.2');
   assert.deepEqual(manifest.methods, [
     'bridge.status',
     'vessie.observe',
@@ -121,30 +182,78 @@ test('bounded Vessie observation hashes and clips text', () => {
   assert.equal(observation.elementCount, 4);
 });
 
-test('ask Vessie fails held before task creation when no human grant is active', async () => {
+test('deterministic Vessie controls must be observed, not invented', () => {
+  const snapshot = composerSnapshot();
+  const composer = findObservedVessieComposer(snapshot);
+  const send = findObservedVessieSendButton(snapshot);
+  assert.equal(composer.selector, 'div.pv-input-shell > div > textarea');
+  assert.equal(send.title, 'Send');
+  assert.equal(completedVessieResponseCount(snapshot), 0);
+
+  const completed = composerSnapshot({ completed: 2 });
+  assert.equal(completedVessieResponseCount(completed), 2);
+  assert.equal(findObservedVessieComposer({ elements: [{ tagName: 'textarea', placeholder: 'Unrelated notes' }] }), null);
+});
+
+test('ask Vessie fails held before any action when no human grant is active', async () => {
   const client = fakeClient({ grant: null });
   const bridge = new ChatGPTBrowsallaxBridge(client);
   const result = await bridge.askVessie('hello Vessie');
   assert.equal(result.payload.disposition, 'HELD');
   assert.equal(result.payload.reason, 'HUMAN_INTERACTIVE_GRANT_REQUIRED');
+  assert.equal(client.calls.some(([name]) => name === 'action'), false);
   assert.equal(client.calls.some(([name]) => name === 'runTask'), false);
 });
 
-test('ask Vessie uses a bounded local task when human grant is active', async () => {
+test('ask Vessie types and clicks only selectors observed on the exact Vessie tab', async () => {
   const client = fakeClient({
     grant: { id: 'g1', enabled: true, expiresAt: Date.now() + 60000 }
   });
   const bridge = new ChatGPTBrowsallaxBridge(client);
-  const result = await bridge.askVessie('What mode are you in?');
+  const result = await bridge.askVessie('What mode are you in?', { pollMs: 1, timeoutMs: 5000 });
+
   assert.equal(result.payload.disposition, 'COMPLETE');
-  const run = client.calls.find(([name]) => name === 'runTask');
-  assert.ok(run);
-  const spec = run[1];
-  assert.equal(spec.tabId, 2);
-  assert.match(spec.goal, /MESSAGE_PAYLOAD_BEGIN\nWhat mode are you in\?\nMESSAGE_PAYLOAD_END/);
-  assert.ok(spec.constraints.some((value) => /Do not navigate away/.test(value)));
-  assert.equal(spec.maxSteps, 12);
+  assert.equal(result.payload.transport.mode, 'DETERMINISTIC_OBSERVED_CONTROLS');
+  assert.equal(result.payload.transport.typed, true);
+  assert.equal(result.payload.transport.clicked, true);
+  assert.equal(result.payload.transport.sawBusy, true);
+  assert.equal(result.payload.transport.completedBefore, 0);
+  assert.equal(result.payload.transport.completedAfter, 1);
+
+  const actions = client.calls.filter(([name]) => name === 'action');
+  assert.equal(actions.length, 2);
+  assert.deepEqual(actions[0][2], {
+    type: 'type',
+    selector: 'div.pv-input-shell > div > textarea',
+    value: 'What mode are you in?'
+  });
+  assert.deepEqual(actions[1][2], {
+    type: 'click',
+    selector: 'div.pv-input-shell > div > button:nth-of-type(4)'
+  });
+  assert.equal(client.calls.some(([name]) => name === 'runTask'), false);
   assert.ok(result.payload.observation);
+});
+
+test('ask Vessie fails before typing if observed composer contract is absent', async () => {
+  const client = fakeClient({
+    grant: { id: 'g1', enabled: true, expiresAt: Date.now() + 60000 }
+  });
+  client.observe = async () => ({
+    ok: true,
+    snapshot: {
+      url: 'https://superphivessel.netlify.app/',
+      title: 'Super PhiVessel',
+      text: 'Machine idle.',
+      elements: [{ tagName: 'button', title: 'Send', selector: '#send' }]
+    }
+  });
+
+  const bridge = new ChatGPTBrowsallaxBridge(client);
+  const result = await bridge.askVessie('hello');
+  assert.equal(result.payload.disposition, 'FAILED');
+  assert.equal(result.payload.reason, 'VESSIE_COMPOSER_NOT_OBSERVED');
+  assert.equal(client.calls.some(([name]) => name === 'action'), false);
 });
 
 test('resume Vessie refuses tasks bound to another tab', async () => {
