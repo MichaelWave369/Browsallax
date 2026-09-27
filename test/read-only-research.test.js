@@ -5,6 +5,8 @@ const {
   READ_ONLY_RESEARCH_COMPLETION_VERSION,
   PREFER_FINISH_AT_STEP,
   REQUIRE_TERMINATION_AT_STEP,
+  MAX_REQUIRE_TERMINATION_AT_STEP,
+  requireTerminationAtStep,
   isReadOnlyResearchTask,
   completionMode,
   isSearchResultsPage,
@@ -56,7 +58,7 @@ function snapshot() {
 }
 
 test('contract identifies explicitly declared read-only information tasks only', () => {
-  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.3');
+  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.4');
   assert.equal(isReadOnlyResearchTask(readOnlyTask()), true);
   assert.equal(isReadOnlyResearchTask({
     constraints: ['Human interactive mutation grant active.']
@@ -66,6 +68,7 @@ test('contract identifies explicitly declared read-only information tasks only',
 test('completion pressure progresses from normal to prefer-finish to required termination', () => {
   assert.equal(PREFER_FINISH_AT_STEP, 3);
   assert.equal(REQUIRE_TERMINATION_AT_STEP, 6);
+  assert.equal(MAX_REQUIRE_TERMINATION_AT_STEP, 9);
   assert.equal(completionMode(readOnlyTask(0)), 'NORMAL');
   assert.equal(completionMode(readOnlyTask(2)), 'NORMAL');
   assert.equal(completionMode(readOnlyTask(3)), 'PREFER_FINISH');
@@ -290,4 +293,31 @@ test('normal search-result context marks continuation as required', () => {
   assert.match(prompt, /SEARCH_RESULT_CONTINUATION_REQUIRED=YES/);
   assert.match(prompt, /finish status failed is locally invalid/i);
   assert.match(prompt, /exact ref or selector/i);
+});
+
+
+test('read-only termination ceiling expands within the task maxSteps budget', () => {
+  const task = readOnlyTask(0);
+  task.maxSteps = 10;
+  assert.equal(requireTerminationAtStep(task), 9);
+
+  task.stepCount = 6;
+  assert.equal(completionMode(task), 'PREFER_FINISH');
+
+  task.stepCount = 9;
+  assert.equal(completionMode(task), 'TERMINATE_NOW');
+
+  const context = readOnlyResearchContext(task, snapshot());
+  assert.equal(context.requireTerminationAtStep, 9);
+  assert.equal(context.remainingBeforeRequiredTermination, 0);
+});
+
+test('dynamic termination ceiling remains bounded for short and oversized tasks', () => {
+  const shortTask = readOnlyTask(0);
+  shortTask.maxSteps = 5;
+  assert.equal(requireTerminationAtStep(shortTask), 4);
+
+  const longTask = readOnlyTask(0);
+  longTask.maxSteps = 100;
+  assert.equal(requireTerminationAtStep(longTask), 9);
 });
