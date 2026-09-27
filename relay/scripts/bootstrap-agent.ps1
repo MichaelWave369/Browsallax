@@ -4,9 +4,20 @@ $RelayUrl = 'https://phi-browsallax-relay.netlify.app'
 
 Write-Host '[Phi Relay Bootstrap] Generating a fresh local agent credential...'
 
+# Windows PowerShell 5.1 runs on .NET Framework and does not provide
+# RandomNumberGenerator.Fill() or Convert.ToHexString(). Use APIs available
+# across Windows PowerShell 5.1 and modern PowerShell.
 $bytes = New-Object byte[] 32
-[System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-$token = [Convert]::ToHexString($bytes).ToLowerInvariant()
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+  $rng.GetBytes($bytes)
+}
+finally {
+  if ($null -ne $rng) {
+    $rng.Dispose()
+  }
+}
+$token = ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
 
 Write-Host '[Phi Relay Bootstrap] Rotating PHI_AGENT_TOKEN on Netlify without printing it...'
 & npx netlify env:set PHI_AGENT_TOKEN $token --secret
