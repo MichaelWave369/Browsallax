@@ -1,7 +1,9 @@
 const crypto = require('node:crypto');
 const { normalizePlannerRegistryHint } = require('./brain-registry-router');
 
-const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.3';
+const TASK_ENGINE_VERSION = 'PV-BOP-TASK-0.4';
+const INITIAL_ACCEPTANCE_WINDOW_MS = 3000;
+const INITIAL_ACCEPTANCE_POLL_MS = 100;
 const TERMINAL = new Set(['COMPLETE', 'FAILED', 'CANCELLED']);
 
 function sanitizeAction(action = {}) {
@@ -130,7 +132,7 @@ function publicTask(task) {
 }
 
 class BrowserTaskEngine {
-  constructor({ planner, ledger, observe, navigate, executeAction, assert, getGrant }) {
+  constructor({ planner, ledger, observe, navigate, executeAction, assert, getGrant, initialAcceptanceWindowMs = INITIAL_ACCEPTANCE_WINDOW_MS, initialAcceptancePollMs = INITIAL_ACCEPTANCE_POLL_MS }) {
     this.planner = planner;
     this.ledger = ledger;
     this.observe = observe;
@@ -138,6 +140,8 @@ class BrowserTaskEngine {
     this.executeAction = executeAction;
     this.assert = assert;
     this.getGrant = getGrant;
+    this.initialAcceptanceWindowMs = Math.max(0, Number(initialAcceptanceWindowMs) || 0);
+    this.initialAcceptancePollMs = Math.max(1, Number(initialAcceptancePollMs) || INITIAL_ACCEPTANCE_POLL_MS);
     this.tasks = new Map();
     this.controllers = new Map();
   }
@@ -266,16 +270,39 @@ class BrowserTaskEngine {
         }
 
         if (task.completeOnInitialAcceptance && task.stepCount === 0 && task.acceptance.length) {
-          const verification = await this.verifyAcceptance(task, {
-            step: 0,
-            preflight: true
-          });
+          const initialStartedMs = Date.now();
+          const initialDeadlineMs = initialStartedMs + this.initialAcceptanceWindowMs;
+          let verification = null;
+          let attempts = 0;
+
+          do {
+            attempts += 1;
+            verification = await this.verifyAcceptance(task, {
+              step: 0,
+              preflight: true,
+              initialAcceptanceAttempt: attempts
+            });
+
+            if (verification.pass) break;
+            if (controller.signal.aborted || Date.now() >= initialDeadlineMs) break;
+
+            const remainingMs = initialDeadlineMs - Date.now();
+            await new Promise((resolve) => setTimeout(
+              resolve,
+              Math.max(1, Math.min(this.initialAcceptancePollMs, remainingMs))
+            ));
+          } while (!controller.signal.aborted);
+
           await this.ledger.append('TASK_INITIAL_ACCEPTANCE_CHECK', {
             taskId: task.id,
             step: 0,
+            attempts,
+            elapsedMs: Date.now() - initialStartedMs,
+            windowMs: this.initialAcceptanceWindowMs,
             verification
           });
-          if (verification.pass) {
+
+          if (verification?.pass) {
             return await this.complete(
               task,
               'Initial deterministic acceptance satisfied.',
@@ -541,6 +568,8 @@ class BrowserTaskEngine {
 module.exports = {
   BrowserTaskEngine,
   TASK_ENGINE_VERSION,
+  INITIAL_ACCEPTANCE_WINDOW_MS,
+  INITIAL_ACCEPTANCE_POLL_MS,
   normalizeAcceptance,
   normalizeFailureDiagnostics,
   publicTask,
