@@ -1,7 +1,10 @@
-const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.4';
+const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.5';
 const PREFER_FINISH_AT_STEP = 3;
 const REQUIRE_TERMINATION_AT_STEP = 6;
 const MAX_REQUIRE_TERMINATION_AT_STEP = 9;
+const EPHEMERAL_QUERY_INTERACTION_MARKER = 'EPHEMERAL_QUERY_INTERACTION_REQUESTED';
+const PERSISTENT_MUTATION_PATTERN = /\b(subscribe|sign\s*up|register|create account|log\s*in|login|sign\s*in|save|bookmark|favorite|follow|like|share|send|book|reserve|checkout|purchase|buy|pay|payment|delete|remove|cancel|publish|post|comment|message|upload|install|enable|disable|change password|reset password)\b/i;
+const SENSITIVE_QUERY_PATTERN = /\b(password|passcode|otp|one[- ]?time code|verification code|card|cvv|cvc|bank|routing number|account number|ssn|social security|api key|secret|token)\b/i;
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -19,6 +22,46 @@ function isReadOnlyResearchTask(task = {}) {
     const text = normalizeText(constraint);
     return /\bread[- ]only\b/i.test(text) && /\b(information|research|gather|observation|observe|page|web)\b/i.test(text);
   });
+}
+
+function isEphemeralQueryInteractionRequested(task = {}) {
+  const constraints = Array.isArray(task.constraints) ? task.constraints : [];
+  return constraints.some((constraint) => (
+    normalizeText(constraint).toUpperCase().includes(EPHEMERAL_QUERY_INTERACTION_MARKER)
+  ));
+}
+
+function elementDescriptor(element = {}) {
+  return normalizeText([
+    element.text,
+    element.ariaLabel,
+    element.title,
+    element.name,
+    element.placeholder
+  ].filter(Boolean).join(' '));
+}
+
+function isObservedQueryField(element = {}) {
+  const tag = normalizeText(element.tagName).toLowerCase();
+  const inputType = normalizeText(element.type).toLowerCase();
+  const descriptor = elementDescriptor(element);
+  if (SENSITIVE_QUERY_PATTERN.test(descriptor)) return false;
+  if (PERSISTENT_MUTATION_PATTERN.test(descriptor)) return false;
+  if (tag === 'select') return true;
+  if (tag !== 'input' && tag !== 'textarea') return false;
+  if (tag === 'textarea') return false;
+  return ['', 'text', 'search', 'date', 'datetime-local', 'month', 'week', 'number', 'range', 'time'].includes(inputType);
+}
+
+function isObservedQueryControl(element = {}) {
+  const tag = normalizeText(element.tagName).toLowerCase();
+  const role = normalizeText(element.role).toLowerCase();
+  const type = normalizeText(element.type).toLowerCase();
+  if (!(tag === 'button' || role === 'button' || type === 'button' || type === 'submit')) return false;
+  const descriptor = elementDescriptor(element);
+  if (SENSITIVE_QUERY_PATTERN.test(descriptor)) return false;
+  if (PERSISTENT_MUTATION_PATTERN.test(descriptor)) return false;
+  return true;
 }
 
 function requireTerminationAtStep(task = {}) {
@@ -76,12 +119,14 @@ function snapshotEvidence(snapshot = {}) {
 
 function readOnlyResearchContext(task = {}, snapshot = {}) {
   const active = isReadOnlyResearchTask(task);
+  const queryInteractionRequested = isEphemeralQueryInteractionRequested(task);
   const mode = completionMode(task);
   const stepCount = Math.max(0, Number(task.stepCount || 0));
   const terminationStep = requireTerminationAtStep(task);
   return {
     version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
     active,
+    queryInteractionRequested,
     mode,
     stepCount,
     preferFinishAtStep: PREFER_FINISH_AT_STEP,
@@ -98,8 +143,15 @@ function readOnlyResearchPrompt(context = {}) {
   const lines = [
     'READ_ONLY_RESEARCH_COMPLETION='+READ_ONLY_RESEARCH_COMPLETION_VERSION,
     'This task is explicitly declared READ-ONLY information gathering.',
-    'Do not type into fields or select form values.',
-    'A click is allowed only when the observed target is an ordinary link with an href and navigation is necessary.',
+    context.queryInteractionRequested
+      ? 'EPHEMERAL_QUERY_INTERACTION_REQUESTED=YES'
+      : 'EPHEMERAL_QUERY_INTERACTION_REQUESTED=NO',
+    context.queryInteractionRequested
+      ? 'Observed non-sensitive query/search/filter fields and query-control buttons may be proposed only when necessary. These actions still require downstream human interactive authority; this task marker grants no authority.'
+      : 'Do not type into fields or select form values.',
+    context.queryInteractionRequested
+      ? 'Ordinary observed navigation links remain baseline. Non-link clicks are permitted only for observed non-sensitive query controls and still require downstream human authority.'
+      : 'A click is allowed only when the observed target is an ordinary link with an href and navigation is necessary.',
     'Prefer direct observation, navigation, scrolling, assertions, and FINISH.',
     'If the current observation already supports the user-requested information, FINISH immediately with status complete.',
     'Do not continue browsing merely to improve wording, gather redundant confirmation, or consume the remaining step budget.',
@@ -170,7 +222,16 @@ function enforceReadOnlyResearchPlan(plan = {}, task = {}, snapshot = {}) {
   const type = normalizeText(action.type).toLowerCase();
 
   if (type === 'type' || type === 'select') {
-    throw readOnlyResearchError('PLANNER_READ_ONLY_ACTION_FORBIDDEN');
+    if (!context.queryInteractionRequested) {
+      throw readOnlyResearchError('PLANNER_READ_ONLY_ACTION_FORBIDDEN');
+    }
+    const element = observedElement(snapshot, action.selector);
+    if (!element) {
+      throw readOnlyResearchError('PLANNER_READ_ONLY_QUERY_TARGET_UNOBSERVED');
+    }
+    if (!isObservedQueryField(element)) {
+      throw readOnlyResearchError('PLANNER_READ_ONLY_QUERY_TARGET_FORBIDDEN');
+    }
   }
 
   if (type === 'click') {
@@ -179,7 +240,9 @@ function enforceReadOnlyResearchPlan(plan = {}, task = {}, snapshot = {}) {
       throw readOnlyResearchError('PLANNER_READ_ONLY_CLICK_TARGET_UNOBSERVED');
     }
     if (!isObservedNavigationLink(element)) {
-      throw readOnlyResearchError('PLANNER_READ_ONLY_CLICK_NOT_LINK');
+      if (!context.queryInteractionRequested || !isObservedQueryControl(element)) {
+        throw readOnlyResearchError('PLANNER_READ_ONLY_CLICK_NOT_LINK');
+      }
     }
   }
 
@@ -206,8 +269,15 @@ module.exports = {
   PREFER_FINISH_AT_STEP,
   REQUIRE_TERMINATION_AT_STEP,
   MAX_REQUIRE_TERMINATION_AT_STEP,
+  EPHEMERAL_QUERY_INTERACTION_MARKER,
+  PERSISTENT_MUTATION_PATTERN,
+  SENSITIVE_QUERY_PATTERN,
   requireTerminationAtStep,
   isReadOnlyResearchTask,
+  isEphemeralQueryInteractionRequested,
+  elementDescriptor,
+  isObservedQueryField,
+  isObservedQueryControl,
   completionMode,
   isSearchResultsPage,
   observedNavigationLinkCount,
