@@ -1,7 +1,8 @@
-const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.5';
+const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.6';
 const PREFER_FINISH_AT_STEP = 3;
 const REQUIRE_TERMINATION_AT_STEP = 6;
 const MAX_REQUIRE_TERMINATION_AT_STEP = 9;
+const MAX_QUERY_REQUIRE_TERMINATION_AT_STEP = 15;
 const EPHEMERAL_QUERY_INTERACTION_MARKER = 'EPHEMERAL_QUERY_INTERACTION_REQUESTED';
 const PERSISTENT_MUTATION_PATTERN = /\b(subscribe|sign\s*up|register|create account|log\s*in|login|sign\s*in|save|bookmark|favorite|follow|like|share|send|book|reserve|checkout|purchase|buy|pay|payment|delete|remove|cancel|publish|post|comment|message|upload|install|enable|disable|change password|reset password)\b/i;
 const SENSITIVE_QUERY_PATTERN = /\b(password|passcode|otp|one[- ]?time code|verification code|card|cvv|cvc|bank|routing number|account number|ssn|social security|api key|secret|token)\b/i;
@@ -67,9 +68,12 @@ function isObservedQueryControl(element = {}) {
 function requireTerminationAtStep(task = {}) {
   const maxSteps = Math.floor(Number(task.maxSteps || 0));
   if (!Number.isFinite(maxSteps) || maxSteps <= 0) return REQUIRE_TERMINATION_AT_STEP;
+  const hardCap = isEphemeralQueryInteractionRequested(task)
+    ? MAX_QUERY_REQUIRE_TERMINATION_AT_STEP
+    : MAX_REQUIRE_TERMINATION_AT_STEP;
   return Math.max(
     PREFER_FINISH_AT_STEP + 1,
-    Math.min(MAX_REQUIRE_TERMINATION_AT_STEP, Math.max(1, maxSteps - 1))
+    Math.min(hardCap, Math.max(1, maxSteps - 1))
   );
 }
 
@@ -146,6 +150,9 @@ function readOnlyResearchPrompt(context = {}) {
     context.queryInteractionRequested
       ? 'EPHEMERAL_QUERY_INTERACTION_REQUESTED=YES'
       : 'EPHEMERAL_QUERY_INTERACTION_REQUESTED=NO',
+    context.queryInteractionRequested
+      ? 'QUERY_INTERACTION_BUDGET=EXTENDED_BOUNDED'
+      : 'QUERY_INTERACTION_BUDGET=STANDARD_READ_ONLY',
     context.queryInteractionRequested
       ? 'Observed non-sensitive query/search/filter fields and query-control buttons may be proposed only when necessary. These actions still require downstream human interactive authority; this task marker grants no authority.'
       : 'Do not type into fields or select form values.',
@@ -269,6 +276,7 @@ module.exports = {
   PREFER_FINISH_AT_STEP,
   REQUIRE_TERMINATION_AT_STEP,
   MAX_REQUIRE_TERMINATION_AT_STEP,
+  MAX_QUERY_REQUIRE_TERMINATION_AT_STEP,
   EPHEMERAL_QUERY_INTERACTION_MARKER,
   PERSISTENT_MUTATION_PATTERN,
   SENSITIVE_QUERY_PATTERN,
