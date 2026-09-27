@@ -210,7 +210,7 @@ test('two malformed responses fail with bounded hashed diagnostics and no raw re
     (error) => {
       assert.equal(error.code, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
       assert.equal(error.message, 'PLANNER_STRUCTURED_OUTPUT_FAILED');
-      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.5');
+      assert.equal(error.diagnostics.plannerVersion, 'PV-BOP-PLAN-0.6');
       assert.equal(error.diagnostics.provider, 'OLLAMA_LOCAL');
       assert.equal(error.diagnostics.model, 'qwen3:4b');
       assert.equal(error.diagnostics.attempts, 2);
@@ -295,7 +295,7 @@ test('read-only research termination pressure repairs a wandering action into fi
   assert.equal(plan.action.type, 'finish');
   assert.equal(plan.action.status, 'complete');
   assert.equal(plan.planner.attempts, 2);
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.6');
   assert.equal(plan.planner.readOnlyResearch.version, 'PV-BOP-RRC-0.2');
   assert.equal(plan.planner.readOnlyResearch.mode, 'TERMINATE_NOW');
 
@@ -347,7 +347,7 @@ test('planner uses a trusted Brain Registry recommendation only when it is local
 
   const plan = await planner.plan(fixture);
   assert.equal(plan.planner.model, 'gemma3:12b');
-  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.5');
+  assert.equal(plan.planner.version, 'PV-BOP-PLAN-0.6');
   assert.equal(plan.planner.brainRegistryRouterVersion, 'PV-BOP-BRR-0.1');
   assert.equal(plan.planner.brainRegistryRoute.registryUsed, true);
   assert.equal(plan.planner.brainRegistryRoute.selectionBasis, 'REGISTRY_RECOMMENDED');
