@@ -163,10 +163,10 @@ Current runtime contracts:
 | Contract | Version | Purpose |
 |---|---|---|
 | Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
-| Planner | `PV-BOP-PLAN-0.8` | schema-constrained local planning + observed target grounding + deterministic hard-ceiling termination |
+| Planner | `PV-BOP-PLAN-0.9` | schema-constrained local planning + observed interactive target grounding + deterministic hard-ceiling termination |
 | Task engine | `PV-BOP-TASK-0.4` | observe → plan → act → verify, with bounded SPA-hydration initial acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
-| Read-only research completion | `PV-BOP-RRC-0.4` | bounded no-mutation research completion with task-budget-aware hard ceiling |
+| Read-only research completion | `PV-BOP-RRC-0.5` | bounded read-only research + grant-gated ephemeral query interaction requests |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
@@ -191,7 +191,7 @@ finish or replan
 
 The planner does not receive browser authority merely because it produced valid JSON.
 
-Planner click targets are grounded against the current observation before policy or execution. A click may identify an observed element by its exact transient `ref` or exact observed selector; Browsallax deterministically resolves the ref to the observed selector. Invented targets and contradictory ref/selector pairs fail validation before the action can reach browser policy.
+Planner click, type, and select targets are grounded against the current observation before policy or execution. An interactive action may identify an observed element by its exact transient `ref` or exact observed selector; Browsallax deterministically resolves the ref to the observed selector. Invented targets and contradictory ref/selector pairs fail validation before the action can reach browser policy.
 
 For read-only research, recognized search-results pages are treated as intermediate evidence surfaces. During the normal exploration phase, a planner cannot declare failure merely because search snippets lack the final answer when ordinary navigation links are visibly available; it must use a bounded read-only navigation step first. The planner prompt marks that requirement explicitly, and a rejected premature failure receives one policy-specific repair instruction requiring an exact observed ref or selector. Read-only tasks with an explicit max-step budget may use that budget up to a hard termination point one step before the task ceiling, capped at step 9. At the hard ceiling, the planner gets one explicit finish-only repair turn; if it still refuses to terminate, Browsallax deterministically fails the task closed rather than converting a planner control error into a structured-output failure. Page content never gains authority.
 
@@ -201,7 +201,7 @@ Trusted-page self-checks may opt into **initial deterministic acceptance**. When
 
 Read-only actions and ordinary navigation are baseline local capabilities.
 
-Form input and ordinary remote mutation require a current human interactive grant from Browsallax chrome. The current grant lasts five minutes and can be revoked.
+Form input and ordinary remote mutation require a current human interactive grant from Browsallax chrome. The current grant lasts five minutes and can be revoked. Read-only research tasks remain unable to request form interaction unless they carry the explicit `EPHEMERAL_QUERY_INTERACTION_REQUESTED` task marker. That marker is a capability request only, not authority: observed non-sensitive query fields/buttons still pass through normal policy and require the current human interactive grant.
 
 Sensitive actions remain **HELD** even when a broad interactive grant exists. Per-action sensitive approval is not implemented yet.
 
