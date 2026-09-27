@@ -56,7 +56,7 @@ function snapshot() {
 }
 
 test('contract identifies explicitly declared read-only information tasks only', () => {
-  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.2');
+  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.3');
   assert.equal(isReadOnlyResearchTask(readOnlyTask()), true);
   assert.equal(isReadOnlyResearchTask({
     constraints: ['Human interactive mutation grant active.']
@@ -87,7 +87,7 @@ test('runtime context carries bounded evidence metadata without page text', () =
 
 test('research prompt tells the planner to finish when evidence is sufficient', () => {
   const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(3), snapshot()));
-  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.2/);
+  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.3/);
   assert.match(prompt, /FINISH immediately/i);
   assert.match(prompt, /PREFER_FINISH=YES/);
   assert.match(prompt, /Do not continue browsing merely to improve wording/i);
@@ -267,4 +267,27 @@ test('non-search pages may still fail immediately when evidence is genuinely una
   }, readOnlyTask(0), snapshot());
 
   assert.equal(result.plan.action.status, 'failed');
+});
+
+
+test('normal search-result context marks continuation as required', () => {
+  const resultPage = {
+    url: 'https://duckduckgo.com/?q=SMF+CVG+flights',
+    title: 'SMF CVG flights at DuckDuckGo',
+    text: 'Compare flights.',
+    elements: [
+      {
+        ref: 'e1',
+        selector: '#flight-result',
+        tagName: 'a',
+        role: 'link',
+        href: 'https://example-air.example/flights',
+        text: 'Flight comparison'
+      }
+    ]
+  };
+  const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(0), resultPage));
+  assert.match(prompt, /SEARCH_RESULT_CONTINUATION_REQUIRED=YES/);
+  assert.match(prompt, /finish status failed is locally invalid/i);
+  assert.match(prompt, /exact ref or selector/i);
 });

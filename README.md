@@ -163,10 +163,10 @@ Current runtime contracts:
 | Contract | Version | Purpose |
 |---|---|---|
 | Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
-| Planner | `PV-BOP-PLAN-0.6` | schema-constrained local planning + observed click-target grounding |
+| Planner | `PV-BOP-PLAN-0.7` | schema-constrained local planning + observed target grounding + policy-specific repair |
 | Task engine | `PV-BOP-TASK-0.4` | observe → plan → act → verify, with bounded SPA-hydration initial acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
-| Read-only research completion | `PV-BOP-RRC-0.2` | bounded no-mutation research termination + search-result continuation |
+| Read-only research completion | `PV-BOP-RRC-0.3` | bounded no-mutation research termination + explicit search-result continuation requirement |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
@@ -193,7 +193,7 @@ The planner does not receive browser authority merely because it produced valid 
 
 Planner click targets are grounded against the current observation before policy or execution. A click may identify an observed element by its exact transient `ref` or exact observed selector; Browsallax deterministically resolves the ref to the observed selector. Invented targets and contradictory ref/selector pairs fail validation before the action can reach browser policy.
 
-For read-only research, recognized search-results pages are treated as intermediate evidence surfaces. During the normal exploration phase, a planner cannot declare failure merely because search snippets lack the final answer when ordinary navigation links are visibly available; it must use a bounded read-only navigation step first. The normal completion-pressure ceiling still applies, and page content never gains authority.
+For read-only research, recognized search-results pages are treated as intermediate evidence surfaces. During the normal exploration phase, a planner cannot declare failure merely because search snippets lack the final answer when ordinary navigation links are visibly available; it must use a bounded read-only navigation step first. The planner prompt marks that requirement explicitly, and a rejected premature failure receives one policy-specific repair instruction requiring an exact observed ref or selector. The normal completion-pressure ceiling still applies, and page content never gains authority.
 
 Trusted-page self-checks may opt into **initial deterministic acceptance**. When explicitly enabled, Browsallax polls the existing deterministic acceptance assertions for a bounded 3-second SPA-hydration window before planner dispatch. If all assertions pass, the task completes at step 0 without dispatching a planner. If the window expires, the normal planner loop begins unchanged. This is deterministic verification only; it grants no mutation authority and is disabled by default.
 
