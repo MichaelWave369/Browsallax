@@ -13,7 +13,7 @@ const {
 
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.6';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.7';
 const PLANNER_MAX_ATTEMPTS = 2;
 const PLANNER_ATTEMPT_TIMEOUT_MS = 30000;
 
@@ -184,13 +184,26 @@ function structuredOutputDiagnostics(rawResponse, error, model, attempts) {
 }
 
 function structuredRepairPrompt(error) {
-  return [
+  const code = plannerErrorCode(error);
+  const lines = [
     'STRUCTURED_OUTPUT_REPAIR=1',
-    'The previous planner response failed local validation with '+plannerErrorCode(error)+'.',
+    'The previous planner response failed local validation with '+code+'.',
     'Return exactly one JSON object that conforms to the supplied JSON Schema.',
     'Do not add Markdown, prose, code fences, comments, or alternative candidates.',
     'Preserve the same task goal and authority boundaries.'
-  ].join('\n');
+  ];
+
+  if (code === 'PLANNER_READ_ONLY_SEARCH_RESULTS_REQUIRE_NAVIGATION') {
+    lines.push(
+      'REPAIR_REQUIREMENT=OBSERVED_SEARCH_RESULT_NAVIGATION',
+      'The current search-results page is an intermediate research surface and finish status failed is not valid on this repair turn.',
+      'Choose exactly ONE relevant ordinary navigation link from the CURRENT observation.',
+      'Use the exact observation.elements[].ref in action.ref OR the exact observation.elements[].selector in action.selector.',
+      'Do not invent a target, do not type into a search field, and do not return finish failed.'
+    );
+  }
+
+  return lines.join('\n');
 }
 
 function validatePlan(plan) {
