@@ -322,3 +322,98 @@ test('initial deterministic acceptance short-circuit is opt-in', async () => {
   assert.equal(plannerCalls, 1);
   assert.equal(complete.completeOnInitialAcceptance, false);
 });
+
+
+test('initial deterministic acceptance waits briefly for SPA hydration before planner dispatch', async () => {
+  let plannerCalls = 0;
+  let assertionCalls = 0;
+  const log = ledger();
+  const engine = new BrowserTaskEngine({
+    planner: {
+      plan: async () => {
+        plannerCalls += 1;
+        throw new Error('PLANNER_SHOULD_NOT_RUN');
+      }
+    },
+    ledger: log,
+    observe: async () => ({ url: 'https://example.test/', title: 'Example', text: 'READY', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async () => {
+      assertionCalls += 1;
+      return assertionCalls < 3
+        ? { ok: true, pass: false, actual: '' }
+        : { ok: true, pass: true, actual: 'READY' };
+    },
+    getGrant: () => null,
+    initialAcceptanceWindowMs: 100,
+    initialAcceptancePollMs: 5
+  });
+
+  const created = await engine.create({
+    tabId: 8,
+    goal: 'Verify hydrated SPA identity',
+    acceptance: [{ kind: 'text_contains', value: 'READY' }],
+    completeOnInitialAcceptance: true,
+    maxSteps: 12
+  });
+  const complete = await waitFor(engine, created.id, (task) => task.status === 'COMPLETE');
+
+  assert.equal(complete.stepCount, 0);
+  assert.equal(complete.planner, null);
+  assert.equal(plannerCalls, 0);
+  assert.equal(assertionCalls, 3);
+
+  const receipt = log.receipts.find((item) => item.kind === 'TASK_INITIAL_ACCEPTANCE_CHECK');
+  assert.equal(receipt.data.attempts, 3);
+  assert.equal(receipt.data.verification.pass, true);
+});
+
+test('initial acceptance hydration window falls through to planner after bounded timeout', async () => {
+  let plannerCalls = 0;
+  let assertionCalls = 0;
+  const log = ledger();
+  const engine = new BrowserTaskEngine({
+    planner: {
+      plan: async () => {
+        plannerCalls += 1;
+        return {
+          thoughtSummary: 'Proceed after deterministic preflight timeout.',
+          action: { type: 'finish', status: 'complete', summary: 'Planner completed.' },
+          successEvidence: 'READY',
+          planner: { model: 'test' }
+        };
+      }
+    },
+    ledger: log,
+    observe: async () => ({ url: 'https://example.test/', title: 'Example', text: 'READY', elements: [] }),
+    navigate: async () => ({ ok: true }),
+    executeAction: async () => ({ ok: true }),
+    assert: async () => {
+      assertionCalls += 1;
+      return plannerCalls > 0
+        ? { ok: true, pass: true, actual: 'READY' }
+        : { ok: true, pass: false, actual: '' };
+    },
+    getGrant: () => null,
+    initialAcceptanceWindowMs: 20,
+    initialAcceptancePollMs: 5
+  });
+
+  const created = await engine.create({
+    tabId: 9,
+    goal: 'Fall through after bounded hydration wait',
+    acceptance: [{ kind: 'text_contains', value: 'READY' }],
+    completeOnInitialAcceptance: true,
+    maxSteps: 4
+  });
+  const complete = await waitFor(engine, created.id, (task) => task.status === 'COMPLETE');
+
+  assert.equal(complete.stepCount, 1);
+  assert.equal(plannerCalls, 1);
+  assert.ok(assertionCalls >= 2);
+
+  const receipt = log.receipts.find((item) => item.kind === 'TASK_INITIAL_ACCEPTANCE_CHECK');
+  assert.equal(receipt.data.verification.pass, false);
+  assert.equal(receipt.data.windowMs, 20);
+});
