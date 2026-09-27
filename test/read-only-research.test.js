@@ -95,7 +95,7 @@ test('runtime context carries bounded evidence metadata without page text', () =
 
 test('research prompt tells the planner to finish when evidence is sufficient', () => {
   const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(3), snapshot()));
-  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.5/);
+  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.6/);
   assert.match(prompt, /FINISH immediately/i);
   assert.match(prompt, /PREFER_FINISH=YES/);
   assert.match(prompt, /Do not continue browsing merely to improve wording/i);
