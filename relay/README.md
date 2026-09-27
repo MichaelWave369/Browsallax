@@ -79,7 +79,7 @@ npm run agent:bootstrap
 
 The bootstrap first verifies that the local Browsallax Browser Operator endpoint is available. On first provisioning it generates a random 256-bit `PHI_AGENT_TOKEN`, updates the Netlify production secret, redeploys the relay so the Functions receive that exact credential, and only then stores the credential locally protected by Windows DPAPI for the current user. The credential is never printed.
 
-Ordinary restarts reuse the DPAPI-protected credential and do **not** mutate Netlify or redeploy:
+Ordinary restarts reuse the Windows user-protected secure-string credential and do **not** mutate Netlify or redeploy:
 
 ```powershell
 npm run agent:bootstrap
