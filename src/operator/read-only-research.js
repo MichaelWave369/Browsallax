@@ -1,6 +1,7 @@
-const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.3';
+const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.4';
 const PREFER_FINISH_AT_STEP = 3;
 const REQUIRE_TERMINATION_AT_STEP = 6;
+const MAX_REQUIRE_TERMINATION_AT_STEP = 9;
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -20,10 +21,20 @@ function isReadOnlyResearchTask(task = {}) {
   });
 }
 
+function requireTerminationAtStep(task = {}) {
+  const maxSteps = Math.floor(Number(task.maxSteps || 0));
+  if (!Number.isFinite(maxSteps) || maxSteps <= 0) return REQUIRE_TERMINATION_AT_STEP;
+  return Math.max(
+    PREFER_FINISH_AT_STEP + 1,
+    Math.min(MAX_REQUIRE_TERMINATION_AT_STEP, Math.max(1, maxSteps - 1))
+  );
+}
+
 function completionMode(task = {}) {
   if (!isReadOnlyResearchTask(task)) return 'INACTIVE';
   const stepCount = Math.max(0, Number(task.stepCount || 0));
-  if (stepCount >= REQUIRE_TERMINATION_AT_STEP) return 'TERMINATE_NOW';
+  const terminationStep = requireTerminationAtStep(task);
+  if (stepCount >= terminationStep) return 'TERMINATE_NOW';
   if (stepCount >= PREFER_FINISH_AT_STEP) return 'PREFER_FINISH';
   return 'NORMAL';
 }
@@ -67,15 +78,16 @@ function readOnlyResearchContext(task = {}, snapshot = {}) {
   const active = isReadOnlyResearchTask(task);
   const mode = completionMode(task);
   const stepCount = Math.max(0, Number(task.stepCount || 0));
+  const terminationStep = requireTerminationAtStep(task);
   return {
     version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
     active,
     mode,
     stepCount,
     preferFinishAtStep: PREFER_FINISH_AT_STEP,
-    requireTerminationAtStep: REQUIRE_TERMINATION_AT_STEP,
+    requireTerminationAtStep: terminationStep,
     remainingBeforeRequiredTermination: active
-      ? Math.max(0, REQUIRE_TERMINATION_AT_STEP - stepCount)
+      ? Math.max(0, terminationStep - stepCount)
       : null,
     evidence: snapshotEvidence(snapshot)
   };
@@ -193,6 +205,8 @@ module.exports = {
   READ_ONLY_RESEARCH_COMPLETION_VERSION,
   PREFER_FINISH_AT_STEP,
   REQUIRE_TERMINATION_AT_STEP,
+  MAX_REQUIRE_TERMINATION_AT_STEP,
+  requireTerminationAtStep,
   isReadOnlyResearchTask,
   completionMode,
   isSearchResultsPage,

@@ -13,7 +13,7 @@ const {
 
 const OLLAMA_BASE_URL = process.env.BROWSALLAX_OLLAMA_URL || 'http://127.0.0.1:11434';
 const CONFIGURED_MODEL = String(process.env.BROWSALLAX_OPERATOR_MODEL || '').trim();
-const PLANNER_VERSION = 'PV-BOP-PLAN-0.7';
+const PLANNER_VERSION = 'PV-BOP-PLAN-0.8';
 const PLANNER_MAX_ATTEMPTS = 2;
 const PLANNER_ATTEMPT_TIMEOUT_MS = 30000;
 
@@ -200,6 +200,17 @@ function structuredRepairPrompt(error) {
       'Choose exactly ONE relevant ordinary navigation link from the CURRENT observation.',
       'Use the exact observation.elements[].ref in action.ref OR the exact observation.elements[].selector in action.selector.',
       'Do not invent a target, do not type into a search field, and do not return finish failed.'
+    );
+  }
+
+  if (code === 'PLANNER_READ_ONLY_TERMINATION_REQUIRED') {
+    lines.push(
+      'REPAIR_REQUIREMENT=TERMINAL_FINISH_ACTION',
+      'The bounded read-only research ceiling has been reached.',
+      'You MUST return a finish action on this repair turn.',
+      'Use finish status complete only if the CURRENT observation already supports the requested answer.',
+      'Otherwise use finish status failed and state the missing evidence honestly.',
+      'Do not navigate, click, scroll, wait, type, select, or assert.'
     );
   }
 
@@ -481,6 +492,38 @@ class OllamaPlanner {
         } catch (error) {
           lastStructuredError = error;
           if (attempt < PLANNER_MAX_ATTEMPTS) continue;
+
+          if (
+            plannerErrorCode(error) === 'PLANNER_READ_ONLY_TERMINATION_REQUIRED' &&
+            researchContext.active &&
+            researchContext.mode === 'TERMINATE_NOW'
+          ) {
+            return {
+              thoughtSummary: 'The bounded read-only research ceiling was enforced deterministically after the planner failed to terminate.',
+              action: {
+                type: 'finish',
+                status: 'failed',
+                summary: 'Read-only research budget exhausted before the planner produced a terminal answer.'
+              },
+              successEvidence: '',
+              planner: {
+                version: PLANNER_VERSION,
+                provider: 'OLLAMA_LOCAL',
+                model: selectedModel,
+                schemaConstrained: true,
+                attempts: attempt,
+                brainRegistryRouterVersion: BRAIN_REGISTRY_ROUTER_VERSION,
+                brainRegistryRoute,
+                deterministicTermination: true,
+                terminationReason: 'PLANNER_READ_ONLY_TERMINATION_REQUIRED',
+                readOnlyResearch: {
+                  version: READ_ONLY_RESEARCH_COMPLETION_VERSION,
+                  mode: researchContext.mode,
+                  stepCount: researchContext.stepCount
+                }
+              }
+            };
+          }
 
           const failure = new Error('PLANNER_STRUCTURED_OUTPUT_FAILED');
           failure.code = 'PLANNER_STRUCTURED_OUTPUT_FAILED';
