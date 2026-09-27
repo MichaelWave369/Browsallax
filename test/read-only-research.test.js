@@ -6,6 +6,7 @@ const {
   PREFER_FINISH_AT_STEP,
   REQUIRE_TERMINATION_AT_STEP,
   MAX_REQUIRE_TERMINATION_AT_STEP,
+  MAX_QUERY_REQUIRE_TERMINATION_AT_STEP,
   requireTerminationAtStep,
   isReadOnlyResearchTask,
   isEphemeralQueryInteractionRequested,
@@ -61,7 +62,7 @@ function snapshot() {
 }
 
 test('contract identifies explicitly declared read-only information tasks only', () => {
-  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.5');
+  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.6');
   assert.equal(isReadOnlyResearchTask(readOnlyTask()), true);
   assert.equal(isReadOnlyResearchTask({
     constraints: ['Human interactive mutation grant active.']
@@ -72,6 +73,7 @@ test('completion pressure progresses from normal to prefer-finish to required te
   assert.equal(PREFER_FINISH_AT_STEP, 3);
   assert.equal(REQUIRE_TERMINATION_AT_STEP, 6);
   assert.equal(MAX_REQUIRE_TERMINATION_AT_STEP, 9);
+  assert.equal(MAX_QUERY_REQUIRE_TERMINATION_AT_STEP, 15);
   assert.equal(completionMode(readOnlyTask(0)), 'NORMAL');
   assert.equal(completionMode(readOnlyTask(2)), 'NORMAL');
   assert.equal(completionMode(readOnlyTask(3)), 'PREFER_FINISH');
@@ -93,7 +95,7 @@ test('runtime context carries bounded evidence metadata without page text', () =
 
 test('research prompt tells the planner to finish when evidence is sufficient', () => {
   const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(3), snapshot()));
-  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.5/);
+  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.6/);
   assert.match(prompt, /FINISH immediately/i);
   assert.match(prompt, /PREFER_FINISH=YES/);
   assert.match(prompt, /Do not continue browsing merely to improve wording/i);
@@ -428,4 +430,44 @@ test('query-scoped task still rejects persistent or sensitive form targets', () 
     }, task, querySnapshot),
     /PLANNER_READ_ONLY_CLICK_NOT_LINK/
   );
+});
+
+
+test('ephemeral query research gets a larger but still bounded hard ceiling', () => {
+  const task = readOnlyTask(0);
+  task.maxSteps = 20;
+  task.constraints.push('EPHEMERAL_QUERY_INTERACTION_REQUESTED; HUMAN_GRANT_REQUIRED.');
+
+  assert.equal(requireTerminationAtStep(task), 15);
+
+  task.stepCount = 9;
+  assert.equal(completionMode(task), 'PREFER_FINISH');
+
+  task.stepCount = 14;
+  assert.equal(completionMode(task), 'PREFER_FINISH');
+
+  task.stepCount = 15;
+  assert.equal(completionMode(task), 'TERMINATE_NOW');
+
+  const context = readOnlyResearchContext(task, snapshot());
+  assert.equal(context.queryInteractionRequested, true);
+  assert.equal(context.requireTerminationAtStep, 15);
+  assert.equal(context.remainingBeforeRequiredTermination, 0);
+
+  const prompt = readOnlyResearchPrompt(context);
+  assert.match(prompt, /QUERY_INTERACTION_BUDGET=EXTENDED_BOUNDED/);
+  assert.match(prompt, /REQUIRED_TERMINATION_STEP=15/);
+});
+
+test('ordinary read-only research keeps the existing step-nine cap', () => {
+  const task = readOnlyTask(0);
+  task.maxSteps = 20;
+  assert.equal(requireTerminationAtStep(task), 9);
+});
+
+test('query research ceiling never exceeds the task maxSteps budget', () => {
+  const task = readOnlyTask(0);
+  task.maxSteps = 8;
+  task.constraints.push('EPHEMERAL_QUERY_INTERACTION_REQUESTED; HUMAN_GRANT_REQUIRED.');
+  assert.equal(requireTerminationAtStep(task), 7);
 });
