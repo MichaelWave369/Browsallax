@@ -7,6 +7,8 @@ const {
   REQUIRE_TERMINATION_AT_STEP,
   isReadOnlyResearchTask,
   completionMode,
+  isSearchResultsPage,
+  observedNavigationLinkCount,
   readOnlyResearchContext,
   readOnlyResearchPrompt,
   enforceReadOnlyResearchPlan
@@ -54,7 +56,7 @@ function snapshot() {
 }
 
 test('contract identifies explicitly declared read-only information tasks only', () => {
-  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.1');
+  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.2');
   assert.equal(isReadOnlyResearchTask(readOnlyTask()), true);
   assert.equal(isReadOnlyResearchTask({
     constraints: ['Human interactive mutation grant active.']
@@ -85,7 +87,7 @@ test('runtime context carries bounded evidence metadata without page text', () =
 
 test('research prompt tells the planner to finish when evidence is sufficient', () => {
   const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(3), snapshot()));
-  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.1/);
+  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.2/);
   assert.match(prompt, /FINISH immediately/i);
   assert.match(prompt, /PREFER_FINISH=YES/);
   assert.match(prompt, /Do not continue browsing merely to improve wording/i);
@@ -156,4 +158,113 @@ test('termination mode requires a finish action', () => {
     }
   }, readOnlyTask(6), snapshot());
   assert.equal(failed.plan.action.status, 'failed');
+});
+
+
+test('recognized search result pages expose bounded continuation metadata', () => {
+  const resultPage = {
+    url: 'https://duckduckgo.com/?q=SMF+CVG+flights',
+    title: 'SMF CVG flights at DuckDuckGo',
+    text: 'Flight results',
+    elements: [
+      {
+        selector: 'a:nth-of-type(1)',
+        tagName: 'a',
+        role: '',
+        href: 'https://www.google.com/travel/flights',
+        text: 'Google Flights'
+      },
+      {
+        selector: '#search',
+        tagName: 'input',
+        role: '',
+        href: ''
+      }
+    ]
+  };
+
+  assert.equal(isSearchResultsPage(resultPage), true);
+  assert.equal(observedNavigationLinkCount(resultPage), 1);
+
+  const context = readOnlyResearchContext(readOnlyTask(0), resultPage);
+  assert.equal(context.evidence.searchResultsPage, true);
+  assert.equal(context.evidence.navigationLinkCount, 1);
+
+  const prompt = readOnlyResearchPrompt(context);
+  assert.match(prompt, /SEARCH_RESULTS_PAGE=YES/);
+  assert.match(prompt, /OBSERVED_NAVIGATION_LINK_COUNT=1/);
+  assert.match(prompt, /intermediate research surface/i);
+});
+
+test('early failure on search results with observed links is rejected so planner must continue', () => {
+  const resultPage = {
+    url: 'https://duckduckgo.com/?q=SMF+CVG+flights',
+    title: 'SMF CVG flights at DuckDuckGo',
+    text: 'Compare flights from several providers.',
+    elements: [
+      {
+        selector: '#flight-result',
+        tagName: 'a',
+        role: 'link',
+        href: 'https://example-air.example/flights',
+        text: 'Flight comparison'
+      }
+    ]
+  };
+
+  assert.throws(
+    () => enforceReadOnlyResearchPlan({
+      action: {
+        type: 'finish',
+        status: 'failed',
+        summary: 'Search snippets do not contain the requested flight rows.'
+      }
+    }, readOnlyTask(0), resultPage),
+    /PLANNER_READ_ONLY_SEARCH_RESULTS_REQUIRE_NAVIGATION/
+  );
+
+  const continued = enforceReadOnlyResearchPlan({
+    action: { type: 'click', selector: '#flight-result' }
+  }, readOnlyTask(0), resultPage);
+  assert.equal(continued.plan.action.type, 'click');
+});
+
+test('search-result failure remains allowed after exploration pressure reaches prefer-finish', () => {
+  const resultPage = {
+    url: 'https://duckduckgo.com/?q=SMF+CVG+flights',
+    title: 'SMF CVG flights at DuckDuckGo',
+    text: 'Compare flights.',
+    elements: [
+      {
+        selector: '#flight-result',
+        tagName: 'a',
+        role: 'link',
+        href: 'https://example-air.example/flights',
+        text: 'Flight comparison'
+      }
+    ]
+  };
+
+  const result = enforceReadOnlyResearchPlan({
+    action: {
+      type: 'finish',
+      status: 'failed',
+      summary: 'Required evidence still unavailable after bounded exploration.'
+    }
+  }, readOnlyTask(PREFER_FINISH_AT_STEP), resultPage);
+
+  assert.equal(result.plan.action.status, 'failed');
+  assert.equal(result.context.mode, 'PREFER_FINISH');
+});
+
+test('non-search pages may still fail immediately when evidence is genuinely unavailable', () => {
+  const result = enforceReadOnlyResearchPlan({
+    action: {
+      type: 'finish',
+      status: 'failed',
+      summary: 'Required evidence is unavailable.'
+    }
+  }, readOnlyTask(0), snapshot());
+
+  assert.equal(result.plan.action.status, 'failed');
 });
