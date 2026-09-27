@@ -164,7 +164,7 @@ Current runtime contracts:
 |---|---|---|
 | Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
 | Planner | `PV-BOP-PLAN-0.5` | schema-constrained local planning |
-| Task engine | `PV-BOP-TASK-0.3` | observe → plan → act → verify, with opt-in initial deterministic acceptance |
+| Task engine | `PV-BOP-TASK-0.4` | observe → plan → act → verify, with bounded SPA-hydration initial acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
 | Read-only research completion | `PV-BOP-RRC-0.1` | bounded no-mutation research termination |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
@@ -191,7 +191,7 @@ finish or replan
 
 The planner does not receive browser authority merely because it produced valid JSON.
 
-Trusted-page self-checks may opt into **initial deterministic acceptance**. When explicitly enabled and all supplied acceptance assertions already pass on the loaded task page, the task completes at step 0 without dispatching a planner. This is deterministic verification only; it grants no mutation authority and is disabled by default.
+Trusted-page self-checks may opt into **initial deterministic acceptance**. When explicitly enabled, Browsallax polls the existing deterministic acceptance assertions for a bounded 3-second SPA-hydration window before planner dispatch. If all assertions pass, the task completes at step 0 without dispatching a planner. If the window expires, the normal planner loop begins unchanged. This is deterministic verification only; it grants no mutation authority and is disabled by default.
 
 ### Human grants
 
