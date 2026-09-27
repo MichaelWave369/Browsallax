@@ -42,3 +42,24 @@ test("Windows bootstrap forces non-interactive Netlify agent secret rotation", (
     /netlify\s+env:set\s+PHI_AGENT_TOKEN\s+\$token\s+--secret\s+--context\s+production\s+--force/i
   );
 });
+
+test("Windows bootstrap persists the agent credential with current-user DPAPI", () => {
+  assert.match(source, /ProtectedData\]::Protect\(/);
+  assert.match(source, /ProtectedData\]::Unprotect\(/);
+  assert.match(source, /DataProtectionScope\]::CurrentUser/);
+  assert.match(source, /agent-token\.dpapi/);
+});
+
+test("ordinary bootstrap reuses the protected credential instead of rotating every start", () => {
+  assert.match(source, /\$provision\s*=\s*\$Rotate\s+-or\s+-not\s*\(Test-Path/);
+  assert.match(source, /Loading existing DPAPI-protected agent credential/);
+});
+
+test("credential provisioning redeploys before persisting the new local credential", () => {
+  const envIndex = source.indexOf("netlify env:set PHI_AGENT_TOKEN");
+  const deployIndex = source.indexOf("npm run deploy:prod");
+  const writeIndex = source.indexOf("WriteAllText($CredentialFile");
+  assert.ok(envIndex >= 0, "remote secret update missing");
+  assert.ok(deployIndex > envIndex, "production deploy must follow remote secret update");
+  assert.ok(writeIndex > deployIndex, "local credential must persist only after successful deploy");
+});
