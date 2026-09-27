@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/brain-registry-router.js && node --check src/operator/read-only-research.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check src/bridge/chatgpt-browsallax.js && node --check src/bridge/chatgpt-relay-agent.js && node --check bin/browsallax.js && node --check bin/phi-chatgpt-bridge.js && node --check bin/phi-chatgpt-relay-agent.js && node --check examples/vessie-live-acceptance.js && node --check examples/nasa-registry-acceptance.js && node --check examples/registry-fail-closed-acceptance.js && node --check src/page-preload.js && node --check src/operator/trusted-page.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer/app.js && node --check src/operator/policy.js && node --check src/operator/observe.js && node --check src/operator/receipts.js && node --check src/operator/planner.js && node --check src/operator/brain-registry-router.js && node --check src/operator/read-only-research.js && node --check src/operator/task-engine.js && node --check src/operator/server.js && node --check src/client/operator-client.js && node --check src/client/cli.js && node --check src/bridge/phios-vessie.js && node --check src/bridge/chatgpt-browsallax.js && node --check src/bridge/chatgpt-relay-agent.js && node --check src/bridge/chatgpt-github-agent.js && node --check bin/browsallax.js && node --check bin/phi-chatgpt-bridge.js && node --check bin/phi-chatgpt-relay-agent.js && node --check bin/phi-chatgpt-github-agent.js && node --check examples/vessie-live-acceptance.js && node --check examples/nasa-registry-acceptance.js && node --check examples/registry-fail-closed-acceptance.js && node --check src/page-preload.js && node --check src/operator/trusted-page.js",
     "test": "node --test test/*.test.js",
     "operator": "node bin/browsallax.js",
     "accept:vessie": "node examples/vessie-live-acceptance.js",
@@ -16,7 +16,9 @@
     "accept:nasa-registry": "node examples/nasa-registry-acceptance.js",
     "accept:registry-fail-closed": "node examples/registry-fail-closed-acceptance.js",
     "bridge:chatgpt": "node bin/phi-chatgpt-bridge.js",
-    "bridge:relay-agent": "node bin/phi-chatgpt-relay-agent.js"
+    "bridge:relay-agent": "node bin/phi-chatgpt-relay-agent.js",
+    "bridge:github-agent": "node bin/phi-chatgpt-github-agent.js",
+    "bridge:github-bootstrap": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap-github-bridge.ps1"
   },
   "devDependencies": {
     "electron": "44.3.0"
@@ -27,7 +29,8 @@
   "bin": {
     "browsallax": "bin/browsallax.js",
     "phi-chatgpt-bridge": "bin/phi-chatgpt-bridge.js",
-    "phi-chatgpt-relay-agent": "bin/phi-chatgpt-relay-agent.js"
+    "phi-chatgpt-relay-agent": "bin/phi-chatgpt-relay-agent.js",
+    "phi-chatgpt-github-agent": "bin/phi-chatgpt-github-agent.js"
   },
   "exports": {
     ".": "./src/main.js",
