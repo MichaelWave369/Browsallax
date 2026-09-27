@@ -1,4 +1,4 @@
-const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.2';
+const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.3';
 const PREFER_FINISH_AT_STEP = 3;
 const REQUIRE_TERMINATION_AT_STEP = 6;
 
@@ -104,6 +104,18 @@ function readOnlyResearchPrompt(context = {}) {
     'SEARCH_RESULTS_PAGE='+(context.evidence?.searchResultsPage ? 'YES' : 'NO'),
     'OBSERVED_NAVIGATION_LINK_COUNT='+Number(context.evidence?.navigationLinkCount || 0)
   ];
+
+  if (
+    context.mode === 'NORMAL' &&
+    context.evidence?.searchResultsPage === true &&
+    Number(context.evidence?.navigationLinkCount || 0) > 0
+  ) {
+    lines.push(
+      'SEARCH_RESULT_CONTINUATION_REQUIRED=YES',
+      'On this planning turn, finish status failed is locally invalid while observed navigation links are available.',
+      'Choose exactly one relevant observed navigation link using its exact ref or selector.'
+    );
+  }
 
   if (context.mode === 'PREFER_FINISH') {
     lines.push(
