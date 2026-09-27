@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check src/relay-core.mjs && node --check test/relay-core.test.mjs",
+    "check": "node --check src/relay-core.mjs && node --check test/relay-core.test.mjs && node --check scripts/health-check.mjs",
     "test": "node --test test/*.test.mjs",
-    "dev": "netlify dev"
+    "dev": "netlify dev",
+    "link:prod": "netlify link --id 62bc29ba-1d54-4fa8-bc40-139e51ce61b4",
+    "deploy:prod": "netlify deploy --prod",
+    "health:prod": "node scripts/health-check.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
