@@ -35,3 +35,10 @@ test("Windows bootstrap preflights the local Browser Operator before rotating se
   assert.ok(secretIndex >= 0, "secret rotation command missing");
   assert.ok(preflightIndex < secretIndex, "local operator preflight must occur before secret rotation");
 });
+
+test("Windows bootstrap forces non-interactive Netlify agent secret rotation", () => {
+  assert.match(
+    source,
+    /netlify\s+env:set\s+PHI_AGENT_TOKEN\s+\$token\s+--secret\s+--context\s+production\s+--force/i
+  );
+});
