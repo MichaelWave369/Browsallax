@@ -50,6 +50,44 @@ npx netlify dev
 
 ## Deployment
 
-Deploy this `relay/` directory to the dedicated Netlify project `phi-browsallax-relay`.
+The production Netlify project already exists as `phi-browsallax-relay` with project ID:
+
+```text
+62bc29ba-1d54-4fa8-bc40-139e51ce61b4
+```
+
+From the Browsallax checkout:
+
+```powershell
+cd C:\Browsallax\relay
+npm install
+npm run check
+npm test
+npx netlify login
+npm run link:prod
+npm run deploy:prod
+npm run health:prod
+```
+
+`netlify link` stores local site linkage under `.netlify/`, which is ignored by Git.
+
+After production health passes, start the local outbound agent with a fresh credential generated on the machine:
+
+```powershell
+npm run agent:bootstrap
+```
+
+The bootstrap generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
+
+The production health check must report:
+
+```json
+{
+  "ok": true,
+  "relayVersion": "PV-CBR-RELAY-0.1",
+  "authority": "NONE",
+  "role": "TRANSPORT_ONLY"
+}
+```
 
 The relay grants no Browsallax authority and cannot activate the five-minute human interactive grant.
