@@ -26,7 +26,7 @@ finally {
 $token = ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
 
 Write-Host '[Phi Relay Bootstrap] Rotating PHI_AGENT_TOKEN on Netlify without printing it...'
-& npx netlify env:set PHI_AGENT_TOKEN $token --secret --context production
+& npx netlify env:set PHI_AGENT_TOKEN $token --secret --context production --force
 if ($LASTEXITCODE -ne 0) {
   throw 'NETLIFY_AGENT_TOKEN_UPDATE_FAILED'
 }
