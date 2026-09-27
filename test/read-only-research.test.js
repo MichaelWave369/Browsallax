@@ -8,6 +8,9 @@ const {
   MAX_REQUIRE_TERMINATION_AT_STEP,
   requireTerminationAtStep,
   isReadOnlyResearchTask,
+  isEphemeralQueryInteractionRequested,
+  isObservedQueryField,
+  isObservedQueryControl,
   completionMode,
   isSearchResultsPage,
   observedNavigationLinkCount,
@@ -58,7 +61,7 @@ function snapshot() {
 }
 
 test('contract identifies explicitly declared read-only information tasks only', () => {
-  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.4');
+  assert.equal(READ_ONLY_RESEARCH_COMPLETION_VERSION, 'PV-BOP-RRC-0.5');
   assert.equal(isReadOnlyResearchTask(readOnlyTask()), true);
   assert.equal(isReadOnlyResearchTask({
     constraints: ['Human interactive mutation grant active.']
@@ -90,7 +93,7 @@ test('runtime context carries bounded evidence metadata without page text', () =
 
 test('research prompt tells the planner to finish when evidence is sufficient', () => {
   const prompt = readOnlyResearchPrompt(readOnlyResearchContext(readOnlyTask(3), snapshot()));
-  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.4/);
+  assert.match(prompt, /READ_ONLY_RESEARCH_COMPLETION=PV-BOP-RRC-0\.5/);
   assert.match(prompt, /FINISH immediately/i);
   assert.match(prompt, /PREFER_FINISH=YES/);
   assert.match(prompt, /Do not continue browsing merely to improve wording/i);
@@ -320,4 +323,109 @@ test('dynamic termination ceiling remains bounded for short and oversized tasks'
   const longTask = readOnlyTask(0);
   longTask.maxSteps = 100;
   assert.equal(requireTerminationAtStep(longTask), 9);
+});
+
+
+test('ephemeral query interaction marker is a task request, not default read-only behavior', () => {
+  const task = readOnlyTask(0);
+  assert.equal(isEphemeralQueryInteractionRequested(task), false);
+
+  task.constraints.push('EPHEMERAL_QUERY_INTERACTION_REQUESTED; HUMAN_GRANT_REQUIRED.');
+  assert.equal(isEphemeralQueryInteractionRequested(task), true);
+
+  const context = readOnlyResearchContext(task, snapshot());
+  assert.equal(context.queryInteractionRequested, true);
+  const prompt = readOnlyResearchPrompt(context);
+  assert.match(prompt, /EPHEMERAL_QUERY_INTERACTION_REQUESTED=YES/);
+  assert.match(prompt, /still require downstream human interactive authority/i);
+  assert.match(prompt, /grants no authority/i);
+});
+
+test('query-scoped read-only task may propose observed non-sensitive form fields', () => {
+  const task = readOnlyTask(0);
+  task.constraints.push('EPHEMERAL_QUERY_INTERACTION_REQUESTED; HUMAN_GRANT_REQUIRED.');
+  const querySnapshot = snapshot();
+  querySnapshot.elements.push(
+    {
+      selector: '#origin',
+      tagName: 'input',
+      type: 'text',
+      name: 'origin',
+      placeholder: 'Where from?',
+      text: ''
+    },
+    {
+      selector: '#date',
+      tagName: 'input',
+      type: 'date',
+      name: 'departure-date',
+      text: ''
+    },
+    {
+      selector: '#search-flights',
+      tagName: 'button',
+      role: 'button',
+      type: 'submit',
+      text: 'Search flights'
+    }
+  );
+
+  assert.equal(isObservedQueryField(querySnapshot.elements.at(-3)), true);
+  assert.equal(isObservedQueryField(querySnapshot.elements.at(-2)), true);
+  assert.equal(isObservedQueryControl(querySnapshot.elements.at(-1)), true);
+
+  const typed = enforceReadOnlyResearchPlan({
+    action: { type: 'type', selector: '#origin', value: 'SMF' }
+  }, task, querySnapshot);
+  assert.equal(typed.plan.action.type, 'type');
+
+  const selected = enforceReadOnlyResearchPlan({
+    action: { type: 'type', selector: '#date', value: '2026-09-29' }
+  }, task, querySnapshot);
+  assert.equal(selected.plan.action.type, 'type');
+
+  const clicked = enforceReadOnlyResearchPlan({
+    action: { type: 'click', selector: '#search-flights' }
+  }, task, querySnapshot);
+  assert.equal(clicked.plan.action.type, 'click');
+});
+
+test('query-scoped task still rejects persistent or sensitive form targets', () => {
+  const task = readOnlyTask(0);
+  task.constraints.push('EPHEMERAL_QUERY_INTERACTION_REQUESTED; HUMAN_GRANT_REQUIRED.');
+  const querySnapshot = snapshot();
+  querySnapshot.elements.push(
+    {
+      selector: '#password',
+      tagName: 'input',
+      type: 'password',
+      name: 'password',
+      placeholder: 'Password',
+      text: ''
+    },
+    {
+      selector: '#book',
+      tagName: 'button',
+      role: 'button',
+      type: 'button',
+      text: 'Book now'
+    }
+  );
+
+  assert.equal(isObservedQueryField(querySnapshot.elements.at(-2)), false);
+  assert.equal(isObservedQueryControl(querySnapshot.elements.at(-1)), false);
+
+  assert.throws(
+    () => enforceReadOnlyResearchPlan({
+      action: { type: 'type', selector: '#password', value: 'secret' }
+    }, task, querySnapshot),
+    /PLANNER_READ_ONLY_QUERY_TARGET_FORBIDDEN/
+  );
+
+  assert.throws(
+    () => enforceReadOnlyResearchPlan({
+      action: { type: 'click', selector: '#book' }
+    }, task, querySnapshot),
+    /PLANNER_READ_ONLY_CLICK_NOT_LINK/
+  );
 });
