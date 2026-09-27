@@ -13,7 +13,7 @@ private mailbox repository
    ↑ git polling + response commits
 PV-CBR-GH-0.1 local agent
    ↓
-PV-CBR-0.1
+PV-CBR-0.2
    ↓
 Browsallax Browser Operator
    ↓
