@@ -1,1 +1,4 @@
-module.exports = require('./phios-vessie');
+module.exports = {
+  ...require('./phios-vessie'),
+  ...require('./chatgpt-browsallax')
+};
