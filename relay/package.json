@@ -11,7 +11,8 @@
     "deploy:prod": "netlify deploy --prod",
     "health:prod": "node scripts/health-check.mjs",
     "agent:bootstrap": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap-agent.ps1",
-    "operator:preflight": "node scripts/preflight-local-operator.mjs"
+    "operator:preflight": "node scripts/preflight-local-operator.mjs",
+    "agent:rotate": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap-agent.ps1 -Rotate"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
