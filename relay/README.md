@@ -77,7 +77,21 @@ After production health passes, start Browsallax Desktop in a separate terminal 
 npm run agent:bootstrap
 ```
 
-The bootstrap first verifies that the local Browsallax Browser Operator endpoint is available, then proceeds. If Browsallax Desktop is not running, it stops before rotating the Netlify agent secret and prints the exact startup commands. It is compatible with Windows PowerShell 5.1 and newer PowerShell versions. It generates a random 256-bit `PHI_AGENT_TOKEN`, writes it directly to the linked Netlify project's production context as a secret, does not print the token, places it only in the current process environment, and launches `PV-CBR-AGENT-0.1`. When the process exits, the temporary environment values are cleared. Running bootstrap again rotates the remote agent credential.
+The bootstrap first verifies that the local Browsallax Browser Operator endpoint is available. On first provisioning it generates a random 256-bit `PHI_AGENT_TOKEN`, updates the Netlify production secret, redeploys the relay so the Functions receive that exact credential, and only then stores the credential locally protected by Windows DPAPI for the current user. The credential is never printed.
+
+Ordinary restarts reuse the DPAPI-protected credential and do **not** mutate Netlify or redeploy:
+
+```powershell
+npm run agent:bootstrap
+```
+
+Credential rotation is explicit:
+
+```powershell
+npm run agent:rotate
+```
+
+Rotation updates the production secret, redeploys the relay, and persists the new credential only after the deploy succeeds.
 
 The production health check must report:
 
