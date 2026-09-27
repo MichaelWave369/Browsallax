@@ -1,4 +1,4 @@
-const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.1';
+const READ_ONLY_RESEARCH_COMPLETION_VERSION = 'PV-BOP-RRC-0.2';
 const PREFER_FINISH_AT_STEP = 3;
 const REQUIRE_TERMINATION_AT_STEP = 6;
 
@@ -28,6 +28,28 @@ function completionMode(task = {}) {
   return 'NORMAL';
 }
 
+function isSearchResultsPage(snapshot = {}) {
+  try {
+    const url = new URL(String(snapshot.url || ''));
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase();
+
+    if ((host === 'duckduckgo.com' || host === 'www.duckduckgo.com') && url.searchParams.has('q')) return true;
+    if ((host === 'www.google.com' || host === 'google.com') && path === '/search' && url.searchParams.has('q')) return true;
+    if ((host === 'www.bing.com' || host === 'bing.com') && path === '/search' && url.searchParams.has('q')) return true;
+    if (host === 'search.brave.com' && path === '/search' && url.searchParams.has('q')) return true;
+    if (host === 'search.yahoo.com' && path.startsWith('/search') && url.searchParams.has('p')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function observedNavigationLinkCount(snapshot = {}) {
+  const elements = Array.isArray(snapshot.elements) ? snapshot.elements : [];
+  return elements.filter((element) => isObservedNavigationLink(element)).length;
+}
+
 function snapshotEvidence(snapshot = {}) {
   const text = String(snapshot.text || '');
   const elements = Array.isArray(snapshot.elements) ? snapshot.elements : [];
@@ -35,7 +57,9 @@ function snapshotEvidence(snapshot = {}) {
     url: String(snapshot.url || '').slice(0, 2000),
     title: String(snapshot.title || '').slice(0, 500),
     textChars: text.length,
-    elementCount: elements.length
+    elementCount: elements.length,
+    searchResultsPage: isSearchResultsPage(snapshot),
+    navigationLinkCount: observedNavigationLinkCount(snapshot)
   };
 }
 
@@ -68,13 +92,17 @@ function readOnlyResearchPrompt(context = {}) {
     'If the current observation already supports the user-requested information, FINISH immediately with status complete.',
     'Do not continue browsing merely to improve wording, gather redundant confirmation, or consume the remaining step budget.',
     'If required evidence is not present, take only one action that is necessary to obtain the specific missing evidence.',
+    'A search-results page is an intermediate research surface, not by itself evidence that the task failed.',
+    'When the current page is a recognized search-results page and relevant ordinary result links are observed, follow the single most relevant observed result link before declaring failure, while the bounded research budget permits.',
     'COMPLETION_MODE='+String(context.mode || 'NORMAL'),
     'STEP_COUNT='+Number(context.stepCount || 0),
     'REQUIRED_TERMINATION_STEP='+Number(context.requireTerminationAtStep || REQUIRE_TERMINATION_AT_STEP),
     'OBSERVED_URL='+String(context.evidence?.url || ''),
     'OBSERVED_TITLE='+String(context.evidence?.title || ''),
     'OBSERVED_TEXT_CHARS='+Number(context.evidence?.textChars || 0),
-    'OBSERVED_ELEMENT_COUNT='+Number(context.evidence?.elementCount || 0)
+    'OBSERVED_ELEMENT_COUNT='+Number(context.evidence?.elementCount || 0),
+    'SEARCH_RESULTS_PAGE='+(context.evidence?.searchResultsPage ? 'YES' : 'NO'),
+    'OBSERVED_NAVIGATION_LINK_COUNT='+Number(context.evidence?.navigationLinkCount || 0)
   ];
 
   if (context.mode === 'PREFER_FINISH') {
@@ -131,6 +159,17 @@ function enforceReadOnlyResearchPlan(plan = {}, task = {}, snapshot = {}) {
     }
   }
 
+  const finishStatus = normalizeText(action.status).toLowerCase();
+  if (
+    context.mode === 'NORMAL' &&
+    type === 'finish' &&
+    finishStatus === 'failed' &&
+    context.evidence?.searchResultsPage === true &&
+    Number(context.evidence?.navigationLinkCount || 0) > 0
+  ) {
+    throw readOnlyResearchError('PLANNER_READ_ONLY_SEARCH_RESULTS_REQUIRE_NAVIGATION');
+  }
+
   if (context.mode === 'TERMINATE_NOW' && type !== 'finish') {
     throw readOnlyResearchError('PLANNER_READ_ONLY_TERMINATION_REQUIRED');
   }
@@ -144,6 +183,8 @@ module.exports = {
   REQUIRE_TERMINATION_AT_STEP,
   isReadOnlyResearchTask,
   completionMode,
+  isSearchResultsPage,
+  observedNavigationLinkCount,
   snapshotEvidence,
   readOnlyResearchContext,
   readOnlyResearchPrompt,
