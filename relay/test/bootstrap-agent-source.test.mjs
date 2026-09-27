@@ -20,3 +20,10 @@ test("Windows bootstrap never prints the generated agent token", () => {
   assert.doesNotMatch(source, /Write-Host[^\r\n]*\$token/i);
   assert.doesNotMatch(source, /Write-Output[^\r\n]*\$token/i);
 });
+
+test("Windows bootstrap rotates the agent secret in Netlify production context", () => {
+  assert.match(
+    source,
+    /netlify\s+env:set\s+PHI_AGENT_TOKEN\s+\$token\s+--secret\s+--context\s+production/i
+  );
+});
