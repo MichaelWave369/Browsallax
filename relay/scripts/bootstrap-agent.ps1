@@ -24,35 +24,19 @@ function New-AgentToken {
 }
 
 function Protect-AgentToken([string]$Token) {
-  $plain = [System.Text.Encoding]::UTF8.GetBytes($Token)
-  try {
-    $protected = [System.Security.Cryptography.ProtectedData]::Protect(
-      $plain,
-      $null,
-      [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-    )
-    return [Convert]::ToBase64String($protected)
-  }
-  finally {
-    [Array]::Clear($plain, 0, $plain.Length)
-  }
+  $secure = ConvertTo-SecureString -String $Token -AsPlainText -Force
+  return ConvertFrom-SecureString -SecureString $secure
 }
 
 function Unprotect-AgentToken([string]$Encoded) {
-  $protected = [Convert]::FromBase64String($Encoded)
-  $plain = $null
+  $secure = ConvertTo-SecureString -String $Encoded
+  $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
   try {
-    $plain = [System.Security.Cryptography.ProtectedData]::Unprotect(
-      $protected,
-      $null,
-      [System.Security.Cryptography.DataProtectionScope]::CurrentUser
-    )
-    return [System.Text.Encoding]::UTF8.GetString($plain)
+    return [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
   }
   finally {
-    [Array]::Clear($protected, 0, $protected.Length)
-    if ($null -ne $plain) {
-      [Array]::Clear($plain, 0, $plain.Length)
+    if ($bstr -ne [IntPtr]::Zero) {
+      [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
     }
   }
 }

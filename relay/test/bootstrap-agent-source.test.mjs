@@ -43,10 +43,13 @@ test("Windows bootstrap forces non-interactive Netlify agent secret rotation", (
   );
 });
 
-test("Windows bootstrap persists the agent credential with current-user DPAPI", () => {
-  assert.match(source, /ProtectedData\]::Protect\(/);
-  assert.match(source, /ProtectedData\]::Unprotect\(/);
-  assert.match(source, /DataProtectionScope\]::CurrentUser/);
+test("Windows bootstrap persists the agent credential through PowerShell secure strings", () => {
+  assert.match(source, /ConvertFrom-SecureString/);
+  assert.match(source, /ConvertTo-SecureString/);
+  assert.match(source, /SecureStringToBSTR/);
+  assert.match(source, /ZeroFreeBSTR/);
+  assert.doesNotMatch(source, /ProtectedData\]::Protect\(/);
+  assert.doesNotMatch(source, /ProtectedData\]::Unprotect\(/);
   assert.match(source, /agent-token\.dpapi/);
 });
 
