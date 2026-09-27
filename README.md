@@ -169,6 +169,7 @@ Current runtime contracts:
 | Read-only research completion | `PV-BOP-RRC-0.6` | bounded read-only research + grant-gated query interaction with task-aware budget |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
+| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.1` | bounded semantic Vessie connector over local operator client |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
 
 ### Task loop
@@ -204,6 +205,26 @@ Read-only actions and ordinary navigation are baseline local capabilities.
 Form input and ordinary remote mutation require a current human interactive grant from Browsallax chrome. The current grant lasts five minutes and can be revoked. Read-only research tasks remain unable to request form interaction unless they carry the explicit `EPHEMERAL_QUERY_INTERACTION_REQUESTED` task marker. That marker is a capability request only, not authority: observed non-sensitive query fields/buttons still pass through normal policy and require the current human interactive grant.
 
 Sensitive actions remain **HELD** even when a broad interactive grant exists. Per-action sensitive approval is not implemented yet.
+
+### ChatGPT ↔ Browsallax ↔ Vessie bridge
+
+Browsallax now includes an experimental local connector surface for replacing paid remote-browser transport in the ChatGPT-to-Vessie path.
+
+```text
+ChatGPT connector
+      ↓
+authenticated HTTPS transport
+      ↓
+PV-CBR-0.1 on the user's machine
+      ↓
+local Browsallax Operator
+      ↓
+Super Φ.Vessel / Vessie
+```
+
+The v0.1 bridge exposes only semantic operations: status, bounded Vessie observation, ask Vessie, and resume a Vessie-bound held task. It does not expose raw selector actions, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
+
+The bridge uses a separate bearer token and never returns the local Browser Operator token. Sending a message to Vessie still requires the normal Browsallax human interactive grant. See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md) and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
 
 ### Brain Registry routing
 
@@ -310,7 +331,7 @@ Read the full [Threat Model](docs/THREAT_MODEL.md) and [Security Test Matrix](do
 | [`src/`](src/) | Electron desktop runtime, Browser Operator, policy, planner, bridges, and renderer |
 | [`src/operator/`](src/operator/) | Browser observation, policy, planner, task engine, trusted-page bridge, receipts |
 | [`src/client/`](src/client/) | Portable Browser Operator client and endpoint discovery |
-| [`src/bridge/`](src/bridge/) | PhiOS / Super Φ.Vessel bridge |
+| [`src/bridge/`](src/bridge/) | PhiOS / Super Φ.Vessel bridge + bounded ChatGPT connector |
 | [`web/`](web/) | React/Vite PWA companion |
 | [`bin/`](bin/) | local `browsallax` CLI entrypoint |
 | [`examples/`](examples/) | live acceptance and bridge examples |
