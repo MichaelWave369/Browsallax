@@ -1,0 +1,77 @@
+openapi: 3.1.0
+info:
+  title: Phi ChatGPT ↔ Browsallax Relay
+  version: 0.1.0
+  description: >
+    Transport-only relay to the user's local Browsallax/Vessie agent.
+    The relay grants no browser authority.
+servers:
+  - url: https://phi-browsallax-relay.netlify.app
+security:
+  - bearerAuth: []
+paths:
+  /v1/bridge/status:
+    post:
+      operationId: bridge_status_begin
+      summary: Queue a bounded bridge status request
+      responses:
+        "202": { description: Queued }
+  /v1/vessie/observe:
+    post:
+      operationId: vessie_observe_begin
+      summary: Queue a bounded Vessie observation
+      responses:
+        "202": { description: Queued }
+  /v1/vessie/ask:
+    post:
+      operationId: vessie_ask_begin
+      summary: Queue one user-authored message for Vessie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 8000
+      responses:
+        "202": { description: Queued }
+  /v1/vessie/resume:
+    post:
+      operationId: vessie_resume_begin
+      summary: Queue resume of a previously HELD Vessie task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [taskId]
+              properties:
+                taskId:
+                  type: string
+      responses:
+        "202": { description: Queued }
+  /v1/requests/{id}:
+    get:
+      operationId: bridge_request_status
+      summary: Read the state/result of a queued bridge request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Request state/result }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
