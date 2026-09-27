@@ -55,6 +55,8 @@ const OBSERVE_SCRIPT = `(() => {
       text: secretValue ? '[REDACTED]' : normalize(el.innerText || el.value || el.textContent).slice(0, 500),
       ariaLabel: el.getAttribute('aria-label') || '',
       title: el.getAttribute('title') || '',
+      placeholder: el.getAttribute('placeholder') || '',
+      autocomplete: el.getAttribute('autocomplete') || '',
       href: el.href || '',
       disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'),
       checked: typeof el.checked === 'boolean' ? el.checked : undefined,
