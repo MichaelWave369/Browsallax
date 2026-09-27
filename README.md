@@ -163,7 +163,7 @@ Current runtime contracts:
 | Contract | Version | Purpose |
 |---|---|---|
 | Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
-| Planner | `PV-BOP-PLAN-0.5` | schema-constrained local planning |
+| Planner | `PV-BOP-PLAN-0.6` | schema-constrained local planning + observed click-target grounding |
 | Task engine | `PV-BOP-TASK-0.4` | observe → plan → act → verify, with bounded SPA-hydration initial acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
 | Read-only research completion | `PV-BOP-RRC-0.2` | bounded no-mutation research termination + search-result continuation |
@@ -190,6 +190,8 @@ finish or replan
 ```
 
 The planner does not receive browser authority merely because it produced valid JSON.
+
+Planner click targets are grounded against the current observation before policy or execution. A click may identify an observed element by its exact transient `ref` or exact observed selector; Browsallax deterministically resolves the ref to the observed selector. Invented targets and contradictory ref/selector pairs fail validation before the action can reach browser policy.
 
 For read-only research, recognized search-results pages are treated as intermediate evidence surfaces. During the normal exploration phase, a planner cannot declare failure merely because search snippets lack the final answer when ordinary navigation links are visibly available; it must use a bounded read-only navigation step first. The normal completion-pressure ceiling still applies, and page content never gains authority.
 
