@@ -50,6 +50,36 @@ npx netlify dev
 
 ## Deployment
 
-Deploy this `relay/` directory to the dedicated Netlify project `phi-browsallax-relay`.
+The production Netlify project already exists as `phi-browsallax-relay` with project ID:
+
+```text
+62bc29ba-1d54-4fa8-bc40-139e51ce61b4
+```
+
+From the Browsallax checkout:
+
+```powershell
+cd C:\Browsallax\relay
+npm install
+npm run check
+npm test
+npx netlify login
+npm run link:prod
+npm run deploy:prod
+npm run health:prod
+```
+
+`netlify link` stores local site linkage under `.netlify/`, which is ignored by Git.
+
+The production health check must report:
+
+```json
+{
+  "ok": true,
+  "relayVersion": "PV-CBR-RELAY-0.1",
+  "authority": "NONE",
+  "role": "TRANSPORT_ONLY"
+}
+```
 
 The relay grants no Browsallax authority and cannot activate the five-minute human interactive grant.
