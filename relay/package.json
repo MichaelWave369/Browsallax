@@ -9,7 +9,8 @@
     "dev": "netlify dev",
     "link:prod": "netlify link --id 62bc29ba-1d54-4fa8-bc40-139e51ce61b4",
     "deploy:prod": "netlify deploy --prod",
-    "health:prod": "node scripts/health-check.mjs"
+    "health:prod": "node scripts/health-check.mjs",
+    "agent:bootstrap": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap-agent.ps1"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
