@@ -1,0 +1,87 @@
+openapi: 3.1.0
+info:
+  title: Phi ChatGPT Browsallax Bridge
+  version: 0.1.0
+  description: >
+    Bounded semantic bridge from ChatGPT to the user's local Browsallax + Super PhiVessel stack.
+    CAPABILITY does not equal AUTHORITY. The bridge cannot create Browsallax grants.
+servers:
+  - url: https://REPLACE-WITH-STABLE-HTTPS-BRIDGE
+security:
+  - bearerAuth: []
+paths:
+  /v1/status:
+    get:
+      operationId: bridge_status
+      summary: Read bounded Browsallax and Vessie bridge status
+      responses:
+        '200':
+          description: Bridge status
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/vessie/observe:
+    get:
+      operationId: vessie_observe
+      summary: Observe bounded visible text from the currently open Vessie tab
+      responses:
+        '200':
+          description: Vessie observation
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/vessie/ask:
+    post:
+      operationId: vessie_ask
+      summary: Send one user-authored message to Vessie through governed Browsallax interaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                message:
+                  type: string
+                  minLength: 1
+                  maxLength: 8000
+              required: [message]
+      responses:
+        '200':
+          description: Vessie task result or HELD disposition
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/vessie/resume:
+    post:
+      operationId: vessie_resume
+      summary: Resume a HELD Vessie bridge task after the human activates Browsallax grant authority
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                taskId:
+                  type: string
+                  minLength: 1
+              required: [taskId]
+      responses:
+        '200':
+          description: Resumed Vessie task result
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
