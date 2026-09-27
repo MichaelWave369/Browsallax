@@ -169,7 +169,7 @@ Current runtime contracts:
 | Read-only research completion | `PV-BOP-RRC-0.6` | bounded read-only research + grant-gated query interaction with task-aware budget |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
-| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.1` | bounded semantic Vessie connector over local operator client |
+| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.2` | bounded semantic Vessie connector with deterministic observed-control Vessie send path |
 | ChatGPT outbound relay agent | `PV-CBR-AGENT-0.1` | outbound-only transport client for the public relay |
 | ChatGPT transport relay | `PV-CBR-RELAY-0.1` | Netlify-hosted transport-only queue owned by Browsallax |
 | ChatGPT GitHub mailbox bridge | `PV-CBR-GH-0.1` | private-repo compatibility transport for ChatGPT surfaces with GitHub access |
@@ -218,14 +218,14 @@ ChatGPT connector
       ↓
 authenticated HTTPS transport
       ↓
-PV-CBR-0.1 on the user's machine
+PV-CBR-0.2 on the user's machine
       ↓
 local Browsallax Operator
       ↓
 Super Φ.Vessel / Vessie
 ```
 
-The v0.1 bridge exposes only semantic operations: status, bounded Vessie observation, ask Vessie, and resume a Vessie-bound held task. It does not expose raw selector actions, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
+The v0.2 bridge exposes only semantic operations: status, bounded Vessie observation, ask Vessie, and resume a Vessie-bound held task. It does not expose raw selector actions, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval. `vessie.ask` now uses only the currently observed Vessie composer and Send control, verifies the exact typed value before clicking, routes both actions through normal Browser Operator policy, and waits deterministically for a newly completed Vessie response instead of asking a planner to discover the composer.
 
 The bridge uses a separate bearer token and never returns the local Browser Operator token. Sending a message to Vessie still requires the normal Browsallax human interactive grant. For remote ChatGPT transport without an inbound PC port, `PV-CBR-AGENT-0.1` polls the Browsallax-owned `PV-CBR-RELAY-0.1` transport relay over outbound HTTPS and dispatches only the four semantic bridge operations. For ChatGPT surfaces that can access GitHub but cannot register the private HTTPS relay directly, `PV-CBR-GH-0.1` provides an optional private-repository mailbox transport with the same four-operation allowlist and claim-before-execute replay protection. See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), [CHATGPT_GITHUB_BRIDGE.md](docs/CHATGPT_GITHUB_BRIDGE.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
 
