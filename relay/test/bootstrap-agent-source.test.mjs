@@ -27,3 +27,11 @@ test("Windows bootstrap rotates the agent secret in Netlify production context",
     /netlify\s+env:set\s+PHI_AGENT_TOKEN\s+\$token\s+--secret\s+--context\s+production/i
   );
 });
+
+test("Windows bootstrap preflights the local Browser Operator before rotating secrets", () => {
+  const preflightIndex = source.indexOf("preflight-local-operator.mjs");
+  const secretIndex = source.indexOf("netlify env:set PHI_AGENT_TOKEN");
+  assert.ok(preflightIndex >= 0, "preflight command missing");
+  assert.ok(secretIndex >= 0, "secret rotation command missing");
+  assert.ok(preflightIndex < secretIndex, "local operator preflight must occur before secret rotation");
+});
