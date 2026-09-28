@@ -39,6 +39,8 @@ function classifyAction(action = {}, target = {}) {
       return ACTION_CLASSES.READ_ONLY;
     case 'navigate':
       return ACTION_CLASSES.NAVIGATION;
+    case 'pointer_path':
+      return ACTION_CLASSES.REMOTE_MUTATION;
     case 'type':
     case 'select': {
       const inputType = normalizeText(target.type).toLowerCase();
