@@ -1,6 +1,6 @@
 {
   "name": "browsallax",
-  "version": "0.5.0-alpha.8",
+  "version": "0.5.0-alpha.9",
   "description": "A free, local-first Chromium browser with a governed Browser Operator, local task engine, PhiOS / Super PhiVessel bridge, and trusted page task lane.",
   "main": "src/main.js",
   "license": "MIT",
