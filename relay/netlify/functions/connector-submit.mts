@@ -51,6 +51,8 @@ export const config = {
     "/v1/vessie/resume",
     "/v1/domistika/status",
     "/v1/domistika/observe",
+    "/v1/domistika/capabilities",
+    "/v1/domistika/capture",
     "/v1/domistika/draw"
   ]
 };
