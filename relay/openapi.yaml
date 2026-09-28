@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Phi ChatGPT ↔ Browsallax Relay
-  version: 0.2.0
+  version: 0.3.0
   description: >
     Transport-only relay to the user's local Browsallax semantic agent.
     The relay grants no browser authority.
@@ -84,6 +84,33 @@ paths:
         "202":
           description: Queued
 
+  /v1/domistika/capabilities:
+    post:
+      operationId: domistika_capabilities_begin
+      summary: Queue a bounded Domistika capabilities request
+      responses:
+        "202":
+          description: Queued
+
+  /v1/domistika/capture:
+    post:
+      operationId: domistika_capture_begin
+      summary: Queue a bounded Domistika visual capture
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                sessionId: { type: string, maxLength: 120 }
+                passName: { type: string, maxLength: 120 }
+                includeImage: { type: boolean, default: true }
+      responses:
+        "202":
+          description: Queued
+
   /v1/domistika/draw:
     post:
       operationId: domistika_draw_begin
@@ -99,6 +126,10 @@ paths:
               properties:
                 recipe:
                   $ref: "#/components/schemas/DomistikaRecipe"
+                sessionId: { type: string, maxLength: 120 }
+                passName: { type: string, maxLength: 120 }
+                returnCapture: { type: boolean, default: false }
+                includeImage: { type: boolean, default: true }
       responses:
         "202":
           description: Queued
