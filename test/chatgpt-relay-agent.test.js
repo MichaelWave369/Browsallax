@@ -27,12 +27,15 @@ function fakeBridge() {
 }
 
 test('relay agent contract is bounded to semantic operations', () => {
-  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.1');
+  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.2');
   assert.deepEqual([...ALLOWED_RELAY_OPERATIONS], [
     'bridge.status',
     'vessie.observe',
     'vessie.ask',
-    'vessie.resume'
+    'vessie.resume',
+    'domistika.status',
+    'domistika.observe',
+    'domistika.draw'
   ]);
 });
 
