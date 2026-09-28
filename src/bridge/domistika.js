@@ -3,7 +3,13 @@ const DEFAULT_DOMISTIKA_URL = 'https://michaelwave369.github.io/Domistika/';
 const DOMISTIKA_PATH_PREFIX = '/Domistika/';
 const DRAW_TOOLS = new Set(['pencil', 'ink', 'marker', 'airbrush', 'eraser']);
 const DRAW_MODES = new Set(['sticky', 'polyline']);
-const SYMMETRY_MODES = new Set(['none', 'vertical', 'horizontal', 'quad', 'radial-6', 'radial-8', 'radial-12']);
+const SYMMETRY_MODES = new Set([
+  'none', 'vertical', 'horizontal', 'quad',
+  'radial-3', 'radial-4', 'radial-5', 'radial-6', 'radial-8', 'radial-10', 'radial-12', 'radial-16', 'radial-24',
+  'kaleido-6', 'kaleido-8', 'kaleido-12',
+  'spiral-5', 'spiral-8', 'spiral-12',
+  'orbit-7', 'orbit-11', 'echo-5', 'echo-9', 'drift-7', 'ripple-6'
+]);
 const GALLERY_CATEGORIES = new Set(['Abstract', 'Mandala', 'Character', 'Sacred Geometry', 'Experimental', 'Pixel / Retro', 'Other']);
 const MAX_DRAW_POINTS = 512;
 
