@@ -3,7 +3,7 @@ info:
   title: Phi ChatGPT ↔ Browsallax Relay
   version: 0.2.0
   description: >
-    Transport-only relay to the user's local Browsallax semantic agent. The relay grants no browser authority.
+    Transport-only relay to the user's local Browsallax semantic agent.
     The relay grants no browser authority.
 servers:
   - url: https://phi-browsallax-relay.netlify.app
@@ -15,13 +15,17 @@ paths:
       operationId: bridge_status_begin
       summary: Queue a bounded bridge status request
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/vessie/observe:
     post:
       operationId: vessie_observe_begin
       summary: Queue a bounded Vessie observation
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/vessie/ask:
     post:
       operationId: vessie_ask_begin
@@ -40,7 +44,9 @@ paths:
                   minLength: 1
                   maxLength: 8000
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/vessie/resume:
     post:
       operationId: vessie_resume_begin
@@ -56,20 +62,28 @@ paths:
               properties:
                 taskId:
                   type: string
+                  minLength: 1
+                  maxLength: 300
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/domistika/status:
     post:
       operationId: domistika_status_begin
       summary: Queue a bounded Domistika status request
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/domistika/observe:
     post:
       operationId: domistika_observe_begin
       summary: Queue a bounded Domistika observation
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/domistika/draw:
     post:
       operationId: domistika_draw_begin
@@ -84,44 +98,11 @@ paths:
               required: [recipe]
               properties:
                 recipe:
-                  type: object
-                  additionalProperties: false
-                  required: [mode, points]
-                  properties:
-                    projectName: { type: string, maxLength: 120 }
-                    newCanvas:
-                      type: object
-                      additionalProperties: false
-                      properties:
-                        width: { type: integer, minimum: 64, maximum: 8192 }
-                        height: { type: integer, minimum: 64, maximum: 8192 }
-                    tool:
-                      type: string
-                      enum: [pencil, ink, marker, airbrush, eraser]
-                    color: { type: string }
-                    size: { type: integer, minimum: 1, maximum: 180 }
-                    symmetry:
-                      type: string
-                      enum: [none, vertical, horizontal, quad, radial-6, radial-8, radial-12]
-                    mode:
-                      type: string
-                      enum: [sticky, polyline]
-                    points:
-                      type: array
-                      minItems: 2
-                      maxItems: 512
-                      items:
-                        type: object
-                        additionalProperties: false
-                        required: [x, y]
-                        properties:
-                          x: { type: number, minimum: 0, maximum: 1 }
-                          y: { type: number, minimum: 0, maximum: 1 }
-                    intervalMs: { type: integer, minimum: 0, maximum: 50 }
-                    saveToGallery: { type: boolean }
-                    gallery: { type: object }
+                  $ref: "#/components/schemas/DomistikaRecipe"
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+
   /v1/requests/{id}:
     get:
       operationId: bridge_request_status
@@ -130,10 +111,123 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
-        "200": { description: Request state/result }
+        "200":
+          description: Request state/result
+
 components:
+  schemas:
+    DomistikaPoint:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    DomistikaRecipe:
+      type: object
+      additionalProperties: false
+      required: [mode, points]
+      properties:
+        projectName:
+          type: string
+          maxLength: 120
+        newCanvas:
+          type: object
+          additionalProperties: false
+          required: [width, height]
+          properties:
+            width:
+              type: integer
+              minimum: 64
+              maximum: 8192
+            height:
+              type: integer
+              minimum: 64
+              maximum: 8192
+        tool:
+          type: string
+          enum: [pencil, ink, marker, airbrush, eraser]
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        size:
+          type: integer
+          minimum: 1
+          maximum: 180
+        symmetry:
+          type: string
+          enum:
+            - none
+            - vertical
+            - horizontal
+            - quad
+            - radial-3
+            - radial-4
+            - radial-5
+            - radial-6
+            - radial-8
+            - radial-10
+            - radial-12
+            - radial-16
+            - radial-24
+            - kaleido-6
+            - kaleido-8
+            - kaleido-12
+            - spiral-5
+            - spiral-8
+            - spiral-12
+            - orbit-7
+            - orbit-11
+            - echo-5
+            - echo-9
+            - drift-7
+            - ripple-6
+        mode:
+          type: string
+          enum: [sticky, polyline]
+        points:
+          type: array
+          minItems: 2
+          maxItems: 512
+          items:
+            $ref: "#/components/schemas/DomistikaPoint"
+        intervalMs:
+          type: integer
+          minimum: 0
+          maximum: 50
+        saveToGallery:
+          type: boolean
+        gallery:
+          type: object
+          additionalProperties: false
+          properties:
+            artist:
+              type: string
+              maxLength: 60
+            category:
+              type: string
+              enum:
+                - Abstract
+                - Mandala
+                - Character
+                - Sacred Geometry
+                - Experimental
+                - Pixel / Retro
+                - Other
+            description:
+              type: string
+              maxLength: 500
+
   securitySchemes:
     bearerAuth:
       type: http
