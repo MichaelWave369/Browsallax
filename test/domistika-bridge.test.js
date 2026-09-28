@@ -83,7 +83,13 @@ function domistikaSnapshot() {
     { selector: '#projectName', tagName: 'input', value: 'Untitled' },
     { selector: '#colorInput', tagName: 'input', value: '#1b1820' },
     { selector: '#sizeInput', tagName: 'input', value: '12' },
-    { selector: '#symmetryInput', tagName: 'select', value: 'none', options: ['Off', 'Radial 12', 'Kaleido 12'] },
+    {
+      selector: '#symmetryInput',
+      tagName: 'select',
+      value: 'none',
+      options: ['Off', 'Radial 12', 'Kaleido 12'],
+      optionValues: ['none', 'radial-12', 'kaleido-12']
+    },
     { selector: '#stickyDrawToggle', tagName: 'button', ariaPressed: 'false', text: 'Sticky Draw' },
     { selector: '#polylineToggle', tagName: 'button', ariaPressed: 'false', text: 'Polyline' },
     { selector: '#overlay', tagName: 'canvas', rect: { x: 100, y: 100, width: 800, height: 800 } },
@@ -160,7 +166,7 @@ test('capabilities expose observed controls separately from allowed bridge modes
   assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.2');
   assert.ok(caps.tools.includes('marker'));
   assert.deepEqual(caps.drawModes, ['sticky', 'polyline']);
-  assert.deepEqual(caps.observedSymmetryModes, ['Off', 'Radial 12', 'Kaleido 12']);
+  assert.deepEqual(caps.observedSymmetryModes, ['none', 'radial-12', 'kaleido-12']);
   assert.ok(caps.allowedSymmetryModes.includes('kaleido-12'));
   assert.equal(caps.capture.supported, true);
   assert.equal(caps.maxPointsPerPass, 512);
