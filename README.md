@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent browser tooling around the web with stronger privacy boundaries, local intelligence, explicit authority, evidence capture, and an open ecosystem of useful tools.
 
-> **Current status:** Desktop `0.5.0-alpha.6`; Web `0.2.0-alpha.1`. Both are alpha software.
+> **Current status:** Desktop `0.5.0-alpha.7`; Web `0.2.0-alpha.1`. Both are alpha software.
 
 ## Try it
 
@@ -68,6 +68,8 @@ npm run accept:registry-fail-closed
 | Brain Registry routed planner | **Working · live-tested success + fail-closed paths** |
 | Governed read-only research | **Working · live-tested** |
 | Mutation automation | **Restricted · experimental** |
+| Governed pointer paths | **Working · alpha** |
+| ChatGPT ↔ Domistika semantic lane | **Implemented · live acceptance pending** |
 | Sensitive mutation | **HELD pending per-action approval design** |
 | Local vision interpretation | **Planned** |
 | Signed release/update chain | **Not implemented** |
@@ -150,7 +152,8 @@ Current desktop capabilities include:
 - governed local Browser Operator;
 - local Ollama planner;
 - advisory Brain Registry planner routing;
-- trusted Super Φ.Vessel task bridge.
+- trusted Super Φ.Vessel task bridge;
+- path-locked ChatGPT ↔ Domistika semantic drawing bridge with governed Sticky Draw / Polyline input.
 
 Browsallax depends on Electron/Chromium security updates. The current pin should be kept current where compatibility allows; no signed automatic update chain is claimed yet.
 
@@ -169,10 +172,12 @@ Current runtime contracts:
 | Read-only research completion | `PV-BOP-RRC-0.6` | bounded read-only research + grant-gated query interaction with task-aware budget |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
-| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.2` | bounded semantic Vessie connector with deterministic observed-control Vessie send path |
-| ChatGPT outbound relay agent | `PV-CBR-AGENT-0.1` | outbound-only transport client for the public relay |
-| ChatGPT transport relay | `PV-CBR-RELAY-0.1` | Netlify-hosted transport-only queue owned by Browsallax |
-| ChatGPT GitHub mailbox bridge | `PV-CBR-GH-0.1` | private-repo compatibility transport for ChatGPT surfaces with GitHub access |
+| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.3` | bounded semantic Vessie + Domistika connector surface |
+| Domistika semantic bridge | `PV-CBR-DOM-0.1` | exact-path drawing recipes through observed controls and governed pointer input |
+| Governed pointer path | `PV-BOP-POINTER-0.1` | bounded native drag / sticky / polyline input, always mutation-gated |
+| ChatGPT outbound relay agent | `PV-CBR-AGENT-0.2` | outbound-only transport client for the public relay |
+| ChatGPT transport relay | `PV-CBR-RELAY-0.2` | Netlify-hosted transport-only semantic queue owned by Browsallax |
+| ChatGPT GitHub mailbox bridge | `PV-CBR-GH-0.2` | private-repo compatibility transport for Vessie + Domistika semantic operations |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
 
 ### Task loop
@@ -209,25 +214,27 @@ Form input and ordinary remote mutation require a current human interactive gran
 
 Sensitive actions remain **HELD** even when a broad interactive grant exists. Per-action sensitive approval is not implemented yet.
 
-### ChatGPT ↔ Browsallax ↔ Vessie bridge
+### ChatGPT ↔ Browsallax semantic bridge
 
-Browsallax now includes an experimental local connector surface for replacing paid remote-browser transport in the ChatGPT-to-Vessie path.
+Browsallax includes an experimental local semantic connector intended to replace paid remote-browser transport for supported local workflows.
 
 ```text
-ChatGPT connector
-      ↓
-authenticated HTTPS transport
-      ↓
-PV-CBR-0.2 on the user's machine
-      ↓
-local Browsallax Operator
-      ↓
-Super Φ.Vessel / Vessie
+ChatGPT
+   ↓ bounded semantic request
+PV-CBR-0.3
+   ↓
+Browsallax Browser Operator
+   ├── Super Φ.Vessel / Vessie
+   └── Domistika
 ```
 
-The v0.2 bridge exposes only semantic operations: status, bounded Vessie observation, ask Vessie, and resume a Vessie-bound held task. It does not expose raw selector actions, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval. `vessie.ask` now uses only the currently observed Vessie composer and Send control, verifies the exact typed value before clicking, routes both actions through normal Browser Operator policy, and waits deterministically for a newly completed Vessie response instead of asking a planner to discover the composer.
+The bridge still does **not** expose raw browser selectors, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
-The bridge uses a separate bearer token and never returns the local Browser Operator token. Sending a message to Vessie still requires the normal Browsallax human interactive grant. For remote ChatGPT transport without an inbound PC port, `PV-CBR-AGENT-0.1` polls the Browsallax-owned `PV-CBR-RELAY-0.1` transport relay over outbound HTTPS and dispatches only the four semantic bridge operations. For ChatGPT surfaces that can access GitHub but cannot register the private HTTPS relay directly, `PV-CBR-GH-0.1` provides an optional private-repository mailbox transport with the same four-operation allowlist and claim-before-execute replay protection. See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), [CHATGPT_GITHUB_BRIDGE.md](docs/CHATGPT_GITHUB_BRIDGE.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
+Vessie keeps its deterministic observed composer/send path. Domistika adds `PV-CBR-DOM-0.1`, which is path-locked to `https://michaelwave369.github.io/Domistika/` and exposes only `domistika.status`, `domistika.observe`, and `domistika.draw`. Drawing recipes use observed Domistika controls and `PV-BOP-POINTER-0.1` for bounded Sticky Draw / Polyline motion. Pointer paths are classified as `REMOTE_MUTATION` and therefore require the normal five-minute human interactive grant.
+
+Remote transport can use `PV-CBR-AGENT-0.2` + `PV-CBR-RELAY-0.2`, or the private GitHub mailbox `PV-CBR-GH-0.2`. The mailbox remains claim-before-execute with no replay after an ambiguous previous claim.
+
+See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [DOMISTIKA_CHATGPT_BRIDGE.md](docs/DOMISTIKA_CHATGPT_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), [CHATGPT_GITHUB_BRIDGE.md](docs/CHATGPT_GITHUB_BRIDGE.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
 
 ### Brain Registry routing
 
