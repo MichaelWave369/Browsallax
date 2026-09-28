@@ -45,7 +45,10 @@ const OBSERVE_SCRIPT = `(() => {
     const autocomplete = String(el.getAttribute('autocomplete') || '').toLowerCase();
     const secretValue = inputType === 'password' || inputType === 'file' || autocomplete.includes('password') || autocomplete === 'one-time-code';
     const optionText = el.tagName === 'SELECT'
-      ? [...el.options].slice(0, 50).map((o) => normalize(o.textContent))
+      ? [...el.options].slice(0, 100).map((o) => normalize(o.textContent))
+      : undefined;
+    const optionValues = el.tagName === 'SELECT'
+      ? [...el.options].slice(0, 100).map((o) => String(o.value || '').slice(0, 300))
       : undefined;
     return {
       ref: 'e' + (index + 1),
@@ -66,6 +69,7 @@ const OBSERVE_SCRIPT = `(() => {
       checked: typeof el.checked === 'boolean' ? el.checked : undefined,
       value: ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? (secretValue ? '[REDACTED]' : String(el.value || '').slice(0, 1000)) : undefined,
       options: optionText,
+      optionValues,
       rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) }
     };
   });
