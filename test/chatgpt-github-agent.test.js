@@ -108,6 +108,20 @@ test('request contract is strict and bounded', () => {
   }));
   assert.deepEqual(ask.payload, { message: 'hello vessie' });
 
+  const draw = normalizeRequest(request({
+    id: 'req-domistika-draw-001',
+    operation: 'domistika.draw',
+    payload: {
+      recipe: {
+        projectName: 'Mailbox draw',
+        mode: 'polyline',
+        points: [{ x: 0.1, y: 0.2 }, { x: 0.8, y: 0.7 }]
+      }
+    }
+  }));
+  assert.equal(draw.payload.recipe.mode, 'polyline');
+  assert.equal(draw.payload.recipe.points.length, 2);
+
   assert.throws(
     () => normalizeRequest(request({
       id: 'req-expired-001',
