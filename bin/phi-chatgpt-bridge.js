@@ -30,7 +30,7 @@ async function main() {
   service.server.once('listening', () => {
     const address = service.address();
     const actualPort = typeof address === 'object' && address ? address.port : port;
-    console.log(`[Phi ChatGPT Bridge] PV-CBR-0.1 listening at http://${host}:${actualPort}`);
+    console.log(`[Phi ChatGPT Bridge] ${service.version} listening at http://${host}:${actualPort}`);
     console.log('[Phi ChatGPT Bridge] Loopback only. Use an authenticated HTTPS tunnel/connector for remote ChatGPT access.');
     console.log('[Phi ChatGPT Bridge] CAPABILITY != AUTHORITY. This bridge cannot create Browsallax grants.');
   });
