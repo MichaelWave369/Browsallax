@@ -2,7 +2,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const DOMISTIKA_CAPTURE_VERSION = 'PV-CBR-DOM-CAP-0.1';
+const DOMISTIKA_CAPTURE_VERSION = 'PV-CBR-DOM-CAP-0.2';
+const CAPTURE_SCOPES = new Set(['viewport', 'canvas']);
 const MAX_CAPTURE_BYTES = 2 * 1024 * 1024;
 const CAPTURE_FILENAME_RE = /^capture-\d+-[a-f0-9]{12}\.png$/i;
 
@@ -15,15 +16,19 @@ function safeToken(value, fallback) {
 
 function normalizeCaptureOptions(input = {}) {
   const value = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
-  const allowed = new Set(['sessionId', 'passName', 'includeImage']);
+  const allowed = new Set(['sessionId', 'passName', 'includeImage', 'scope']);
   if (Object.keys(value).some((key) => !allowed.has(key))) {
     throw new Error('DOMISTIKA_CAPTURE_FIELDS_INVALID');
   }
 
+  const scope = String(value.scope || 'viewport').trim().toLowerCase();
+  if (!CAPTURE_SCOPES.has(scope)) throw new Error('DOMISTIKA_CAPTURE_SCOPE_INVALID');
+
   return {
     sessionId: safeToken(value.sessionId, null),
     passName: safeToken(value.passName, null),
-    includeImage: value.includeImage !== false
+    includeImage: value.includeImage !== false,
+    scope
   };
 }
 
@@ -66,7 +71,8 @@ async function boundedCaptureArtifact(screenshotResponse, options = {}, fsImpl =
     bytes: bytes.length,
     size: shot.size || null,
     sessionId: normalized.sessionId,
-    passName: normalized.passName
+    passName: normalized.passName,
+    scope: normalized.scope
   };
 
   if (normalized.includeImage) artifact.dataBase64 = bytes.toString('base64');
@@ -75,6 +81,7 @@ async function boundedCaptureArtifact(screenshotResponse, options = {}, fsImpl =
 
 module.exports = {
   DOMISTIKA_CAPTURE_VERSION,
+  CAPTURE_SCOPES,
   MAX_CAPTURE_BYTES,
   CAPTURE_FILENAME_RE,
   normalizeCaptureOptions,
