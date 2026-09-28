@@ -92,3 +92,42 @@ test('client descriptor never exposes bearer token and authenticated requests us
   assert.equal(calls[0].options.headers.authorization, undefined);
   assert.equal(calls[1].options.headers.authorization, `Bearer ${TOKEN}`);
 });
+
+
+test('screenshot request carries only the bounded optional clip', async () => {
+  let seen = null;
+  const client = new BrowsallaxOperatorClient({
+    endpoint: {
+      version: 'PV-BOP-0.2',
+      host: '127.0.0.1',
+      port: 3697,
+      token: TOKEN,
+      sourcePath: '/tmp/endpoint.json'
+    },
+    fetchImpl: async (url, options = {}) => {
+      seen = { url: String(url), body: JSON.parse(options.body || '{}') };
+      return new Response(JSON.stringify({
+        ok: true,
+        screenshot: {
+          filePath: '/tmp/capture-1-abcdef123456.png',
+          sha256: 'a'.repeat(64),
+          bytes: 100,
+          size: { width: 800, height: 800 }
+        }
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+  });
+
+  await client.screenshot(7, {
+    clip: { x: 100, y: 120, width: 800, height: 800 }
+  });
+
+  assert.ok(seen.url.endsWith('/v1/screenshot'));
+  assert.deepEqual(seen.body, {
+    tabId: 7,
+    clip: { x: 100, y: 120, width: 800, height: 800 }
+  });
+});
