@@ -32,8 +32,11 @@ async function boundedCaptureArtifact(screenshotResponse, options = {}, fsImpl =
   const shot = screenshotResponse?.screenshot;
   if (!shot?.filePath) throw new Error('DOMISTIKA_CAPTURE_FILE_MISSING');
 
-  const filePath = path.resolve(String(shot.filePath));
-  const filename = path.basename(filePath);
+  const rawPath = String(shot.filePath);
+  const filePath = path.resolve(rawPath);
+  const filename = rawPath.includes('\\')
+    ? path.win32.basename(rawPath)
+    : path.basename(rawPath);
   if (!CAPTURE_FILENAME_RE.test(filename)) throw new Error('DOMISTIKA_CAPTURE_FILENAME_INVALID');
 
   const stat = await fsImpl.stat(filePath);
