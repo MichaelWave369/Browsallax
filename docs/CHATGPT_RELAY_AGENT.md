@@ -11,7 +11,7 @@ HTTPS relay
       ↑ outbound polling only
 PV-CBR-AGENT-0.3
       ↓
-PV-CBR-0.2
+PV-CBR-0.4
       ↓
 Browsallax
       ↓
