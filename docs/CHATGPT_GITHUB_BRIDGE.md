@@ -1,6 +1,6 @@
 # ChatGPT ↔ Browsallax GitHub Compatibility Bridge
 
-**Contract:** `PV-CBR-GH-0.1`
+**Contract:** `PV-CBR-GH-0.2`
 
 This is a compatibility transport for ChatGPT surfaces that can access GitHub but cannot directly register the Browsallax HTTPS relay as a private custom connector.
 
@@ -11,7 +11,7 @@ ChatGPT
    ↓ GitHub connector
 private mailbox repository
    ↑ git polling + response commits
-PV-CBR-GH-0.1 local agent
+PV-CBR-GH-0.2 local agent
    ↓
 PV-CBR-0.2
    ↓
@@ -34,7 +34,7 @@ BROWSALLAX POLICY = enforcement
 HUMAN GRANT = bounded mutation authority
 ```
 
-The GitHub adapter cannot create a grant, approve a sensitive action, expose raw browser selectors, navigate arbitrary URLs, run shell commands from mailbox requests, or access arbitrary local files.
+The GitHub adapter cannot create a grant, approve a sensitive action, expose raw browser selectors, navigate arbitrary URLs, run shell commands from mailbox requests, or access arbitrary local files. Domistika requests are path-locked by the local semantic bridge, not by GitHub transport.
 
 ## Private repository
 
@@ -75,6 +75,11 @@ Allowed operations are exactly:
 - `vessie.observe`
 - `vessie.ask`
 - `vessie.resume`
+- `domistika.status`
+- `domistika.observe`
+- `domistika.draw`
+
+`domistika.draw` accepts only a strict bounded recipe. Unknown recipe fields fail closed; drawing points are capped at 512.
 
 Payloads are strict. Unknown fields fail closed. Requests expire, and TTL may not exceed 15 minutes.
 
@@ -109,7 +114,7 @@ Example:
 ```json
 {
   "schema": "browsallax.github-bridge.response.v1",
-  "bridgeVersion": "PV-CBR-GH-0.1",
+  "bridgeVersion": "PV-CBR-GH-0.2",
   "requestId": "cg-20260927-status-001",
   "operation": "bridge.status",
   "state": "COMPLETE",
@@ -153,4 +158,4 @@ Use `bridge.status` first. It is read-only and needs no human interactive grant.
 
 Then test `vessie.observe`.
 
-Only after both are proven should `vessie.ask` be tested. Sending a Vessie message still requires the normal five-minute Browsallax interactive grant.
+Only after both are proven should mutation operations be tested. `vessie.ask` and `domistika.draw` still require the normal five-minute Browsallax interactive grant. For Domistika live acceptance, open the Domistika app in Browsallax first and use `domistika.status` before sending a drawing recipe.
