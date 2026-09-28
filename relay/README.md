@@ -1,16 +1,16 @@
 # Phi ChatGPT ↔ Browsallax Relay
 
-**Contract:** `PV-CBR-RELAY-0.2`  
+**Contract:** `PV-CBR-RELAY-0.3`  
 **Production project:** `https://phi-browsallax-relay.netlify.app`
 
-This relay is owned by the Browsallax project and transports only the bounded semantic ChatGPT ↔ Vessie operations exposed by `PV-CBR-0.3`.
+This relay is owned by the Browsallax project and transports only the bounded semantic ChatGPT ↔ Vessie operations exposed by `PV-CBR-0.4`.
 
 ```text
 ChatGPT connector
       ↓ HTTPS
 Netlify relay + short-lived Blob queue
       ↑ outbound polling
-PV-CBR-AGENT-0.2 on the user's machine
+PV-CBR-AGENT-0.3 on the user's machine
       ↓
 PV-CBR-0.1
       ↓
@@ -32,7 +32,7 @@ Neither token is the local Browsallax Operator token.
 
 ## Queue behavior
 
-- Seven allowed semantic operations only: `bridge.status`, `vessie.observe`, `vessie.ask`, `vessie.resume`, `domistika.status`, `domistika.observe`, `domistika.draw`.
+- Nine allowed semantic operations only: `bridge.status`, `vessie.observe`, `vessie.ask`, `vessie.resume`, `domistika.status`, `domistika.observe`, `domistika.capabilities`, `domistika.capture`, `domistika.draw`.
 - Requests expire after 10 minutes.
 - Agent claims expire after four minutes and may be reclaimed.
 - Connector status never exposes request payloads or agent claim tokens.
@@ -98,7 +98,7 @@ The production health check must report:
 ```json
 {
   "ok": true,
-  "relayVersion": "PV-CBR-RELAY-0.2",
+  "relayVersion": "PV-CBR-RELAY-0.3",
   "authority": "NONE",
   "role": "TRANSPORT_ONLY"
 }
