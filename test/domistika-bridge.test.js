@@ -67,3 +67,79 @@ test('Domistika contract requires both accessibility modes and observed canvas',
   assert.equal(domistikaContract(snapshot).ok, false);
   assert.deepEqual(domistikaContract(snapshot).missing, ['#overlay']);
 });
+
+
+function domistikaSnapshot() {
+  const controls = [
+    { selector: '#projectName', tagName: 'input', value: 'Untitled' },
+    { selector: '#colorInput', tagName: 'input', value: '#1b1820' },
+    { selector: '#sizeInput', tagName: 'input', value: '12' },
+    { selector: '#symmetryInput', tagName: 'select', value: 'none' },
+    { selector: '#stickyDrawToggle', tagName: 'button', ariaPressed: 'false', text: 'Sticky Draw' },
+    { selector: '#polylineToggle', tagName: 'button', ariaPressed: 'false', text: 'Polyline' },
+    { selector: '#overlay', tagName: 'canvas', rect: { x: 100, y: 100, width: 800, height: 800 } },
+    { selector: '[data-tool="marker"]', tagName: 'button', dataTool: 'marker', text: 'Marker' }
+  ];
+  return {
+    url: DEFAULT_DOMISTIKA_URL,
+    title: 'Domistika',
+    text: 'Welcome to Domistika.',
+    viewport: { width: 1200, height: 900, scrollX: 0, scrollY: 0 },
+    elements: controls
+  };
+}
+
+test('semantic draw uses observed controls and one governed pointer path', async () => {
+  const calls = [];
+  let modePressed = false;
+  const client = {
+    status: async () => ({
+      ok: true,
+      grant: { id: 'g1', enabled: true, expiresAt: Date.now() + 60000 },
+      tabs: [{ id: 7, url: DEFAULT_DOMISTIKA_URL, active: true }]
+    }),
+    observe: async () => {
+      const snapshot = domistikaSnapshot();
+      if (modePressed) {
+        snapshot.elements.find((element) => element.selector === '#stickyDrawToggle').ariaPressed = 'true';
+      }
+      return { ok: true, snapshot };
+    },
+    action: async (_tabId, action) => {
+      calls.push(action);
+      if (action.selector === '#stickyDrawToggle' && action.type === 'click') modePressed = true;
+      return {
+        ok: true,
+        actionClass: action.type === 'wait' ? 'READ_ONLY' : 'REMOTE_MUTATION',
+        result: action.type === 'pointer_path'
+          ? { ok: true, version: 'PV-BOP-POINTER-0.1', mode: action.mode, pointCount: action.points.length, finish: action.finish }
+          : { ok: true }
+      };
+    },
+    screenshot: async () => ({
+      ok: true,
+      screenshot: { filePath: 'C:/private/capture.png', sha256: 'a'.repeat(64), bytes: 1234, size: { width: 1200, height: 900 } }
+    })
+  };
+
+  const { DomistikaSemanticBridge } = require('../src/bridge/domistika');
+  const bridge = new DomistikaSemanticBridge(client);
+  const result = await bridge.draw({
+    projectName: 'AI Smoke Test',
+    tool: 'marker',
+    color: '#ff5500',
+    size: 18,
+    symmetry: 'radial-12',
+    mode: 'sticky',
+    points: [{ x: 0.2, y: 0.5 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.5 }]
+  });
+
+  assert.equal(result.disposition, 'COMPLETE');
+  const pointer = calls.find((action) => action.type === 'pointer_path');
+  assert.ok(pointer);
+  assert.equal(pointer.selector, '#overlay');
+  assert.equal(pointer.mode, 'sticky');
+  assert.equal(pointer.points.length, 3);
+  assert.equal(result.screenshot.sha256, 'a'.repeat(64));
+  assert.equal(Object.hasOwn(result.screenshot, 'filePath'), false);
+});
