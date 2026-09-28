@@ -70,7 +70,7 @@ npm run accept:registry-fail-closed
 | Mutation automation | **Restricted · experimental** |
 | Governed pointer paths | **Working · alpha** |
 | ChatGPT ↔ Domistika semantic lane | **Working · live-tested** |
-| Domistika visual return / critic loop | **Implemented · live acceptance pending** |
+| Domistika visual return / critic loop | **Working · live-tested** |
 | Sensitive mutation | **HELD pending per-action approval design** |
 | Local vision interpretation | **Planned** |
 | Signed release/update chain | **Not implemented** |
@@ -231,7 +231,7 @@ Browsallax Browser Operator
 
 The bridge still does **not** expose raw browser selectors, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
-Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.4`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact with either full-viewport or observed-canvas scope. `domistika.draw` can capture the canvas **before** Gallery save, preserve session/pass identity, and optionally return through an observed Back to Studio control after archiving. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
+Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.4`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact with full-viewport, observed-canvas, or clean `artwork` scope. The clean-art path uses Domistika's own composited canvas and excludes Studio chrome and symmetry guides. `domistika.draw` can capture visual evidence **before** Gallery save, preserve session/pass identity, and optionally return through an observed Back to Studio control after archiving. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
 
 Remote transport can use `PV-CBR-AGENT-0.4` + `PV-CBR-RELAY-0.4`, or the private GitHub mailbox `PV-CBR-GH-0.4`. The mailbox remains claim-before-execute with no replay after an ambiguous previous claim.
 
