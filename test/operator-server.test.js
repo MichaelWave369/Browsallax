@@ -20,14 +20,14 @@ test('local operator API requires token and human grant for ordinary mutation', 
   let grant = null;
   const webContents = {
     isDestroyed: () => false,
-    getURL: () => 'https://example.test/',
+    getURL: () => 'https://michaelwave369.github.io/Domistika/',
     getTitle: () => 'Example',
     isLoading: () => false,
     executeJavaScript: async (script) => {
       if (script.trim() === 'document.body ? document.body.innerText : ""') return 'READY';
       if (script.includes("const candidates =")) {
         return {
-          url: 'https://example.test/',
+          url: 'https://michaelwave369.github.io/Domistika/',
           title: 'Example',
           text: 'READY',
           viewport: { width: 1200, height: 800, scrollX: 0, scrollY: 0 },
@@ -77,7 +77,7 @@ test('local operator API requires token and human grant for ordinary mutation', 
     service = startOperatorServer({
       userDataPath: dir,
       getTab: () => tab,
-      listTabs: () => [{ id: 1, title: 'Example', url: 'https://example.test/', active: true }],
+      listTabs: () => [{ id: 1, title: 'Example', url: 'https://michaelwave369.github.io/Domistika/', active: true }],
       navigateTab: async () => {},
       getGrant: () => grant,
       onStatus,
