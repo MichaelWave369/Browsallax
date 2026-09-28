@@ -7,6 +7,7 @@ const { OBSERVE_SCRIPT, TARGET_SCRIPT } = require('./observe');
 const { OperatorReceiptLedger } = require('./receipts');
 const { OllamaPlanner } = require('./planner');
 const { BrowserTaskEngine } = require('./task-engine');
+const { executePointerPath, normalizePointerPath } = require('./pointer-path');
 
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = 3697;
@@ -182,10 +183,25 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
       return { ok: false, status: 'HELD', actionClass, authority, receipt };
     }
 
-    const result = await tab.view.webContents.executeJavaScript(actionScript(action, selector), true);
+    let result;
+    let receiptAction = { ...action, value: action.value != null ? '[REDACTED]' : undefined };
+    if (type === 'pointer_path') {
+      const pointer = normalizePointerPath(action);
+      result = await executePointerPath(tab.view.webContents, target.rect, pointer);
+      receiptAction = {
+        type: 'pointer_path',
+        selector,
+        mode: pointer.mode,
+        finish: pointer.finish,
+        intervalMs: pointer.intervalMs,
+        pointCount: pointer.points.length
+      };
+    } else {
+      result = await tab.view.webContents.executeJavaScript(actionScript(action, selector), true);
+    }
     const receipt = await ledger.append('ACTION', {
       tabId: tab.id,
-      action: { ...action, value: action.value != null ? '[REDACTED]' : undefined },
+      action: receiptAction,
       target,
       actionClass,
       authority,
@@ -388,10 +404,25 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
           return json(res, 403, { ok: false, status: 'HELD', actionClass, authority, receipt });
         }
 
-        const result = await tab.view.webContents.executeJavaScript(actionScript(action, selector), true);
+        let result;
+        let receiptAction = { ...action, value: action.value != null ? '[REDACTED]' : undefined };
+        if (type === 'pointer_path') {
+          const pointer = normalizePointerPath(action);
+          result = await executePointerPath(tab.view.webContents, target.rect, pointer);
+          receiptAction = {
+            type: 'pointer_path',
+            selector,
+            mode: pointer.mode,
+            finish: pointer.finish,
+            intervalMs: pointer.intervalMs,
+            pointCount: pointer.points.length
+          };
+        } else {
+          result = await tab.view.webContents.executeJavaScript(actionScript(action, selector), true);
+        }
         const receipt = await ledger.append('ACTION', {
           tabId: tab.id,
-          action: { ...action, value: action.value != null ? '[REDACTED]' : undefined },
+          action: receiptAction,
           target,
           actionClass,
           authority,

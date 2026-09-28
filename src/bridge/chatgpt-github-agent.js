@@ -7,10 +7,13 @@ const { promisify } = require('node:util');
 const {
   ChatGPTBrowsallaxBridge
 } = require('./chatgpt-browsallax');
+const {
+  normalizeDomistikaRecipe
+} = require('./domistika');
 
 const execFileAsync = promisify(execFile);
 
-const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.1';
+const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.2';
 const REQUEST_SCHEMA = 'browsallax.github-bridge.request.v1';
 const CLAIM_SCHEMA = 'browsallax.github-bridge.claim.v1';
 const RESPONSE_SCHEMA = 'browsallax.github-bridge.response.v1';
@@ -24,7 +27,10 @@ const ALLOWED_OPERATIONS = new Set([
   'bridge.status',
   'vessie.observe',
   'vessie.ask',
-  'vessie.resume'
+  'vessie.resume',
+  'domistika.status',
+  'domistika.observe',
+  'domistika.draw'
 ]);
 
 function defaultMailboxDir({ env = process.env, home = os.homedir(), platform = process.platform } = {}) {
@@ -90,6 +96,16 @@ function normalizePayload(operation, payload) {
     if (!taskId) throw new Error('TASK_ID_REQUIRED');
     if (taskId.length > 300) throw new Error('TASK_ID_TOO_LONG');
     return { taskId };
+  }
+
+  if (operation === 'domistika.status' || operation === 'domistika.observe') {
+    assertExactKeys(value, new Set(), 'UNEXPECTED_PAYLOAD_FIELDS');
+    return {};
+  }
+
+  if (operation === 'domistika.draw') {
+    assertExactKeys(value, new Set(['recipe']), 'UNEXPECTED_PAYLOAD_FIELDS');
+    return { recipe: normalizeDomistikaRecipe(value.recipe) };
   }
 
   throw new Error('GITHUB_BRIDGE_OPERATION_NOT_ALLOWED');
@@ -186,6 +202,12 @@ async function executeBridgeOperation(bridge, request) {
       return bridge.askVessie(request.payload.message);
     case 'vessie.resume':
       return bridge.resumeVessie(request.payload.taskId);
+    case 'domistika.status':
+      return bridge.domistikaStatus();
+    case 'domistika.observe':
+      return bridge.observeDomistika();
+    case 'domistika.draw':
+      return bridge.drawDomistika(request.payload.recipe);
     default:
       throw new Error('GITHUB_BRIDGE_OPERATION_NOT_ALLOWED');
   }

@@ -59,3 +59,14 @@ test('credential and payment fields remain hard-held even with an interactive gr
   assert.equal(cardClass, ACTION_CLASSES.SENSITIVE_ACTION);
   assert.equal(evaluateAuthority(cardClass, grant).held, true);
 });
+
+
+test('pointer paths are remote mutation and grant-gated', () => {
+  const cls = classifyAction(
+    { type: 'pointer_path', mode: 'sticky', points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }] },
+    { tagName: 'canvas', text: '' }
+  );
+  assert.equal(cls, ACTION_CLASSES.REMOTE_MUTATION);
+  assert.equal(evaluateAuthority(cls, null).held, true);
+  assert.equal(evaluateAuthority(cls, { enabled: true, id: 'g4', expiresAt: Date.now() + 10000 }).allowed, true);
+});

@@ -2,14 +2,17 @@ const {
   ChatGPTBrowsallaxBridge
 } = require('./chatgpt-browsallax');
 
-const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.1';
+const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.2';
 const DEFAULT_POLL_MS = 1000;
 const MAX_POLL_MS = 10000;
 const ALLOWED_RELAY_OPERATIONS = new Set([
   'bridge.status',
   'vessie.observe',
   'vessie.ask',
-  'vessie.resume'
+  'vessie.resume',
+  'domistika.status',
+  'domistika.observe',
+  'domistika.draw'
 ]);
 
 function normalizeRelayUrl(value) {
@@ -132,6 +135,12 @@ class ChatGPTRelayAgent {
         return this.bridge.askVessie(payload.message);
       case 'vessie.resume':
         return this.bridge.resumeVessie(payload.taskId);
+      case 'domistika.status':
+        return this.bridge.domistikaStatus();
+      case 'domistika.observe':
+        return this.bridge.observeDomistika();
+      case 'domistika.draw':
+        return this.bridge.drawDomistika(payload.recipe);
       default:
         throw new Error('RELAY_OPERATION_NOT_ALLOWED');
     }

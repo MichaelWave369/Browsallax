@@ -12,12 +12,15 @@ import {
   agentClaim
 } from "../src/relay-core.mjs";
 
-test("relay contract is bounded to four semantic operations", () => {
-  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.1");
+test("relay contract is bounded to semantic bridge operations", () => {
+  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.2");
   assert.equal(operationForPath("/v1/bridge/status"), "bridge.status");
   assert.equal(operationForPath("/v1/vessie/observe"), "vessie.observe");
   assert.equal(operationForPath("/v1/vessie/ask"), "vessie.ask");
   assert.equal(operationForPath("/v1/vessie/resume"), "vessie.resume");
+  assert.equal(operationForPath("/v1/domistika/status"), "domistika.status");
+  assert.equal(operationForPath("/v1/domistika/observe"), "domistika.observe");
+  assert.equal(operationForPath("/v1/domistika/draw"), "domistika.draw");
   assert.equal(operationForPath("/v1/browser/click"), null);
 });
 
@@ -26,6 +29,17 @@ test("payload normalization rejects missing or oversized semantic fields", () =>
   assert.deepEqual(normalizePayload("vessie.ask", { message: "hello" }), { message: "hello" });
   assert.throws(() => normalizePayload("vessie.ask", {}), /MESSAGE_REQUIRED/);
   assert.deepEqual(normalizePayload("vessie.resume", { taskId: "abc" }), { taskId: "abc" });
+  const draw = normalizePayload("domistika.draw", {
+    recipe: {
+      mode: "sticky",
+      points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }]
+    }
+  });
+  assert.equal(draw.recipe.points.length, 2);
+  assert.throws(
+    () => normalizePayload("domistika.draw", { recipe: { points: [{ x: 0.5, y: 0.5 }] } }),
+    /DOMISTIKA_POINTS_INVALID/
+  );
   assert.throws(() => normalizePayload("shell.exec", {}), /OPERATION_NOT_ALLOWED/);
 });
 

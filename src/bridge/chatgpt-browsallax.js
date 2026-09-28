@@ -7,8 +7,12 @@ const {
   summarizeTask,
   mapTaskDisposition
 } = require('./phios-vessie');
+const {
+  DEFAULT_DOMISTIKA_URL,
+  DomistikaSemanticBridge
+} = require('./domistika');
 
-const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.2';
+const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.3';
 const CHATGPT_BROWSALLAX_BRIDGE_SCHEMA = 'browsallax.chatgpt-bridge.v1';
 const DEFAULT_BRIDGE_HOST = '127.0.0.1';
 const DEFAULT_BRIDGE_PORT = 3698;
@@ -31,7 +35,7 @@ function bridgeManifest() {
   return {
     schema: CHATGPT_BROWSALLAX_BRIDGE_SCHEMA,
     version: CHATGPT_BROWSALLAX_BRIDGE_VERSION,
-    purpose: 'BOUNDED_CHATGPT_TO_LOCAL_BROWSALLAX_VESSIE_BRIDGE',
+    purpose: 'BOUNDED_CHATGPT_TO_LOCAL_BROWSALLAX_SEMANTIC_BRIDGE',
     authority: {
       invariant: 'CAPABILITY != AUTHORITY',
       bridgeCanGrantAuthority: false,
@@ -43,7 +47,10 @@ function bridgeManifest() {
       'bridge.status',
       'vessie.observe',
       'vessie.ask',
-      'vessie.resume'
+      'vessie.resume',
+      'domistika.status',
+      'domistika.observe',
+      'domistika.draw'
     ],
     nonGoals: [
       'REMOTE_SHELL',
@@ -238,10 +245,14 @@ function actionFailureReason(actionResult, fallback) {
 }
 
 class ChatGPTBrowsallaxBridge {
-  constructor(client, { vessieOrigin = DEFAULT_VESSIE_ORIGIN } = {}) {
+  constructor(client, {
+    vessieOrigin = DEFAULT_VESSIE_ORIGIN,
+    domistikaUrl = DEFAULT_DOMISTIKA_URL
+  } = {}) {
     this.client = client;
     this.vessieOrigin = normalizeOrigin(vessieOrigin);
     if (!this.vessieOrigin) throw new Error('INVALID_VESSIE_ORIGIN');
+    this.domistika = new DomistikaSemanticBridge(client, { domistikaUrl });
   }
 
   static async connect(options = {}) {
@@ -261,6 +272,10 @@ class ChatGPTBrowsallaxBridge {
     }));
     const safeOperator = sanitizeOperatorStatus(operator);
     const vessieTab = findVessieTab(operator, this.vessieOrigin);
+    const domistika = await this.domistika.status(options).catch((error) => ({
+      disposition: 'FAILED',
+      reason: error?.code || error?.message || 'DOMISTIKA_STATUS_FAILED'
+    }));
 
     return bridgeEnvelope('BRIDGE_STATUS', {
       manifest: bridgeManifest(),
@@ -282,8 +297,21 @@ class ChatGPTBrowsallaxBridge {
               active: Boolean(vessieTab.active)
             }
           : null
-      }
+      },
+      domistika
     });
+  }
+
+  async domistikaStatus(options = {}) {
+    return bridgeEnvelope('DOMISTIKA_STATUS', await this.domistika.status(options));
+  }
+
+  async observeDomistika(options = {}) {
+    return bridgeEnvelope('DOMISTIKA_OBSERVATION', await this.domistika.observe(options));
+  }
+
+  async drawDomistika(recipe, options = {}) {
+    return bridgeEnvelope('DOMISTIKA_DRAW_RESULT', await this.domistika.draw(recipe, options));
   }
 
   async observeVessie(options = {}) {
@@ -602,6 +630,19 @@ function startChatGPTBridgeServer({
         return json(res, 200, { ok: true, result: await bridge.resumeVessie(body.taskId) });
       }
 
+      if (req.method === 'GET' && url.pathname === '/v1/domistika/status') {
+        return json(res, 200, { ok: true, result: await bridge.domistikaStatus() });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/v1/domistika/observe') {
+        return json(res, 200, { ok: true, result: await bridge.observeDomistika() });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/v1/domistika/draw') {
+        const body = await readJson(req);
+        return json(res, 200, { ok: true, result: await bridge.drawDomistika(body.recipe) });
+      }
+
       return json(res, 404, { ok: false, error: 'NOT_FOUND' });
     } catch (error) {
       return json(res, Number(error.statusCode || 500), {
@@ -627,6 +668,7 @@ module.exports = {
   DEFAULT_BRIDGE_HOST,
   DEFAULT_BRIDGE_PORT,
   DEFAULT_VESSIE_ORIGIN,
+  DEFAULT_DOMISTIKA_URL,
   MAX_MESSAGE_CHARS,
   bridgeManifest,
   bridgeEnvelope,

@@ -1,9 +1,10 @@
 openapi: 3.1.0
 info:
   title: Phi ChatGPT Browsallax Bridge
-  version: 0.1.0
+  version: 0.3.0
   description: >
-    Bounded semantic bridge from ChatGPT to the user's local Browsallax + Super PhiVessel stack.
+    Bounded semantic bridge from ChatGPT to the user's local Browsallax stack,
+    including Super PhiVessel and path-locked Domistika operations.
     CAPABILITY does not equal AUTHORITY. The bridge cannot create Browsallax grants.
 servers:
   - url: https://REPLACE-WITH-STABLE-HTTPS-BRIDGE
@@ -13,25 +14,27 @@ paths:
   /v1/status:
     get:
       operationId: bridge_status
-      summary: Read bounded Browsallax and Vessie bridge status
+      summary: Read bounded Browsallax semantic bridge status
       responses:
-        '200':
+        "200":
           description: Bridge status
           content:
             application/json:
               schema:
                 type: object
+
   /v1/vessie/observe:
     get:
       operationId: vessie_observe
       summary: Observe bounded visible text from the currently open Vessie tab
       responses:
-        '200':
+        "200":
           description: Vessie observation
           content:
             application/json:
               schema:
                 type: object
+
   /v1/vessie/ask:
     post:
       operationId: vessie_ask
@@ -43,19 +46,20 @@ paths:
             schema:
               type: object
               additionalProperties: false
+              required: [message]
               properties:
                 message:
                   type: string
                   minLength: 1
                   maxLength: 8000
-              required: [message]
       responses:
-        '200':
+        "200":
           description: Vessie task result or HELD disposition
           content:
             application/json:
               schema:
                 type: object
+
   /v1/vessie/resume:
     post:
       operationId: vessie_resume
@@ -67,19 +71,184 @@ paths:
             schema:
               type: object
               additionalProperties: false
+              required: [taskId]
               properties:
                 taskId:
                   type: string
                   minLength: 1
-              required: [taskId]
+                  maxLength: 300
       responses:
-        '200':
+        "200":
           description: Resumed Vessie task result
           content:
             application/json:
               schema:
                 type: object
+
+  /v1/domistika/status:
+    get:
+      operationId: domistika_status
+      summary: Read path-locked Domistika readiness and accessible-input contract
+      responses:
+        "200":
+          description: Domistika bridge status
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/domistika/observe:
+    get:
+      operationId: domistika_observe
+      summary: Observe bounded Domistika UI state from an already-open exact app tab
+      responses:
+        "200":
+          description: Bounded Domistika observation
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/domistika/draw:
+    post:
+      operationId: domistika_draw
+      summary: Execute one bounded Domistika drawing recipe through governed local input
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [recipe]
+              properties:
+                recipe:
+                  $ref: "#/components/schemas/DomistikaRecipe"
+      responses:
+        "200":
+          description: Domistika draw result, including HELD when no human interactive grant is active
+          content:
+            application/json:
+              schema:
+                type: object
+
 components:
+  schemas:
+    DomistikaPoint:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    DomistikaCanvas:
+      type: object
+      additionalProperties: false
+      required: [width, height]
+      properties:
+        width:
+          type: integer
+          minimum: 64
+          maximum: 8192
+        height:
+          type: integer
+          minimum: 64
+          maximum: 8192
+
+    DomistikaGallery:
+      type: object
+      additionalProperties: false
+      properties:
+        artist:
+          type: string
+          maxLength: 60
+        category:
+          type: string
+          enum:
+            - Abstract
+            - Mandala
+            - Character
+            - Sacred Geometry
+            - Experimental
+            - Pixel / Retro
+            - Other
+        description:
+          type: string
+          maxLength: 500
+
+    DomistikaRecipe:
+      type: object
+      additionalProperties: false
+      required: [mode, points]
+      properties:
+        projectName:
+          type: string
+          maxLength: 120
+        newCanvas:
+          $ref: "#/components/schemas/DomistikaCanvas"
+        tool:
+          type: string
+          enum: [pencil, ink, marker, airbrush, eraser]
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        size:
+          type: integer
+          minimum: 1
+          maximum: 180
+        symmetry:
+          type: string
+          enum:
+            - none
+            - vertical
+            - horizontal
+            - quad
+            - radial-3
+            - radial-4
+            - radial-5
+            - radial-6
+            - radial-8
+            - radial-10
+            - radial-12
+            - radial-16
+            - radial-24
+            - kaleido-6
+            - kaleido-8
+            - kaleido-12
+            - spiral-5
+            - spiral-8
+            - spiral-12
+            - orbit-7
+            - orbit-11
+            - echo-5
+            - echo-9
+            - drift-7
+            - ripple-6
+        mode:
+          type: string
+          enum: [sticky, polyline]
+        points:
+          type: array
+          minItems: 2
+          maxItems: 512
+          items:
+            $ref: "#/components/schemas/DomistikaPoint"
+        intervalMs:
+          type: integer
+          minimum: 0
+          maximum: 50
+        saveToGallery:
+          type: boolean
+        gallery:
+          $ref: "#/components/schemas/DomistikaGallery"
+
   securitySchemes:
     bearerAuth:
       type: http
