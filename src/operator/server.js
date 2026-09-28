@@ -363,6 +363,17 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
           return json(res, 400, { ok: false, error: 'PAGE_ARTIFACT_KIND_NOT_ALLOWED' });
         }
 
+        let target;
+        try {
+          target = new URL(tab.view.webContents.getURL());
+        } catch {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_TARGET_NOT_ALLOWED' });
+        }
+        if (target.origin !== 'https://michaelwave369.github.io' ||
+            !(target.pathname === '/Domistika/' || target.pathname.startsWith('/Domistika/'))) {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_TARGET_NOT_ALLOWED' });
+        }
+
         const returned = await tab.view.webContents.executeJavaScript(DOMISTIKA_CLEAN_ART_SCRIPT, true);
         if (!returned?.ok) {
           return json(res, 409, {
