@@ -339,7 +339,22 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
       if (req.method === 'POST' && url.pathname === '/v1/screenshot') {
         const body = await readJson(req);
         const tab = requireTab(body.tabId);
-        const image = await tab.view.webContents.capturePage();
+        let clip = null;
+        if (body.clip != null) {
+          if (!body.clip || typeof body.clip !== 'object' || Array.isArray(body.clip)) {
+            return json(res, 400, { ok: false, error: 'SCREENSHOT_CLIP_INVALID' });
+          }
+          const x = Math.round(Number(body.clip.x));
+          const y = Math.round(Number(body.clip.y));
+          const width = Math.round(Number(body.clip.width));
+          const height = Math.round(Number(body.clip.height));
+          if (![x, y, width, height].every(Number.isFinite) ||
+              x < 0 || y < 0 || width < 1 || height < 1 || width > 16384 || height > 16384) {
+            return json(res, 400, { ok: false, error: 'SCREENSHOT_CLIP_INVALID' });
+          }
+          clip = { x, y, width, height };
+        }
+        const image = await tab.view.webContents.capturePage(clip || undefined);
         const png = image.toPNG();
         const digest = crypto.createHash('sha256').update(png).digest('hex');
         const captureDir = path.join(userDataPath, 'operator', 'captures');
@@ -354,9 +369,14 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
           sha256: digest,
           bytes: png.length,
           size: image.getSize(),
+          clip,
           filePath
         });
-        return json(res, 200, { ok: true, screenshot: { filePath, sha256: digest, bytes: png.length, size: image.getSize() }, receipt });
+        return json(res, 200, {
+          ok: true,
+          screenshot: { filePath, sha256: digest, bytes: png.length, size: image.getSize(), clip },
+          receipt
+        });
       }
 
       if (req.method === 'GET' && url.pathname === '/v1/observe') {
