@@ -13,7 +13,7 @@ const {
 } = require('../src/bridge/domistika');
 
 test('Domistika bridge locks to the configured GitHub Pages path', () => {
-  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.2');
+  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.3');
   assert.equal(isDomistikaUrl(DEFAULT_DOMISTIKA_URL), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/Domistika/#gallery'), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/OtherApp/'), false);
@@ -131,10 +131,13 @@ test('semantic draw uses observed controls and one governed pointer path', async
           : { ok: true }
       };
     },
-    screenshot: async () => ({
-      ok: true,
-      screenshot: { filePath: 'C:/private/capture.png', sha256: 'a'.repeat(64), bytes: 1234, size: { width: 1200, height: 900 } }
-    })
+    screenshot: async (tabId, options = {}) => {
+      calls.push(['screenshot', tabId, options]);
+      return {
+        ok: true,
+        screenshot: { filePath: 'C:/private/capture.png', sha256: 'a'.repeat(64), bytes: 1234, size: { width: 800, height: 800 } }
+      };
+    }
   };
 
   const { DomistikaSemanticBridge } = require('../src/bridge/domistika');
@@ -147,7 +150,7 @@ test('semantic draw uses observed controls and one governed pointer path', async
     symmetry: 'radial-12',
     mode: 'sticky',
     points: [{ x: 0.2, y: 0.5 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.5 }]
-  });
+  }, { captureScope: 'canvas' });
 
   assert.equal(result.disposition, 'COMPLETE');
   const pointer = calls.find((action) => action.type === 'pointer_path');
@@ -157,18 +160,22 @@ test('semantic draw uses observed controls and one governed pointer path', async
   assert.equal(pointer.points.length, 3);
   assert.equal(result.screenshot.sha256, 'a'.repeat(64));
   assert.equal(Object.hasOwn(result.screenshot, 'filePath'), false);
+  assert.equal(result.captureScope, 'canvas');
+  const shot = calls.find((entry) => entry[0] === 'screenshot');
+  assert.deepEqual(shot[2].clip, { x: 100, y: 100, width: 800, height: 800 });
 });
 
 
 test('capabilities expose observed controls separately from allowed bridge modes', () => {
   const snapshot = domistikaSnapshot();
   const caps = domistikaCapabilities(snapshot);
-  assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.2');
+  assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.3');
   assert.ok(caps.tools.includes('marker'));
   assert.deepEqual(caps.drawModes, ['sticky', 'polyline']);
   assert.deepEqual(caps.observedSymmetryModes, ['none', 'radial-12', 'kaleido-12']);
   assert.ok(caps.allowedSymmetryModes.includes('kaleido-12'));
   assert.equal(caps.capture.supported, true);
+  assert.deepEqual(caps.capture.scopes, ['viewport', 'canvas']);
   assert.equal(caps.maxPointsPerPass, 512);
 });
 
@@ -177,11 +184,17 @@ test('draw options carry session/pass identity and visual return intent', () => 
     sessionId: 'gear session 1',
     passName: 'hub pass',
     returnCapture: true,
-    includeImage: true
+    includeImage: true,
+    captureScope: 'canvas',
+    postSaveAction: 'return-to-studio'
   });
   assert.equal(options.sessionId, 'gear-session-1');
   assert.equal(options.passName, 'hub-pass');
   assert.equal(options.returnCapture, true);
   assert.equal(options.includeImage, true);
+  assert.equal(options.captureScope, 'canvas');
+  assert.equal(options.postSaveAction, 'return-to-studio');
   assert.throws(() => normalizeDrawOptions({ rawSelector: '#overlay' }), /DOMISTIKA_DRAW_OPTIONS_INVALID/);
+  assert.throws(() => normalizeDrawOptions({ captureScope: 'selector' }), /DOMISTIKA_CAPTURE_SCOPE_INVALID/);
+  assert.throws(() => normalizeDrawOptions({ postSaveAction: 'navigate-anywhere' }), /DOMISTIKA_POST_SAVE_ACTION_INVALID/);
 });
