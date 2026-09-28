@@ -109,7 +109,7 @@ paths:
                 includeImage: { type: boolean, default: true }
                 scope:
                   type: string
-                  enum: [viewport, canvas]
+                  enum: [viewport, canvas, artwork]
                   default: viewport
       responses:
         "202":
@@ -136,7 +136,7 @@ paths:
                 includeImage: { type: boolean, default: true }
                 captureScope:
                   type: string
-                  enum: [viewport, canvas]
+                  enum: [viewport, canvas, artwork]
                   default: viewport
                 postSaveAction:
                   type: string
