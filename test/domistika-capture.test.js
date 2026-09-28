@@ -9,14 +9,18 @@ const {
 } = require('../src/bridge/domistika-capture');
 
 test('capture options are strict and bounded', () => {
-  assert.equal(DOMISTIKA_CAPTURE_VERSION, 'PV-CBR-DOM-CAP-0.1');
+  assert.equal(DOMISTIKA_CAPTURE_VERSION, 'PV-CBR-DOM-CAP-0.2');
   assert.deepEqual(
-    normalizeCaptureOptions({ sessionId: 'gear session', passName: 'pass 1', includeImage: false }),
-    { sessionId: 'gear-session', passName: 'pass-1', includeImage: false }
+    normalizeCaptureOptions({ sessionId: 'gear session', passName: 'pass 1', includeImage: false, scope: 'canvas' }),
+    { sessionId: 'gear-session', passName: 'pass-1', includeImage: false, scope: 'canvas' }
   );
   assert.throws(
     () => normalizeCaptureOptions({ arbitraryPath: 'C:\\secrets' }),
     /DOMISTIKA_CAPTURE_FIELDS_INVALID/
+  );
+  assert.throws(
+    () => normalizeCaptureOptions({ scope: 'arbitrary-region' }),
+    /DOMISTIKA_CAPTURE_SCOPE_INVALID/
   );
 });
 
@@ -41,6 +45,7 @@ test('bounded capture verifies filename, digest, and returns inline base64', asy
   assert.equal(artifact.contentType, 'image/png');
   assert.equal(artifact.sessionId, 's1');
   assert.equal(artifact.passName, 'hub');
+  assert.equal(artifact.scope, 'viewport');
 });
 
 test('capture rejects digest mismatch', async () => {

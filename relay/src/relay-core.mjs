@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export const RELAY_VERSION = "PV-CBR-RELAY-0.3";
+export const RELAY_VERSION = "PV-CBR-RELAY-0.4";
 export const STORE_NAME = "phi-chatgpt-relay";
 export const REQUEST_TTL_MS = 10 * 60 * 1000;
 export const CLAIM_LEASE_MS = 4 * 60 * 1000;
@@ -108,19 +108,20 @@ export function normalizePayload(operation, body = {}) {
 
   if (operation === "domistika.capture") {
     const keys = Object.keys(body || {});
-    if (keys.some((key) => !["sessionId", "passName", "includeImage"].includes(key))) {
+    if (keys.some((key) => !["sessionId", "passName", "includeImage", "scope"].includes(key))) {
       throw Object.assign(new Error("UNEXPECTED_PAYLOAD_FIELDS"), { statusCode: 400 });
     }
     return {
       sessionId: body.sessionId == null ? undefined : String(body.sessionId),
       passName: body.passName == null ? undefined : String(body.passName),
-      includeImage: body.includeImage !== false
+      includeImage: body.includeImage !== false,
+      scope: body.scope == null ? undefined : String(body.scope)
     };
   }
 
   if (operation === "domistika.draw") {
     const keys = Object.keys(body || {});
-    if (keys.some((key) => !["recipe", "sessionId", "passName", "returnCapture", "includeImage"].includes(key))) {
+    if (keys.some((key) => !["recipe", "sessionId", "passName", "returnCapture", "includeImage", "captureScope", "postSaveAction"].includes(key))) {
       throw Object.assign(new Error("UNEXPECTED_PAYLOAD_FIELDS"), { statusCode: 400 });
     }
     const recipe = body.recipe;
@@ -142,7 +143,9 @@ export function normalizePayload(operation, body = {}) {
       sessionId: body.sessionId == null ? undefined : String(body.sessionId),
       passName: body.passName == null ? undefined : String(body.passName),
       returnCapture: body.returnCapture === true,
-      includeImage: body.includeImage !== false
+      includeImage: body.includeImage !== false,
+      captureScope: body.captureScope == null ? undefined : String(body.captureScope),
+      postSaveAction: body.postSaveAction == null ? undefined : String(body.postSaveAction)
     };
   }
 

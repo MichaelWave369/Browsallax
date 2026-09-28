@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent browser tooling around the web with stronger privacy boundaries, local intelligence, explicit authority, evidence capture, and an open ecosystem of useful tools.
 
-> **Current status:** Desktop `0.5.0-alpha.8`; Web `0.2.0-alpha.1`. Both are alpha software.
+> **Current status:** Desktop `0.5.0-alpha.9`; Web `0.2.0-alpha.1`. Both are alpha software.
 
 ## Try it
 
@@ -173,12 +173,12 @@ Current runtime contracts:
 | Read-only research completion | `PV-BOP-RRC-0.6` | bounded read-only research + grant-gated query interaction with task-aware budget |
 | Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
-| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.4` | bounded semantic Vessie + Domistika connector surface |
-| Domistika semantic bridge | `PV-CBR-DOM-0.2` | exact-path drawing recipes through observed controls and governed pointer input |
+| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.5` | bounded semantic Vessie + Domistika connector surface |
+| Domistika semantic bridge | `PV-CBR-DOM-0.3` | exact-path drawing recipes through observed controls and governed pointer input |
 | Governed pointer path | `PV-BOP-POINTER-0.1` | bounded native drag / sticky / polyline input, always mutation-gated |
-| ChatGPT outbound relay agent | `PV-CBR-AGENT-0.3` | outbound-only transport client for the public relay |
-| ChatGPT transport relay | `PV-CBR-RELAY-0.3` | Netlify-hosted transport-only semantic queue owned by Browsallax |
-| ChatGPT GitHub mailbox bridge | `PV-CBR-GH-0.3` | private-repo compatibility transport for Vessie + Domistika semantic operations |
+| ChatGPT outbound relay agent | `PV-CBR-AGENT-0.4` | outbound-only transport client for the public relay |
+| ChatGPT transport relay | `PV-CBR-RELAY-0.4` | Netlify-hosted transport-only semantic queue owned by Browsallax |
+| ChatGPT GitHub mailbox bridge | `PV-CBR-GH-0.4` | private-repo compatibility transport for Vessie + Domistika semantic operations |
 | Trusted page bridge | `PV-PAGE-0.2` | exact-origin dedicated task lane + opt-in initial acceptance short-circuit |
 
 ### Task loop
@@ -222,7 +222,7 @@ Browsallax includes an experimental local semantic connector intended to replace
 ```text
 ChatGPT
    ↓ bounded semantic request
-PV-CBR-0.4
+PV-CBR-0.5
    ↓
 Browsallax Browser Operator
    ├── Super Φ.Vessel / Vessie
@@ -231,9 +231,9 @@ Browsallax Browser Operator
 
 The bridge still does **not** expose raw browser selectors, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
-Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.2`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact, and `domistika.draw` can optionally return the same visual artifact with session/pass identity. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
+Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.3`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact with either full-viewport or observed-canvas scope. `domistika.draw` can capture the canvas **before** Gallery save, preserve session/pass identity, and optionally return through an observed Back to Studio control after archiving. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
 
-Remote transport can use `PV-CBR-AGENT-0.3` + `PV-CBR-RELAY-0.3`, or the private GitHub mailbox `PV-CBR-GH-0.3`. The mailbox remains claim-before-execute with no replay after an ambiguous previous claim.
+Remote transport can use `PV-CBR-AGENT-0.4` + `PV-CBR-RELAY-0.4`, or the private GitHub mailbox `PV-CBR-GH-0.4`. The mailbox remains claim-before-execute with no replay after an ambiguous previous claim.
 
 See [CHATGPT_BROWSALLAX_BRIDGE.md](docs/CHATGPT_BROWSALLAX_BRIDGE.md), [DOMISTIKA_CHATGPT_BRIDGE.md](docs/DOMISTIKA_CHATGPT_BRIDGE.md), [CHATGPT_RELAY_AGENT.md](docs/CHATGPT_RELAY_AGENT.md), [CHATGPT_GITHUB_BRIDGE.md](docs/CHATGPT_GITHUB_BRIDGE.md), and [chatgpt-browsallax.openapi.yaml](docs/chatgpt-browsallax.openapi.yaml).
 

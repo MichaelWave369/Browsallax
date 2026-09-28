@@ -1,18 +1,18 @@
 # Phi ChatGPT ↔ Browsallax Relay
 
-**Contract:** `PV-CBR-RELAY-0.3`  
+**Contract:** `PV-CBR-RELAY-0.4`  
 **Production project:** `https://phi-browsallax-relay.netlify.app`
 
-This relay is owned by the Browsallax project and transports only the bounded semantic ChatGPT ↔ Vessie operations exposed by `PV-CBR-0.4`.
+This relay is owned by the Browsallax project and transports only the bounded semantic ChatGPT ↔ Vessie operations exposed by `PV-CBR-0.5`.
 
 ```text
 ChatGPT connector
       ↓ HTTPS
 Netlify relay + short-lived Blob queue
       ↑ outbound polling
-PV-CBR-AGENT-0.3 on the user's machine
+PV-CBR-AGENT-0.4 on the user's machine
       ↓
-PV-CBR-0.4
+PV-CBR-0.5
       ↓
 Browsallax
       ├── Vessie
@@ -98,7 +98,7 @@ The production health check must report:
 ```json
 {
   "ok": true,
-  "relayVersion": "PV-CBR-RELAY-0.3",
+  "relayVersion": "PV-CBR-RELAY-0.4",
   "authority": "NONE",
   "role": "TRANSPORT_ONLY"
 }

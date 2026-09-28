@@ -13,7 +13,7 @@ const {
 
 const execFileAsync = promisify(execFile);
 
-const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.3';
+const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.4';
 const REQUEST_SCHEMA = 'browsallax.github-bridge.request.v1';
 const CLAIM_SCHEMA = 'browsallax.github-bridge.claim.v1';
 const RESPONSE_SCHEMA = 'browsallax.github-bridge.response.v1';
@@ -106,18 +106,19 @@ function normalizePayload(operation, payload) {
   }
 
   if (operation === 'domistika.capture') {
-    assertExactKeys(value, new Set(['sessionId', 'passName', 'includeImage']), 'UNEXPECTED_PAYLOAD_FIELDS');
+    assertExactKeys(value, new Set(['sessionId', 'passName', 'includeImage', 'scope']), 'UNEXPECTED_PAYLOAD_FIELDS');
     return {
       sessionId: value.sessionId == null ? undefined : String(value.sessionId),
       passName: value.passName == null ? undefined : String(value.passName),
-      includeImage: value.includeImage !== false
+      includeImage: value.includeImage !== false,
+      scope: value.scope == null ? undefined : String(value.scope)
     };
   }
 
   if (operation === 'domistika.draw') {
     assertExactKeys(
       value,
-      new Set(['recipe', 'sessionId', 'passName', 'returnCapture', 'includeImage']),
+      new Set(['recipe', 'sessionId', 'passName', 'returnCapture', 'includeImage', 'captureScope', 'postSaveAction']),
       'UNEXPECTED_PAYLOAD_FIELDS'
     );
     return {
@@ -125,7 +126,9 @@ function normalizePayload(operation, payload) {
       sessionId: value.sessionId == null ? undefined : String(value.sessionId),
       passName: value.passName == null ? undefined : String(value.passName),
       returnCapture: value.returnCapture === true,
-      includeImage: value.includeImage !== false
+      includeImage: value.includeImage !== false,
+      captureScope: value.captureScope == null ? undefined : String(value.captureScope),
+      postSaveAction: value.postSaveAction == null ? undefined : String(value.postSaveAction)
     };
   }
 
@@ -236,7 +239,9 @@ async function executeBridgeOperation(bridge, request) {
         sessionId: request.payload.sessionId,
         passName: request.payload.passName,
         returnCapture: request.payload.returnCapture,
-        includeImage: request.payload.includeImage
+        includeImage: request.payload.includeImage,
+        captureScope: request.payload.captureScope,
+        postSaveAction: request.payload.postSaveAction
       });
     default:
       throw new Error('GITHUB_BRIDGE_OPERATION_NOT_ALLOWED');

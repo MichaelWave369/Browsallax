@@ -1,16 +1,16 @@
 # ChatGPT ↔ Browsallax ↔ Domistika Bridge
 
-**Contract:** `PV-CBR-DOM-0.2`  
-**Parent bridge:** `PV-CBR-0.4`
+**Contract:** `PV-CBR-DOM-0.3`  
+**Parent bridge:** `PV-CBR-0.5`
 
 This lane lets a connected ChatGPT surface ask the user's local Browsallax stack to make a bounded drawing inside an already-open Domistika tab without using a paid remote browser.
 
 ```text
 ChatGPT
    ↓ semantic request only
-PV-CBR-0.4 / GitHub mailbox / relay
+PV-CBR-0.5 / GitHub mailbox / relay
    ↓
-PV-CBR-DOM-0.2
+PV-CBR-DOM-0.3
    ↓ exact Domistika path lock
 Browsallax Browser Operator
    ↓ governed form/click/pointer input
@@ -79,6 +79,13 @@ Captures only the already-resolved exact Domistika tab. The Browser Operator fir
 
 Capture may carry bounded `sessionId` and `passName` identifiers so a caller can relate visual observations to drawing passes.
 
+`scope` controls the returned image:
+
+- `viewport` (default) captures the full Domistika tab;
+- `canvas` captures only the currently observed `#overlay` bounds.
+
+Canvas scope is resolved from the live observed Domistika canvas. Callers cannot supply arbitrary crop coordinates through the semantic bridge.
+
 ### `domistika.draw`
 
 Executes one bounded drawing recipe. A recipe may:
@@ -91,7 +98,9 @@ Executes one bounded drawing recipe. A recipe may:
 - draw through Sticky Draw or Polyline;
 - optionally save the finished canvas to the local Domistika Gallery;
 - capture a governed screenshot receipt;
-- optionally return the actual digest-verified PNG using `returnCapture: true` plus bounded `sessionId` / `passName` metadata.
+- optionally return the actual digest-verified PNG using `returnCapture: true` plus bounded `sessionId` / `passName` metadata;
+- choose `captureScope: "viewport" | "canvas"`;
+- use `postSaveAction: "return-to-studio"` so a final Gallery archive does not strand the critic loop in Gallery.
 
 Coordinates are normalized to the observed canvas:
 
@@ -190,6 +199,26 @@ critique geometry / spacing / color / weight
 compose next pass
    ↓
 repeat
+```
+
+With `captureScope: "canvas"`, the critic receives art pixels without the surrounding tool chrome. When Gallery save is requested, the draw capture is taken **before** Gallery navigation. `postSaveAction: "return-to-studio"` then resolves an observed Back to Studio control and verifies the Domistika Studio contract again before reporting success.
+
+This creates the preferred sequence:
+
+```text
+draw
+  ↓
+canvas capture
+  ↓
+visual critique
+  ↓
+next draw
+  ↓
+final canvas capture
+  ↓
+optional Gallery save
+  ↓
+optional observed return to Studio
 ```
 
 Visual evidence does not grant authority. `VISION != AUTHORITY`; a returned image can inform the next recipe, while the next mutation still crosses the ordinary Browsallax grant gate.

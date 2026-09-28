@@ -13,7 +13,7 @@ import {
 } from "../src/relay-core.mjs";
 
 test("relay contract is bounded to semantic bridge operations", () => {
-  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.3");
+  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.4");
   assert.equal(operationForPath("/v1/bridge/status"), "bridge.status");
   assert.equal(operationForPath("/v1/vessie/observe"), "vessie.observe");
   assert.equal(operationForPath("/v1/vessie/ask"), "vessie.ask");
@@ -35,16 +35,22 @@ test("payload normalization rejects missing or oversized semantic fields", () =>
     recipe: {
       mode: "sticky",
       points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }]
-    }
+    },
+    captureScope: "canvas",
+    postSaveAction: "return-to-studio"
   });
   assert.equal(draw.recipe.points.length, 2);
+  assert.equal(draw.captureScope, "canvas");
+  assert.equal(draw.postSaveAction, "return-to-studio");
   const capture = normalizePayload("domistika.capture", {
     sessionId: "s1",
     passName: "inspect",
-    includeImage: true
+    includeImage: true,
+    scope: "canvas"
   });
   assert.equal(capture.sessionId, "s1");
   assert.equal(capture.includeImage, true);
+  assert.equal(capture.scope, "canvas");
   assert.throws(
     () => normalizePayload("domistika.draw", { recipe: { points: [{ x: 0.5, y: 0.5 }] } }),
     /DOMISTIKA_POINTS_INVALID/

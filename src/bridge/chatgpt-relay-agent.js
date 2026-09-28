@@ -2,7 +2,7 @@ const {
   ChatGPTBrowsallaxBridge
 } = require('./chatgpt-browsallax');
 
-const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.3';
+const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.4';
 const DEFAULT_POLL_MS = 1000;
 const MAX_POLL_MS = 10000;
 const ALLOWED_RELAY_OPERATIONS = new Set([
@@ -150,7 +150,9 @@ class ChatGPTRelayAgent {
           sessionId: payload.sessionId,
           passName: payload.passName,
           returnCapture: payload.returnCapture,
-          includeImage: payload.includeImage
+          includeImage: payload.includeImage,
+          captureScope: payload.captureScope,
+          postSaveAction: payload.postSaveAction
         });
       default:
         throw new Error('RELAY_OPERATION_NOT_ALLOWED');

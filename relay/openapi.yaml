@@ -107,6 +107,10 @@ paths:
                 sessionId: { type: string, maxLength: 120 }
                 passName: { type: string, maxLength: 120 }
                 includeImage: { type: boolean, default: true }
+                scope:
+                  type: string
+                  enum: [viewport, canvas]
+                  default: viewport
       responses:
         "202":
           description: Queued
@@ -130,6 +134,14 @@ paths:
                 passName: { type: string, maxLength: 120 }
                 returnCapture: { type: boolean, default: false }
                 includeImage: { type: boolean, default: true }
+                captureScope:
+                  type: string
+                  enum: [viewport, canvas]
+                  default: viewport
+                postSaveAction:
+                  type: string
+                  enum: [stay, return-to-studio]
+                  default: stay
       responses:
         "202":
           description: Queued
