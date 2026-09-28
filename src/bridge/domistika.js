@@ -4,7 +4,7 @@ const {
   boundedCaptureArtifact
 } = require('./domistika-capture');
 
-const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.2';
+const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.3';
 const DEFAULT_DOMISTIKA_URL = 'https://michaelwave369.github.io/Domistika/';
 const DOMISTIKA_PATH_PREFIX = '/Domistika/';
 const DRAW_TOOLS = new Set(['pencil', 'ink', 'marker', 'airbrush', 'eraser']);
@@ -200,6 +200,7 @@ function domistikaCapabilities(snapshot = {}) {
       supported: Boolean(overlay),
       contentTypes: ['image/png'],
       inlineEncoding: 'base64',
+      scopes: ['viewport', 'canvas'],
       maxBytes: 2 * 1024 * 1024
     },
     canvas: overlay?.rect || null,
@@ -210,18 +211,27 @@ function domistikaCapabilities(snapshot = {}) {
 
 function normalizeDrawOptions(input = {}) {
   const value = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
-  const allowed = new Set(['sessionId', 'passName', 'returnCapture', 'includeImage']);
+  const allowed = new Set(['sessionId', 'passName', 'returnCapture', 'includeImage', 'captureScope', 'postSaveAction']);
   if (Object.keys(value).some((key) => !allowed.has(key))) {
     throw new Error('DOMISTIKA_DRAW_OPTIONS_INVALID');
   }
   const capture = normalizeCaptureOptions({
     sessionId: value.sessionId,
     passName: value.passName,
-    includeImage: value.includeImage
+    includeImage: value.includeImage,
+    scope: value.captureScope || 'viewport'
   });
+  const postSaveAction = String(value.postSaveAction || 'stay').trim().toLowerCase();
+  if (!['stay', 'return-to-studio'].includes(postSaveAction)) {
+    throw new Error('DOMISTIKA_POST_SAVE_ACTION_INVALID');
+  }
   return {
-    ...capture,
-    returnCapture: value.returnCapture === true
+    sessionId: capture.sessionId,
+    passName: capture.passName,
+    includeImage: capture.includeImage,
+    returnCapture: value.returnCapture === true,
+    captureScope: capture.scope,
+    postSaveAction
   };
 }
 
@@ -383,7 +393,20 @@ class DomistikaSemanticBridge {
         contract
       };
     }
-    const screenshot = await this.client.screenshot(tab.id, options);
+    const overlay = elementBySelector(snapshot, '#overlay');
+    if (captureOptions.scope === 'canvas' && !overlay?.rect) {
+      return {
+        disposition: 'FAILED',
+        reason: 'DOMISTIKA_CANVAS_BOUNDS_NOT_OBSERVED',
+        tabId: tab.id,
+        grant,
+        contract
+      };
+    }
+    const screenshot = await this.client.screenshot(tab.id, {
+      ...options,
+      clip: captureOptions.scope === 'canvas' ? overlay.rect : null
+    });
     const artifact = await boundedCaptureArtifact(screenshot, captureOptions);
     return {
       disposition: 'CAPTURED',
@@ -472,7 +495,7 @@ class DomistikaSemanticBridge {
     return { ok: true, snapshot: observed?.snapshot || {} };
   }
 
-  async saveGallery(tabId, recipe, options = {}) {
+  async saveGallery(tabId, recipe, postSaveAction = 'stay', options = {}) {
     let observed = await this.client.observe(tabId, options);
     let snapshot = observed?.snapshot || {};
     const open = elementBySelector(snapshot, '#openGalleryButton');
@@ -518,8 +541,28 @@ class DomistikaSemanticBridge {
     observed = await this.client.observe(tabId, options);
     snapshot = observed?.snapshot || {};
     const close = elementBySelector(snapshot, '#closeGallery');
-    if (close?.selector) await safeAction(this.client, tabId, { type: 'click', selector: close.selector }, options);
-    return { ok: true };
+    if (close?.selector) {
+      result = await safeAction(this.client, tabId, { type: 'click', selector: close.selector }, options);
+      if (result?.ok === false) return result;
+      await wait(this.client, tabId, 80, options);
+      observed = await this.client.observe(tabId, options);
+      snapshot = observed?.snapshot || {};
+    }
+
+    if (postSaveAction === 'return-to-studio' && !domistikaContract(snapshot).ok) {
+      const back = elementBySelector(snapshot, '#backToStudio') || buttonByText(snapshot, 'Back to Studio');
+      if (!back?.selector) return { ok: false, error: 'DOMISTIKA_RETURN_TO_STUDIO_NOT_OBSERVED' };
+      result = await safeAction(this.client, tabId, { type: 'click', selector: back.selector }, options);
+      if (result?.ok === false) return result;
+      await wait(this.client, tabId, 100, options);
+      observed = await this.client.observe(tabId, options);
+      snapshot = observed?.snapshot || {};
+      if (!domistikaContract(snapshot).ok) {
+        return { ok: false, error: 'DOMISTIKA_RETURN_TO_STUDIO_FAILED' };
+      }
+    }
+
+    return { ok: true, snapshot };
   }
 
   async draw(recipeInput, drawOptionsInput = {}, options = {}) {
@@ -609,8 +652,37 @@ class DomistikaSemanticBridge {
 
     await wait(this.client, tab.id, 120, options);
 
+    const critiqueObserved = await this.client.observe(tab.id, options);
+    const critiqueSnapshot = critiqueObserved?.snapshot || {};
+    const critiqueOverlay = elementBySelector(critiqueSnapshot, '#overlay');
+    if (drawOptions.captureScope === 'canvas' && !critiqueOverlay?.rect) {
+      return {
+        disposition: 'FAILED',
+        reason: 'DOMISTIKA_CANVAS_BOUNDS_NOT_OBSERVED',
+        stage: 'CAPTURE',
+        tabId: tab.id,
+        grant,
+        drawingCommitted: true
+      };
+    }
+
+    const screenshot = await this.client.screenshot(tab.id, {
+      ...options,
+      clip: drawOptions.captureScope === 'canvas' ? critiqueOverlay.rect : null
+    }).catch(() => null);
+
+    let artifact = null;
+    if (drawOptions.returnCapture && screenshot) {
+      artifact = await boundedCaptureArtifact(screenshot, {
+        sessionId: drawOptions.sessionId,
+        passName: drawOptions.passName,
+        includeImage: drawOptions.includeImage,
+        scope: drawOptions.captureScope
+      });
+    }
+
     if (recipe.saveToGallery) {
-      const gallery = await this.saveGallery(tab.id, recipe, options);
+      const gallery = await this.saveGallery(tab.id, recipe, drawOptions.postSaveAction, options);
       if (gallery?.ok === false) {
         return {
           disposition: dispositionForAction(gallery),
@@ -618,23 +690,15 @@ class DomistikaSemanticBridge {
           stage: 'GALLERY',
           tabId: tab.id,
           grant,
-          drawingCommitted: true
+          drawingCommitted: true,
+          artifact
         };
       }
     }
 
     const finalObserved = await this.client.observe(tab.id, options);
     const finalSnapshot = finalObserved?.snapshot || {};
-    const screenshot = await this.client.screenshot(tab.id, options).catch(() => null);
     contract = domistikaContract(finalSnapshot);
-    let artifact = null;
-    if (drawOptions.returnCapture && screenshot) {
-      artifact = await boundedCaptureArtifact(screenshot, {
-        sessionId: drawOptions.sessionId,
-        passName: drawOptions.passName,
-        includeImage: drawOptions.includeImage
-      });
-    }
 
     return {
       disposition: 'COMPLETE',
@@ -644,6 +708,8 @@ class DomistikaSemanticBridge {
       grant,
       sessionId: drawOptions.sessionId,
       passName: drawOptions.passName,
+      captureScope: drawOptions.captureScope,
+      postSaveAction: drawOptions.postSaveAction,
       recipe: {
         projectName: recipe.projectName,
         tool: recipe.tool,
