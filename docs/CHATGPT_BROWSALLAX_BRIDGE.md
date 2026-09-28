@@ -1,8 +1,8 @@
 # ChatGPT ↔ Browsallax ↔ Vessie Bridge
 
-**Contract:** `PV-CBR-0.2`  
+**Contract:** `PV-CBR-0.3`  
 **Status:** experimental local bridge  
-**Goal:** let a connected ChatGPT tool interact with the user's local Super Φ.Vessel / Vessie through Browsallax without TinyFish or another paid remote-browser agent.
+**Goal:** let a connected ChatGPT tool interact with bounded local semantic lanes through Browsallax without TinyFish or another paid remote-browser agent.
 
 ## Architecture
 
@@ -15,17 +15,18 @@ authenticated tunnel / relay
       |
       | outbound/local transport only
       v
-PV-CBR-0.2 on the user's machine
+PV-CBR-0.3 on the user's machine
       |
       | local protected operator token
       v
 Browsallax Browser Operator
       |
-      v
-Super Φ.Vessel / Vessie
+      +--> Super Φ.Vessel / Vessie
+      |
+      +--> Domistika (path-locked semantic lane)
 ```
 
-The bridge deliberately exposes semantic Vessie operations instead of raw browser controls. In `PV-CBR-0.2`, `vessie.ask` uses deterministic observed controls on the exact Vessie origin rather than planner-discovered selectors.
+The bridge deliberately exposes semantic operations instead of raw browser controls. Vessie keeps its deterministic observed-control path. `PV-CBR-DOM-0.1` adds a Domistika lane locked to the exact `/Domistika/` application path and uses observed controls plus governed local pointer input.
 
 ## Exposed methods
 
@@ -33,6 +34,9 @@ The bridge deliberately exposes semantic Vessie operations instead of raw browse
 - `vessie.observe`
 - `vessie.ask`
 - `vessie.resume`
+- `domistika.status`
+- `domistika.observe`
+- `domistika.draw`
 
 Not exposed:
 
@@ -55,7 +59,7 @@ BROWSALLAX = local enforcement
 HUMAN GRANT = bounded interactive authority
 ```
 
-`vessie.ask` requires the normal Browsallax five-minute interactive grant because sending a message mutates the visible Vessie conversation. The bridge cannot create that grant. If no grant is active, it returns `HELD`.
+`vessie.ask` and `domistika.draw` require the normal Browsallax five-minute interactive grant because they mutate visible page state. The bridge cannot create that grant. If no grant is active, it returns `HELD`.
 
 Sensitive actions remain governed by Browsallax and are not exposed by this bridge.
 
@@ -90,7 +94,7 @@ ChatGPT cannot reach the user's Windows loopback address directly. Put an authen
 
 A tunnel is transport only. It must not receive or expose the Browsallax operator endpoint token.
 
-For development, a free outbound tunnel such as Cloudflare Tunnel can forward public HTTPS to the loopback bridge without opening an inbound router port. Use a stable authenticated tunnel before treating the connector as persistent infrastructure.
+For development, a free outbound tunnel such as Cloudflare Tunnel can forward public HTTPS to the loopback bridge without opening an inbound router port. The project also includes an outbound relay and a GitHub mailbox compatibility transport. Use a stable authenticated tunnel before treating the connector as persistent infrastructure.
 
 ## API
 
@@ -142,12 +146,33 @@ Bearer authentication required. Requires an already-active Browsallax human inte
 
 The task must already be bound to the currently open Vessie tab.
 
+
+### Domistika status
+
+`GET /v1/domistika/status`
+
+Returns exact-app readiness, grant state, and the observed Accessible Input Bridge contract.
+
+### Observe Domistika
+
+`GET /v1/domistika/observe`
+
+Returns bounded visible Domistika state and supported observed controls.
+
+### Draw in Domistika
+
+`POST /v1/domistika/draw`
+
+Accepts one bounded recipe under `{"recipe": {...}}`. Coordinates are normalized to the observed canvas. Supported modes are Sticky Draw and Polyline; up to 512 points are accepted. The recipe may optionally create a fresh canvas and save the result to the local Domistika Gallery.
+
+The underlying pointer primitive remains local-only and is always classified as `REMOTE_MUTATION`. See [DOMISTIKA_CHATGPT_BRIDGE.md](DOMISTIKA_CHATGPT_BRIDGE.md).
+
 ## Connector surface
 
 See `docs/chatgpt-browsallax.openapi.yaml` for the intentionally small OpenAPI surface. Replace the placeholder server URL with the stable HTTPS bridge/tunnel URL before registering it with a ChatGPT custom integration.
 
 ## TinyFish replacement boundary
 
-`PV-CBR-0.2` replaces the transport path needed for ChatGPT to reach the user's local browser stack. Browsallax still performs browser execution and local planning.
+`PV-CBR-0.3` replaces the transport path needed for ChatGPT to reach supported local semantic browser lanes. Browsallax still performs browser execution and local planning.
 
 No claim is made that this bridge is production hardened. Persistent deployment should add stable tunnel identity, token rotation, request replay protection, rate limiting, and connector-specific authentication.
