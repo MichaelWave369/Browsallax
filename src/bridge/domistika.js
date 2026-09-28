@@ -176,9 +176,11 @@ function domistikaCapabilities(snapshot = {}) {
   const overlay = elementBySelector(snapshot, '#overlay');
   const projectName = elementBySelector(snapshot, '#projectName');
   const tools = [...new Set(elements.map((element) => String(element?.dataTool || '')).filter(Boolean))];
-  const observedSymmetryModes = Array.isArray(symmetry?.options)
-    ? symmetry.options.map((value) => String(value || '').trim()).filter(Boolean)
-    : [];
+  const observedSymmetryModes = Array.isArray(symmetry?.optionValues)
+    ? symmetry.optionValues.map((value) => String(value || '').trim()).filter(Boolean)
+    : Array.isArray(symmetry?.options)
+      ? symmetry.options.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
 
   return {
     schema: 'browsallax.domistika.capabilities.v1',
