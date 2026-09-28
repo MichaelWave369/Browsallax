@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: Phi ChatGPT Browsallax Bridge
-  version: 0.1.0
+  version: 0.3.0
   description: >
-    Bounded semantic bridge from ChatGPT to the user's local Browsallax + Super PhiVessel stack.
+    Bounded semantic bridge from ChatGPT to the user's local Browsallax stack, including Super PhiVessel and path-locked Domistika operations.
     CAPABILITY does not equal AUTHORITY. The bridge cannot create Browsallax grants.
 servers:
   - url: https://REPLACE-WITH-STABLE-HTTPS-BRIDGE
@@ -79,7 +79,107 @@ paths:
             application/json:
               schema:
                 type: object
+  /v1/domistika/status:
+    get:
+      operationId: domistika_status
+      summary: Read path-locked Domistika readiness and accessible-input contract
+      responses:
+        '200':
+          description: Domistika bridge status
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/domistika/observe:
+    get:
+      operationId: domistika_observe
+      summary: Observe bounded Domistika UI state from an already-open exact app tab
+      responses:
+        '200':
+          description: Bounded Domistika observation
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/domistika/draw:
+    post:
+      operationId: domistika_draw
+      summary: Execute one bounded Domistika drawing recipe through governed local input
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [recipe]
+              properties:
+                recipe:
+                  $ref: '#/components/schemas/DomistikaRecipe'
+      responses:
+        '200':
+          description: Domistika draw result, including HELD when no human interactive grant is active
+          content:
+            application/json:
+              schema:
+                type: object
 components:
+  schemas:
+    DomistikaPoint:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+    DomistikaRecipe:
+      type: object
+      additionalProperties: false
+      required: [mode, points]
+      properties:
+        projectName: { type: string, maxLength: 120 }
+        newCanvas:
+          type: object
+          additionalProperties: false
+          required: [width, height]
+          properties:
+            width: { type: integer, minimum: 64, maximum: 8192 }
+            height: { type: integer, minimum: 64, maximum: 8192 }
+        tool:
+          type: string
+          enum: [pencil, ink, marker, airbrush, eraser]
+        color:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
+        size: { type: integer, minimum: 1, maximum: 180 }
+        symmetry:
+          type: string
+          enum: [none, vertical, horizontal, quad, radial-6, radial-8, radial-12]
+        mode:
+          type: string
+          enum: [sticky, polyline]
+        points:
+          type: array
+          minItems: 2
+          maxItems: 512
+          items:
+            $ref: '#/components/schemas/DomistikaPoint'
+        intervalMs: { type: integer, minimum: 0, maximum: 50 }
+        saveToGallery: { type: boolean }
+        gallery:
+          type: object
+          additionalProperties: false
+          properties:
+            artist: { type: string, maxLength: 60 }
+            category:
+              type: string
+              enum: [Abstract, Mandala, Character, Sacred Geometry, Experimental, Pixel / Retro, Other]
+            description: { type: string, maxLength: 500 }
   securitySchemes:
     bearerAuth:
       type: http
