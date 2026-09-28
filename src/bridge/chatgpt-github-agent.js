@@ -13,7 +13,7 @@ const {
 
 const execFileAsync = promisify(execFile);
 
-const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.2';
+const CHATGPT_GITHUB_AGENT_VERSION = 'PV-CBR-GH-0.3';
 const REQUEST_SCHEMA = 'browsallax.github-bridge.request.v1';
 const CLAIM_SCHEMA = 'browsallax.github-bridge.claim.v1';
 const RESPONSE_SCHEMA = 'browsallax.github-bridge.response.v1';
@@ -30,6 +30,8 @@ const ALLOWED_OPERATIONS = new Set([
   'vessie.resume',
   'domistika.status',
   'domistika.observe',
+  'domistika.capabilities',
+  'domistika.capture',
   'domistika.draw'
 ]);
 
@@ -98,14 +100,33 @@ function normalizePayload(operation, payload) {
     return { taskId };
   }
 
-  if (operation === 'domistika.status' || operation === 'domistika.observe') {
+  if (operation === 'domistika.status' || operation === 'domistika.observe' || operation === 'domistika.capabilities') {
     assertExactKeys(value, new Set(), 'UNEXPECTED_PAYLOAD_FIELDS');
     return {};
   }
 
+  if (operation === 'domistika.capture') {
+    assertExactKeys(value, new Set(['sessionId', 'passName', 'includeImage']), 'UNEXPECTED_PAYLOAD_FIELDS');
+    return {
+      sessionId: value.sessionId == null ? undefined : String(value.sessionId),
+      passName: value.passName == null ? undefined : String(value.passName),
+      includeImage: value.includeImage !== false
+    };
+  }
+
   if (operation === 'domistika.draw') {
-    assertExactKeys(value, new Set(['recipe']), 'UNEXPECTED_PAYLOAD_FIELDS');
-    return { recipe: normalizeDomistikaRecipe(value.recipe) };
+    assertExactKeys(
+      value,
+      new Set(['recipe', 'sessionId', 'passName', 'returnCapture', 'includeImage']),
+      'UNEXPECTED_PAYLOAD_FIELDS'
+    );
+    return {
+      recipe: normalizeDomistikaRecipe(value.recipe),
+      sessionId: value.sessionId == null ? undefined : String(value.sessionId),
+      passName: value.passName == null ? undefined : String(value.passName),
+      returnCapture: value.returnCapture === true,
+      includeImage: value.includeImage !== false
+    };
   }
 
   throw new Error('GITHUB_BRIDGE_OPERATION_NOT_ALLOWED');
@@ -206,8 +227,17 @@ async function executeBridgeOperation(bridge, request) {
       return bridge.domistikaStatus();
     case 'domistika.observe':
       return bridge.observeDomistika();
+    case 'domistika.capabilities':
+      return bridge.domistikaCapabilities();
+    case 'domistika.capture':
+      return bridge.captureDomistika(request.payload);
     case 'domistika.draw':
-      return bridge.drawDomistika(request.payload.recipe);
+      return bridge.drawDomistika(request.payload.recipe, {
+        sessionId: request.payload.sessionId,
+        passName: request.payload.passName,
+        returnCapture: request.payload.returnCapture,
+        includeImage: request.payload.includeImage
+      });
     default:
       throw new Error('GITHUB_BRIDGE_OPERATION_NOT_ALLOWED');
   }

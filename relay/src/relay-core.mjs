@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
 
-export const RELAY_VERSION = "PV-CBR-RELAY-0.2";
+export const RELAY_VERSION = "PV-CBR-RELAY-0.3";
 export const STORE_NAME = "phi-chatgpt-relay";
 export const REQUEST_TTL_MS = 10 * 60 * 1000;
 export const CLAIM_LEASE_MS = 4 * 60 * 1000;
 export const MAX_BODY_CHARS = 16000;
+export const MAX_AGENT_RESULT_BODY_CHARS = 3 * 1024 * 1024;
 export const ALLOWED_OPERATIONS = new Set([
   "bridge.status",
   "vessie.observe",
@@ -12,6 +13,8 @@ export const ALLOWED_OPERATIONS = new Set([
   "vessie.resume",
   "domistika.status",
   "domistika.observe",
+  "domistika.capabilities",
+  "domistika.capture",
   "domistika.draw"
 ]);
 
@@ -52,9 +55,9 @@ export function json(status, body) {
   });
 }
 
-export async function readJson(request) {
+export async function readJson(request, maxChars = MAX_BODY_CHARS) {
   const text = await request.text();
-  if (text.length > MAX_BODY_CHARS) {
+  if (text.length > maxChars) {
     const error = new Error("REQUEST_BODY_TOO_LARGE");
     error.statusCode = 413;
     throw error;
@@ -77,6 +80,8 @@ export function operationForPath(pathname) {
     "/v1/vessie/resume": "vessie.resume",
     "/v1/domistika/status": "domistika.status",
     "/v1/domistika/observe": "domistika.observe",
+    "/v1/domistika/capabilities": "domistika.capabilities",
+    "/v1/domistika/capture": "domistika.capture",
     "/v1/domistika/draw": "domistika.draw"
   };
   return map[String(pathname || "")] || null;
@@ -101,9 +106,21 @@ export function normalizePayload(operation, body = {}) {
     return { taskId };
   }
 
+  if (operation === "domistika.capture") {
+    const keys = Object.keys(body || {});
+    if (keys.some((key) => !["sessionId", "passName", "includeImage"].includes(key))) {
+      throw Object.assign(new Error("UNEXPECTED_PAYLOAD_FIELDS"), { statusCode: 400 });
+    }
+    return {
+      sessionId: body.sessionId == null ? undefined : String(body.sessionId),
+      passName: body.passName == null ? undefined : String(body.passName),
+      includeImage: body.includeImage !== false
+    };
+  }
+
   if (operation === "domistika.draw") {
     const keys = Object.keys(body || {});
-    if (keys.some((key) => key !== "recipe")) {
+    if (keys.some((key) => !["recipe", "sessionId", "passName", "returnCapture", "includeImage"].includes(key))) {
       throw Object.assign(new Error("UNEXPECTED_PAYLOAD_FIELDS"), { statusCode: 400 });
     }
     const recipe = body.recipe;
@@ -120,7 +137,13 @@ export function normalizePayload(operation, body = {}) {
     if (!Array.isArray(recipe.points) || recipe.points.length < 2 || recipe.points.length > 512) {
       throw Object.assign(new Error("DOMISTIKA_POINTS_INVALID"), { statusCode: 400 });
     }
-    return { recipe };
+    return {
+      recipe,
+      sessionId: body.sessionId == null ? undefined : String(body.sessionId),
+      passName: body.passName == null ? undefined : String(body.passName),
+      returnCapture: body.returnCapture === true,
+      includeImage: body.includeImage !== false
+    };
   }
 
   return {};

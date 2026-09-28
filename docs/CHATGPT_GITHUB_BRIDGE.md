@@ -1,6 +1,6 @@
 # ChatGPT ↔ Browsallax GitHub Compatibility Bridge
 
-**Contract:** `PV-CBR-GH-0.2`
+**Contract:** `PV-CBR-GH-0.3`
 
 This is a compatibility transport for ChatGPT surfaces that can access GitHub but cannot directly register the Browsallax HTTPS relay as a private custom connector.
 
@@ -11,9 +11,9 @@ ChatGPT
    ↓ GitHub connector
 private mailbox repository
    ↑ git polling + response commits
-PV-CBR-GH-0.2 local agent
+PV-CBR-GH-0.3 local agent
    ↓
-PV-CBR-0.2
+PV-CBR-0.4
    ↓
 Browsallax Browser Operator
    ↓
@@ -77,9 +77,11 @@ Allowed operations are exactly:
 - `vessie.resume`
 - `domistika.status`
 - `domistika.observe`
+- `domistika.capabilities`
+- `domistika.capture`
 - `domistika.draw`
 
-`domistika.draw` accepts only a strict bounded recipe. Unknown recipe fields fail closed; drawing points are capped at 512.
+`domistika.draw` accepts only a strict bounded recipe. Unknown recipe fields fail closed; drawing points are capped at 512. It may request a bounded inline PNG return with session/pass metadata. `domistika.capture` is read-only and path-locked to the resolved Domistika tab.
 
 Payloads are strict. Unknown fields fail closed. Requests expire, and TTL may not exceed 15 minutes.
 
@@ -114,7 +116,7 @@ Example:
 ```json
 {
   "schema": "browsallax.github-bridge.response.v1",
-  "bridgeVersion": "PV-CBR-GH-0.2",
+  "bridgeVersion": "PV-CBR-GH-0.3",
   "requestId": "cg-20260927-status-001",
   "operation": "bridge.status",
   "state": "COMPLETE",
@@ -143,7 +145,7 @@ The bootstrap:
 1. verifies the local Browser Operator;
 2. clones the private mailbox to the current user's application-data directory if needed;
 3. validates the GitHub origin;
-4. starts `PV-CBR-GH-0.1`;
+4. starts `PV-CBR-GH-0.3`;
 5. polls for bounded request files.
 
 The default local mailbox is outside the Browsallax source checkout:

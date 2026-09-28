@@ -1,4 +1,10 @@
-const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.1';
+const {
+  DOMISTIKA_CAPTURE_VERSION,
+  normalizeCaptureOptions,
+  boundedCaptureArtifact
+} = require('./domistika-capture');
+
+const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.2';
 const DEFAULT_DOMISTIKA_URL = 'https://michaelwave369.github.io/Domistika/';
 const DOMISTIKA_PATH_PREFIX = '/Domistika/';
 const DRAW_TOOLS = new Set(['pencil', 'ink', 'marker', 'airbrush', 'eraser']);
@@ -164,6 +170,61 @@ function domistikaContract(snapshot = {}) {
   };
 }
 
+function domistikaCapabilities(snapshot = {}) {
+  const elements = visibleElements(snapshot);
+  const symmetry = elementBySelector(snapshot, '#symmetryInput');
+  const overlay = elementBySelector(snapshot, '#overlay');
+  const projectName = elementBySelector(snapshot, '#projectName');
+  const tools = [...new Set(elements.map((element) => String(element?.dataTool || '')).filter(Boolean))];
+  const observedSymmetryModes = Array.isArray(symmetry?.optionValues)
+    ? symmetry.optionValues.map((value) => String(value || '').trim()).filter(Boolean)
+    : Array.isArray(symmetry?.options)
+      ? symmetry.options.map((value) => String(value || '').trim()).filter(Boolean)
+      : [];
+
+  return {
+    schema: 'browsallax.domistika.capabilities.v1',
+    bridgeVersion: DOMISTIKA_BRIDGE_VERSION,
+    captureVersion: DOMISTIKA_CAPTURE_VERSION,
+    exactTarget: DEFAULT_DOMISTIKA_URL,
+    projectName: String(projectName?.value || '').slice(0, 120) || null,
+    tools,
+    drawModes: [
+      ...(elementBySelector(snapshot, '#stickyDrawToggle') ? ['sticky'] : []),
+      ...(elementBySelector(snapshot, '#polylineToggle') ? ['polyline'] : [])
+    ],
+    observedSymmetryModes,
+    allowedSymmetryModes: [...SYMMETRY_MODES],
+    gallery: Boolean(elementBySelector(snapshot, '#openGalleryButton')),
+    capture: {
+      supported: Boolean(overlay),
+      contentTypes: ['image/png'],
+      inlineEncoding: 'base64',
+      maxBytes: 2 * 1024 * 1024
+    },
+    canvas: overlay?.rect || null,
+    viewport: snapshot.viewport || null,
+    maxPointsPerPass: MAX_DRAW_POINTS
+  };
+}
+
+function normalizeDrawOptions(input = {}) {
+  const value = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const allowed = new Set(['sessionId', 'passName', 'returnCapture', 'includeImage']);
+  if (Object.keys(value).some((key) => !allowed.has(key))) {
+    throw new Error('DOMISTIKA_DRAW_OPTIONS_INVALID');
+  }
+  const capture = normalizeCaptureOptions({
+    sessionId: value.sessionId,
+    passName: value.passName,
+    includeImage: value.includeImage
+  });
+  return {
+    ...capture,
+    returnCapture: value.returnCapture === true
+  };
+}
+
 function grantSummary(status = {}) {
   return status.grant
     ? { active: true, expiresAt: Number(status.grant.expiresAt || 0) || null }
@@ -272,6 +333,67 @@ class DomistikaSemanticBridge {
             rect: element.rect || null
           }))
       }
+    };
+  }
+
+  async capabilities(options = {}) {
+    const { tab, grant } = await this.resolve(options);
+    if (!tab) {
+      return {
+        disposition: 'UNAVAILABLE',
+        reason: 'DOMISTIKA_TAB_NOT_OPEN',
+        url: this.domistikaUrl,
+        grant
+      };
+    }
+    const observed = await this.client.observe(tab.id, options);
+    const snapshot = observed?.snapshot || {};
+    const contract = domistikaContract(snapshot);
+    return {
+      disposition: contract.ok ? 'READY' : 'INCOMPATIBLE',
+      reason: contract.ok ? null : 'DOMISTIKA_ACCESSIBLE_INPUT_CONTRACT_NOT_OBSERVED',
+      url: tab.url,
+      tabId: tab.id,
+      grant,
+      contract,
+      capabilities: domistikaCapabilities(snapshot)
+    };
+  }
+
+  async capture(captureInput = {}, options = {}) {
+    const captureOptions = normalizeCaptureOptions(captureInput);
+    const { tab, grant } = await this.resolve(options);
+    if (!tab) {
+      return {
+        disposition: 'UNAVAILABLE',
+        reason: 'DOMISTIKA_TAB_NOT_OPEN',
+        url: this.domistikaUrl,
+        grant
+      };
+    }
+    const observed = await this.client.observe(tab.id, options);
+    const snapshot = observed?.snapshot || {};
+    const contract = domistikaContract(snapshot);
+    if (!contract.ok) {
+      return {
+        disposition: 'FAILED',
+        reason: 'DOMISTIKA_ACCESSIBLE_INPUT_CONTRACT_NOT_OBSERVED',
+        tabId: tab.id,
+        grant,
+        contract
+      };
+    }
+    const screenshot = await this.client.screenshot(tab.id, options);
+    const artifact = await boundedCaptureArtifact(screenshot, captureOptions);
+    return {
+      disposition: 'CAPTURED',
+      bridgeVersion: DOMISTIKA_BRIDGE_VERSION,
+      tabId: tab.id,
+      url: tab.url,
+      grant,
+      contract,
+      capabilities: domistikaCapabilities(snapshot),
+      artifact
     };
   }
 
@@ -400,8 +522,9 @@ class DomistikaSemanticBridge {
     return { ok: true };
   }
 
-  async draw(recipeInput, options = {}) {
+  async draw(recipeInput, drawOptionsInput = {}, options = {}) {
     const recipe = normalizeDomistikaRecipe(recipeInput);
+    const drawOptions = normalizeDrawOptions(drawOptionsInput);
     const { tab, grant } = await this.resolve(options);
     if (!tab) {
       return {
@@ -504,6 +627,14 @@ class DomistikaSemanticBridge {
     const finalSnapshot = finalObserved?.snapshot || {};
     const screenshot = await this.client.screenshot(tab.id, options).catch(() => null);
     contract = domistikaContract(finalSnapshot);
+    let artifact = null;
+    if (drawOptions.returnCapture && screenshot) {
+      artifact = await boundedCaptureArtifact(screenshot, {
+        sessionId: drawOptions.sessionId,
+        passName: drawOptions.passName,
+        includeImage: drawOptions.includeImage
+      });
+    }
 
     return {
       disposition: 'COMPLETE',
@@ -511,6 +642,8 @@ class DomistikaSemanticBridge {
       tabId: tab.id,
       url: tab.url,
       grant,
+      sessionId: drawOptions.sessionId,
+      passName: drawOptions.passName,
       recipe: {
         projectName: recipe.projectName,
         tool: recipe.tool,
@@ -524,7 +657,9 @@ class DomistikaSemanticBridge {
       },
       pointer: draw.result || null,
       contract,
+      capabilities: domistikaCapabilities(finalSnapshot),
       screenshot: sanitizedScreenshot(screenshot),
+      artifact,
       observation: {
         title: String(finalSnapshot.title || '').slice(0, 500),
         text: String(finalSnapshot.text || '').slice(0, 12000)
@@ -552,6 +687,8 @@ module.exports = {
   elementByTool,
   buttonByText,
   domistikaContract,
+  domistikaCapabilities,
+  normalizeDrawOptions,
   grantSummary,
   sanitizedScreenshot,
   DomistikaSemanticBridge

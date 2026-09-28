@@ -12,7 +12,7 @@ const {
   DomistikaSemanticBridge
 } = require('./domistika');
 
-const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.3';
+const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.4';
 const CHATGPT_BROWSALLAX_BRIDGE_SCHEMA = 'browsallax.chatgpt-bridge.v1';
 const DEFAULT_BRIDGE_HOST = '127.0.0.1';
 const DEFAULT_BRIDGE_PORT = 3698;
@@ -50,6 +50,8 @@ function bridgeManifest() {
       'vessie.resume',
       'domistika.status',
       'domistika.observe',
+      'domistika.capabilities',
+      'domistika.capture',
       'domistika.draw'
     ],
     nonGoals: [
@@ -310,8 +312,16 @@ class ChatGPTBrowsallaxBridge {
     return bridgeEnvelope('DOMISTIKA_OBSERVATION', await this.domistika.observe(options));
   }
 
-  async drawDomistika(recipe, options = {}) {
-    return bridgeEnvelope('DOMISTIKA_DRAW_RESULT', await this.domistika.draw(recipe, options));
+  async domistikaCapabilities(options = {}) {
+    return bridgeEnvelope('DOMISTIKA_CAPABILITIES', await this.domistika.capabilities(options));
+  }
+
+  async captureDomistika(captureOptions = {}, options = {}) {
+    return bridgeEnvelope('DOMISTIKA_CAPTURE', await this.domistika.capture(captureOptions, options));
+  }
+
+  async drawDomistika(recipe, drawOptions = {}, options = {}) {
+    return bridgeEnvelope('DOMISTIKA_DRAW_RESULT', await this.domistika.draw(recipe, drawOptions, options));
   }
 
   async observeVessie(options = {}) {
@@ -638,9 +648,26 @@ function startChatGPTBridgeServer({
         return json(res, 200, { ok: true, result: await bridge.observeDomistika() });
       }
 
+      if (req.method === 'GET' && url.pathname === '/v1/domistika/capabilities') {
+        return json(res, 200, { ok: true, result: await bridge.domistikaCapabilities() });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/v1/domistika/capture') {
+        const body = await readJson(req);
+        return json(res, 200, { ok: true, result: await bridge.captureDomistika(body) });
+      }
+
       if (req.method === 'POST' && url.pathname === '/v1/domistika/draw') {
         const body = await readJson(req);
-        return json(res, 200, { ok: true, result: await bridge.drawDomistika(body.recipe) });
+        return json(res, 200, {
+          ok: true,
+          result: await bridge.drawDomistika(body.recipe, {
+            sessionId: body.sessionId,
+            passName: body.passName,
+            returnCapture: body.returnCapture,
+            includeImage: body.includeImage
+          })
+        });
       }
 
       return json(res, 404, { ok: false, error: 'NOT_FOUND' });

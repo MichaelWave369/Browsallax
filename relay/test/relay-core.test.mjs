@@ -13,13 +13,15 @@ import {
 } from "../src/relay-core.mjs";
 
 test("relay contract is bounded to semantic bridge operations", () => {
-  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.2");
+  assert.equal(RELAY_VERSION, "PV-CBR-RELAY-0.3");
   assert.equal(operationForPath("/v1/bridge/status"), "bridge.status");
   assert.equal(operationForPath("/v1/vessie/observe"), "vessie.observe");
   assert.equal(operationForPath("/v1/vessie/ask"), "vessie.ask");
   assert.equal(operationForPath("/v1/vessie/resume"), "vessie.resume");
   assert.equal(operationForPath("/v1/domistika/status"), "domistika.status");
   assert.equal(operationForPath("/v1/domistika/observe"), "domistika.observe");
+  assert.equal(operationForPath("/v1/domistika/capabilities"), "domistika.capabilities");
+  assert.equal(operationForPath("/v1/domistika/capture"), "domistika.capture");
   assert.equal(operationForPath("/v1/domistika/draw"), "domistika.draw");
   assert.equal(operationForPath("/v1/browser/click"), null);
 });
@@ -36,6 +38,13 @@ test("payload normalization rejects missing or oversized semantic fields", () =>
     }
   });
   assert.equal(draw.recipe.points.length, 2);
+  const capture = normalizePayload("domistika.capture", {
+    sessionId: "s1",
+    passName: "inspect",
+    includeImage: true
+  });
+  assert.equal(capture.sessionId, "s1");
+  assert.equal(capture.includeImage, true);
   assert.throws(
     () => normalizePayload("domistika.draw", { recipe: { points: [{ x: 0.5, y: 0.5 }] } }),
     /DOMISTIKA_POINTS_INVALID/

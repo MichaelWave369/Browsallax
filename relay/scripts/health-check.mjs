@@ -17,7 +17,7 @@ if (!response.ok) {
   throw new Error(`HEALTH_HTTP_${response.status}: ${body?.error || text.slice(0, 500)}`);
 }
 
-if (body?.relayVersion !== 'PV-CBR-RELAY-0.1') {
+if (body?.relayVersion !== 'PV-CBR-RELAY-0.3') {
   throw new Error(`UNEXPECTED_RELAY_VERSION: ${body?.relayVersion || 'missing'}`);
 }
 

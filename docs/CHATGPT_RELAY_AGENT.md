@@ -1,17 +1,17 @@
 # Outbound ChatGPT Relay Agent
 
-**Contract:** `PV-CBR-AGENT-0.2`
+**Contract:** `PV-CBR-AGENT-0.3`
 
-This process connects the user's local `PV-CBR-0.3` bridge to the transport-only public relay without exposing an inbound port.
+This process connects the user's local `PV-CBR-0.4` bridge to the transport-only public relay without exposing an inbound port.
 
 ```text
 ChatGPT connector
       ↓
 HTTPS relay
       ↑ outbound polling only
-PV-CBR-AGENT-0.2
+PV-CBR-AGENT-0.3
       ↓
-PV-CBR-0.2
+PV-CBR-0.4
       ↓
 Browsallax
       ↓
@@ -28,6 +28,8 @@ The agent has a hardcoded allowlist:
 - `vessie.resume`
 - `domistika.status`
 - `domistika.observe`
+- `domistika.capabilities`
+- `domistika.capture`
 - `domistika.draw`
 
 Unknown relay operations are returned as errors and are never dispatched to the local bridge.

@@ -1,16 +1,16 @@
 # ChatGPT ↔ Browsallax ↔ Domistika Bridge
 
-**Contract:** `PV-CBR-DOM-0.1`  
-**Parent bridge:** `PV-CBR-0.3`
+**Contract:** `PV-CBR-DOM-0.2`  
+**Parent bridge:** `PV-CBR-0.4`
 
 This lane lets a connected ChatGPT surface ask the user's local Browsallax stack to make a bounded drawing inside an already-open Domistika tab without using a paid remote browser.
 
 ```text
 ChatGPT
    ↓ semantic request only
-PV-CBR-0.3 / GitHub mailbox / relay
+PV-CBR-0.4 / GitHub mailbox / relay
    ↓
-PV-CBR-DOM-0.1
+PV-CBR-DOM-0.2
    ↓ exact Domistika path lock
 Browsallax Browser Operator
    ↓ governed form/click/pointer input
@@ -31,7 +31,7 @@ HUMAN GRANT = bounded mutation authority
 DOMISTIKA TAB = exact path-scoped target
 ```
 
-`domistika.status` and `domistika.observe` are read-only. `domistika.draw` requires the normal five-minute Browsallax interactive grant. The bridge cannot activate that grant.
+`domistika.status`, `domistika.observe`, `domistika.capabilities`, and `domistika.capture` are read-only. `domistika.draw` requires the normal five-minute Browsallax interactive grant. The bridge cannot activate that grant.
 
 The bridge does not expose raw selectors, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
@@ -69,6 +69,16 @@ If those controls are absent, the bridge fails closed as incompatible instead of
 
 Returns bounded visible UI state and the observed Domistika controls. Local Browser Operator tokens and local screenshot paths are not returned.
 
+### `domistika.capabilities`
+
+Returns a machine-readable manifest derived from the **currently observed Domistika UI**, including available tools, draw modes, symmetry option values, canvas bounds, Gallery availability, visual-capture support, and the bridge's own allowed symmetry set. This separates what Domistika currently exposes from what the bridge currently permits.
+
+### `domistika.capture`
+
+Captures only the already-resolved exact Domistika tab. The Browser Operator first creates its normal governed PNG capture; the semantic layer then verifies the capture filename and SHA-256 digest, enforces a 2 MiB ceiling, and returns a PNG artifact with optional inline base64 image bytes. Local filesystem paths are not returned.
+
+Capture may carry bounded `sessionId` and `passName` identifiers so a caller can relate visual observations to drawing passes.
+
 ### `domistika.draw`
 
 Executes one bounded drawing recipe. A recipe may:
@@ -80,7 +90,8 @@ Executes one bounded drawing recipe. A recipe may:
 - select supported symmetry;
 - draw through Sticky Draw or Polyline;
 - optionally save the finished canvas to the local Domistika Gallery;
-- capture a governed screenshot receipt.
+- capture a governed screenshot receipt;
+- optionally return the actual digest-verified PNG using `returnCapture: true` plus bounded `sessionId` / `passName` metadata.
 
 Coordinates are normalized to the observed canvas:
 
@@ -161,3 +172,24 @@ The GitHub mailbox remains claim-before-execute and no-replay after ambiguous cr
 10. Only then attempt larger drawings or Gallery saves.
 
 This is an alpha automation lane. The screenshot digest proves what Browsallax captured, not that the drawing is artistically good. Software remains tragically unable to legislate taste.
+
+
+## Closed-loop critic flow
+
+```text
+capabilities
+   ↓
+compose one pass
+   ↓
+draw(returnCapture=true)
+   ↓
+inspect actual PNG pixels
+   ↓
+critique geometry / spacing / color / weight
+   ↓
+compose next pass
+   ↓
+repeat
+```
+
+Visual evidence does not grant authority. `VISION != AUTHORITY`; a returned image can inform the next recipe, while the next mutation still crosses the ordinary Browsallax grant gate.

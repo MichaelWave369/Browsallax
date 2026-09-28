@@ -1,6 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import {
   STORE_NAME,
+  MAX_AGENT_RESULT_BODY_CHARS,
   authorized,
   completeJob,
   json,
@@ -14,7 +15,7 @@ export default async (request: Request) => {
     if (!authorized(request, secret)) return json(401, { ok: false, error: "UNAUTHORIZED" });
     if (request.method !== "POST") return json(405, { ok: false, error: "METHOD_NOT_ALLOWED" });
 
-    const body: any = await readJson(request);
+    const body: any = await readJson(request, MAX_AGENT_RESULT_BODY_CHARS);
     const id = String(body.id || "").trim();
     const claimToken = String(body.claimToken || "").trim();
     if (!id || !claimToken) return json(400, { ok: false, error: "CLAIM_REQUIRED" });

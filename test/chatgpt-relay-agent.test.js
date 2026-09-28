@@ -25,12 +25,14 @@ function fakeBridge() {
     resumeVessie: async (taskId) => { calls.push(['resume', taskId]); return { kind: 'VESSIE_RESUME_RESULT', taskId }; },
     domistikaStatus: async () => { calls.push(['dom-status']); return { kind: 'DOMISTIKA_STATUS' }; },
     observeDomistika: async () => { calls.push(['dom-observe']); return { kind: 'DOMISTIKA_OBSERVATION' }; },
-    drawDomistika: async (recipe) => { calls.push(['dom-draw', recipe]); return { kind: 'DOMISTIKA_DRAW_RESULT', recipe }; }
+    domistikaCapabilities: async () => { calls.push(['dom-capabilities']); return { kind: 'DOMISTIKA_CAPABILITIES' }; },
+    captureDomistika: async (options) => { calls.push(['dom-capture', options]); return { kind: 'DOMISTIKA_CAPTURE', options }; },
+    drawDomistika: async (recipe, options) => { calls.push(['dom-draw', recipe, options]); return { kind: 'DOMISTIKA_DRAW_RESULT', recipe, options }; }
   };
 }
 
 test('relay agent contract is bounded to semantic operations', () => {
-  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.2');
+  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.3');
   assert.deepEqual([...ALLOWED_RELAY_OPERATIONS], [
     'bridge.status',
     'vessie.observe',
@@ -38,6 +40,8 @@ test('relay agent contract is bounded to semantic operations', () => {
     'vessie.resume',
     'domistika.status',
     'domistika.observe',
+    'domistika.capabilities',
+    'domistika.capture',
     'domistika.draw'
   ]);
 });
@@ -61,8 +65,18 @@ test('execute maps only allowed relay operations to bridge methods', async () =>
   assert.deepEqual(bridge.calls, [['ask', 'hello']]);
 
   const recipe = { mode: 'sticky', points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }] };
-  await agent.execute({ operation: 'domistika.draw', payload: { recipe } });
-  assert.deepEqual(bridge.calls.at(-1), ['dom-draw', recipe]);
+  await agent.execute({
+    operation: 'domistika.draw',
+    payload: { recipe, sessionId: 's1', passName: 'p1', returnCapture: true, includeImage: true }
+  });
+  assert.deepEqual(bridge.calls.at(-1), [
+    'dom-draw',
+    recipe,
+    { sessionId: 's1', passName: 'p1', returnCapture: true, includeImage: true }
+  ]);
+
+  await agent.execute({ operation: 'domistika.capture', payload: { sessionId: 's1', passName: 'inspect' } });
+  assert.deepEqual(bridge.calls.at(-1), ['dom-capture', { sessionId: 's1', passName: 'inspect' }]);
 
   await assert.rejects(
     agent.execute({ operation: 'shell.exec', payload: { command: 'whoami' } }),

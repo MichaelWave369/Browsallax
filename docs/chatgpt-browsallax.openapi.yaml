@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Phi ChatGPT Browsallax Bridge
-  version: 0.3.0
+  version: 0.4.0
   description: >
     Bounded semantic bridge from ChatGPT to the user's local Browsallax stack,
     including Super PhiVessel and path-locked Domistika operations.
@@ -109,6 +109,41 @@ paths:
               schema:
                 type: object
 
+  /v1/domistika/capabilities:
+    get:
+      operationId: domistika_capabilities
+      summary: Read the observed Domistika capability manifest
+      responses:
+        "200":
+          description: Domistika capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v1/domistika/capture:
+    post:
+      operationId: domistika_capture
+      summary: Capture the exact open Domistika tab as a bounded visual artifact
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                sessionId: { type: string, maxLength: 120 }
+                passName: { type: string, maxLength: 120 }
+                includeImage: { type: boolean, default: true }
+      responses:
+        "200":
+          description: Digest-verified Domistika PNG artifact
+          content:
+            application/json:
+              schema:
+                type: object
+
   /v1/domistika/draw:
     post:
       operationId: domistika_draw
@@ -124,6 +159,10 @@ paths:
               properties:
                 recipe:
                   $ref: "#/components/schemas/DomistikaRecipe"
+                sessionId: { type: string, maxLength: 120 }
+                passName: { type: string, maxLength: 120 }
+                returnCapture: { type: boolean, default: false }
+                includeImage: { type: boolean, default: true }
       responses:
         "200":
           description: Domistika draw result, including HELD when no human interactive grant is active

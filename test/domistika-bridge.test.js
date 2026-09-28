@@ -7,11 +7,13 @@ const {
   isDomistikaUrl,
   findDomistikaTab,
   normalizeDomistikaRecipe,
-  domistikaContract
+  domistikaContract,
+  domistikaCapabilities,
+  normalizeDrawOptions
 } = require('../src/bridge/domistika');
 
 test('Domistika bridge locks to the configured GitHub Pages path', () => {
-  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.1');
+  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.2');
   assert.equal(isDomistikaUrl(DEFAULT_DOMISTIKA_URL), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/Domistika/#gallery'), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/OtherApp/'), false);
@@ -81,7 +83,13 @@ function domistikaSnapshot() {
     { selector: '#projectName', tagName: 'input', value: 'Untitled' },
     { selector: '#colorInput', tagName: 'input', value: '#1b1820' },
     { selector: '#sizeInput', tagName: 'input', value: '12' },
-    { selector: '#symmetryInput', tagName: 'select', value: 'none' },
+    {
+      selector: '#symmetryInput',
+      tagName: 'select',
+      value: 'none',
+      options: ['Off', 'Radial 12', 'Kaleido 12'],
+      optionValues: ['none', 'radial-12', 'kaleido-12']
+    },
     { selector: '#stickyDrawToggle', tagName: 'button', ariaPressed: 'false', text: 'Sticky Draw' },
     { selector: '#polylineToggle', tagName: 'button', ariaPressed: 'false', text: 'Polyline' },
     { selector: '#overlay', tagName: 'canvas', rect: { x: 100, y: 100, width: 800, height: 800 } },
@@ -149,4 +157,31 @@ test('semantic draw uses observed controls and one governed pointer path', async
   assert.equal(pointer.points.length, 3);
   assert.equal(result.screenshot.sha256, 'a'.repeat(64));
   assert.equal(Object.hasOwn(result.screenshot, 'filePath'), false);
+});
+
+
+test('capabilities expose observed controls separately from allowed bridge modes', () => {
+  const snapshot = domistikaSnapshot();
+  const caps = domistikaCapabilities(snapshot);
+  assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.2');
+  assert.ok(caps.tools.includes('marker'));
+  assert.deepEqual(caps.drawModes, ['sticky', 'polyline']);
+  assert.deepEqual(caps.observedSymmetryModes, ['none', 'radial-12', 'kaleido-12']);
+  assert.ok(caps.allowedSymmetryModes.includes('kaleido-12'));
+  assert.equal(caps.capture.supported, true);
+  assert.equal(caps.maxPointsPerPass, 512);
+});
+
+test('draw options carry session/pass identity and visual return intent', () => {
+  const options = normalizeDrawOptions({
+    sessionId: 'gear session 1',
+    passName: 'hub pass',
+    returnCapture: true,
+    includeImage: true
+  });
+  assert.equal(options.sessionId, 'gear-session-1');
+  assert.equal(options.passName, 'hub-pass');
+  assert.equal(options.returnCapture, true);
+  assert.equal(options.includeImage, true);
+  assert.throws(() => normalizeDrawOptions({ rawSelector: '#overlay' }), /DOMISTIKA_DRAW_OPTIONS_INVALID/);
 });
