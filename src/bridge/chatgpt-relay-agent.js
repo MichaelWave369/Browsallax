@@ -2,7 +2,7 @@ const {
   ChatGPTBrowsallaxBridge
 } = require('./chatgpt-browsallax');
 
-const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.2';
+const CHATGPT_RELAY_AGENT_VERSION = 'PV-CBR-AGENT-0.3';
 const DEFAULT_POLL_MS = 1000;
 const MAX_POLL_MS = 10000;
 const ALLOWED_RELAY_OPERATIONS = new Set([
@@ -12,6 +12,8 @@ const ALLOWED_RELAY_OPERATIONS = new Set([
   'vessie.resume',
   'domistika.status',
   'domistika.observe',
+  'domistika.capabilities',
+  'domistika.capture',
   'domistika.draw'
 ]);
 
@@ -139,8 +141,17 @@ class ChatGPTRelayAgent {
         return this.bridge.domistikaStatus();
       case 'domistika.observe':
         return this.bridge.observeDomistika();
+      case 'domistika.capabilities':
+        return this.bridge.domistikaCapabilities();
+      case 'domistika.capture':
+        return this.bridge.captureDomistika(payload);
       case 'domistika.draw':
-        return this.bridge.drawDomistika(payload.recipe);
+        return this.bridge.drawDomistika(payload.recipe, {
+          sessionId: payload.sessionId,
+          passName: payload.passName,
+          returnCapture: payload.returnCapture,
+          includeImage: payload.includeImage
+        });
       default:
         throw new Error('RELAY_OPERATION_NOT_ALLOWED');
     }
