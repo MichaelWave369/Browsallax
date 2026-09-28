@@ -32,7 +32,7 @@ function fakeBridge() {
 }
 
 test('relay agent contract is bounded to semantic operations', () => {
-  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.3');
+  assert.equal(CHATGPT_RELAY_AGENT_VERSION, 'PV-CBR-AGENT-0.4');
   assert.deepEqual([...ALLOWED_RELAY_OPERATIONS], [
     'bridge.status',
     'vessie.observe',
@@ -67,16 +67,37 @@ test('execute maps only allowed relay operations to bridge methods', async () =>
   const recipe = { mode: 'sticky', points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }] };
   await agent.execute({
     operation: 'domistika.draw',
-    payload: { recipe, sessionId: 's1', passName: 'p1', returnCapture: true, includeImage: true }
+    payload: {
+      recipe,
+      sessionId: 's1',
+      passName: 'p1',
+      returnCapture: true,
+      includeImage: true,
+      captureScope: 'canvas',
+      postSaveAction: 'return-to-studio'
+    }
   });
   assert.deepEqual(bridge.calls.at(-1), [
     'dom-draw',
     recipe,
-    { sessionId: 's1', passName: 'p1', returnCapture: true, includeImage: true }
+    {
+      sessionId: 's1',
+      passName: 'p1',
+      returnCapture: true,
+      includeImage: true,
+      captureScope: 'canvas',
+      postSaveAction: 'return-to-studio'
+    }
   ]);
 
-  await agent.execute({ operation: 'domistika.capture', payload: { sessionId: 's1', passName: 'inspect' } });
-  assert.deepEqual(bridge.calls.at(-1), ['dom-capture', { sessionId: 's1', passName: 'inspect' }]);
+  await agent.execute({
+    operation: 'domistika.capture',
+    payload: { sessionId: 's1', passName: 'inspect', scope: 'canvas' }
+  });
+  assert.deepEqual(bridge.calls.at(-1), [
+    'dom-capture',
+    { sessionId: 's1', passName: 'inspect', scope: 'canvas' }
+  ]);
 
   await assert.rejects(
     agent.execute({ operation: 'shell.exec', payload: { command: 'whoami' } }),
