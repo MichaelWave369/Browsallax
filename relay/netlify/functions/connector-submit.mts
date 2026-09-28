@@ -48,6 +48,9 @@ export const config = {
     "/v1/bridge/status",
     "/v1/vessie/observe",
     "/v1/vessie/ask",
-    "/v1/vessie/resume"
+    "/v1/vessie/resume",
+    "/v1/domistika/status",
+    "/v1/domistika/observe",
+    "/v1/domistika/draw"
   ]
 };
