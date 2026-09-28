@@ -73,13 +73,16 @@ class FakeMailbox {
   }
 }
 
-test('GitHub compatibility bridge exposes only four semantic operations', () => {
-  assert.equal(CHATGPT_GITHUB_AGENT_VERSION, 'PV-CBR-GH-0.1');
+test('GitHub compatibility bridge exposes only bounded semantic operations', () => {
+  assert.equal(CHATGPT_GITHUB_AGENT_VERSION, 'PV-CBR-GH-0.2');
   assert.deepEqual([...ALLOWED_OPERATIONS], [
     'bridge.status',
     'vessie.observe',
     'vessie.ask',
-    'vessie.resume'
+    'vessie.resume',
+    'domistika.status',
+    'domistika.observe',
+    'domistika.draw'
   ]);
 
   assert.throws(
