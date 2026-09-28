@@ -140,7 +140,7 @@ function fakeClient({ grant = null } = {}) {
 
 test('manifest exposes a narrow semantic surface and no grant authority', () => {
   const manifest = bridgeManifest();
-  assert.equal(CHATGPT_BROWSALLAX_BRIDGE_VERSION, 'PV-CBR-0.3');
+  assert.equal(CHATGPT_BROWSALLAX_BRIDGE_VERSION, 'PV-CBR-0.4');
   assert.deepEqual(manifest.methods, [
     'bridge.status',
     'vessie.observe',
@@ -148,6 +148,8 @@ test('manifest exposes a narrow semantic surface and no grant authority', () => 
     'vessie.resume',
     'domistika.status',
     'domistika.observe',
+    'domistika.capabilities',
+    'domistika.capture',
     'domistika.draw'
   ]);
   assert.equal(manifest.authority.bridgeCanGrantAuthority, false);
