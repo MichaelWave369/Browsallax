@@ -45,6 +45,13 @@ test('drawing recipes are strict, bounded, and normalized', () => {
   assert.equal(recipe.color, '#12a0ff');
   assert.equal(recipe.points.length, 2);
   assert.equal(recipe.gallery.category, 'Experimental');
+
+  const kaleido = normalizeDomistikaRecipe({
+    mode: 'sticky',
+    symmetry: 'kaleido-12',
+    points: [{ x: 0.48, y: 0.18 }, { x: 0.62, y: 0.34 }]
+  });
+  assert.equal(kaleido.symmetry, 'kaleido-12');
   assert.throws(
     () => normalizeDomistikaRecipe({
       mode: 'sticky',
