@@ -10,6 +10,8 @@ const OBSERVE_SCRIPT = `(() => {
     if (el.id) return '#' + cssEscape(el.id);
     const testId = el.getAttribute('data-testid');
     if (testId) return '[data-testid="' + String(testId).replace(/"/g, '\\\\"') + '"]';
+    const dataTool = el.getAttribute('data-tool');
+    if (dataTool) return '[data-tool="' + String(dataTool).replace(/"/g, '\\"') + '"]';
     const name = el.getAttribute('name');
     if (name && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(el.tagName)) {
       return el.tagName.toLowerCase() + '[name="' + String(name).replace(/"/g, '\\\\"') + '"]';
