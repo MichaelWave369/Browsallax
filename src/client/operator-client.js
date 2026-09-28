@@ -221,8 +221,8 @@ class BrowsallaxOperatorClient {
     return this.request('GET', `/v1/observe?tabId=${encodeURIComponent(tabId)}`, undefined, options);
   }
 
-  screenshot(tabId, options = {}) {
-    return this.request('POST', '/v1/screenshot', { tabId }, options);
+  screenshot(tabId, { clip = null, ...options } = {}) {
+    return this.request('POST', '/v1/screenshot', { tabId, clip }, options);
   }
 
   navigate(tabId, url, options = {}) {
