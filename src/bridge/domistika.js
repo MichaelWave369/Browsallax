@@ -377,14 +377,14 @@ class DomistikaSemanticBridge {
     };
   }
 
-  async captureArtifact(tabId, snapshot, captureOptions, options = {}) {
+  async captureArtifact(tabId, snapshot, captureOptions, options = {}, { buildArtifact = true } = {}) {
     if (captureOptions.scope === 'artwork') {
       try {
         const response = await this.client.pageArtifact(tabId, DOMISTIKA_CLEAN_ART_KIND, options);
         return {
           ok: true,
           screenshot: null,
-          artifact: boundedPageArtifact(response, captureOptions)
+          artifact: buildArtifact ? boundedPageArtifact(response, captureOptions) : null
         };
       } catch (error) {
         return {
@@ -407,7 +407,7 @@ class DomistikaSemanticBridge {
       return {
         ok: true,
         screenshot,
-        artifact: boundedCaptureArtifact(screenshot, captureOptions)
+        artifact: buildArtifact ? boundedCaptureArtifact(screenshot, captureOptions) : null
       };
     } catch (error) {
       return {
@@ -706,7 +706,13 @@ class DomistikaSemanticBridge {
 
     let screenshot = null;
     let artifact = null;
-    const captured = await this.captureArtifact(tab.id, critiqueSnapshot, captureOptions, options);
+    const captured = await this.captureArtifact(
+      tab.id,
+      critiqueSnapshot,
+      captureOptions,
+      options,
+      { buildArtifact: drawOptions.returnCapture }
+    );
     if (!captured.ok) {
       return {
         disposition: 'FAILED',
