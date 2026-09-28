@@ -33,7 +33,7 @@ const OBSERVE_SCRIPT = `(() => {
     return parts.join(' > ');
   };
 
-  const candidates = [...document.querySelectorAll('a,button,input,textarea,select,[role="button"],[role="link"],[contenteditable="true"]')]
+  const candidates = [...document.querySelectorAll('a,button,input,textarea,select,canvas,[role="button"],[role="link"],[contenteditable="true"]')]
     .filter(visible)
     .slice(0, 500);
 
@@ -57,6 +57,8 @@ const OBSERVE_SCRIPT = `(() => {
       title: el.getAttribute('title') || '',
       placeholder: el.getAttribute('placeholder') || '',
       autocomplete: el.getAttribute('autocomplete') || '',
+      dataTool: el.getAttribute('data-tool') || '',
+      ariaPressed: el.getAttribute('aria-pressed') || '',
       href: el.href || '',
       disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'),
       checked: typeof el.checked === 'boolean' ? el.checked : undefined,
@@ -92,7 +94,11 @@ const TARGET_SCRIPT = (selector) => `(() => {
     ariaLabel: el.getAttribute('aria-label') || '',
     title: el.getAttribute('title') || '',
     href: el.href || '',
-    disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true')
+    disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'),
+    rect: (() => {
+      const rect = el.getBoundingClientRect();
+      return { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) };
+    })()
   };
 })()`;
 
