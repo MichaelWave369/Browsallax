@@ -9,7 +9,7 @@ Browsallax is an MIT-licensed, local-first browser project with two complementar
 
 The goal is not to invent another rendering engine. The goal is to build transparent browser tooling around the web with stronger privacy boundaries, local intelligence, explicit authority, evidence capture, and an open ecosystem of useful tools.
 
-> **Current status:** Desktop `0.5.0-alpha.9`; Web `0.2.0-alpha.1`. Both are alpha software.
+> **Current status:** Desktop `0.5.0-alpha.10`; Web `0.2.0-alpha.1`. Both are alpha software.
 
 ## Try it
 
@@ -70,7 +70,7 @@ npm run accept:registry-fail-closed
 | Mutation automation | **Restricted · experimental** |
 | Governed pointer paths | **Working · alpha** |
 | ChatGPT ↔ Domistika semantic lane | **Working · live-tested** |
-| Domistika visual return / critic loop | **Implemented · live acceptance pending** |
+| Domistika visual return / critic loop | **Working · live-tested** |
 | Sensitive mutation | **HELD pending per-action approval design** |
 | Local vision interpretation | **Planned** |
 | Signed release/update chain | **Not implemented** |
@@ -166,15 +166,15 @@ Current runtime contracts:
 
 | Contract | Version | Purpose |
 |---|---|---|
-| Browser Operator API | `PV-BOP-0.2` | localhost API and task execution |
+| Browser Operator API | `PV-BOP-0.3` | localhost API and task execution |
 | Planner | `PV-BOP-PLAN-0.9` | schema-constrained local planning + observed interactive target grounding + deterministic hard-ceiling termination |
 | Task engine | `PV-BOP-TASK-0.4` | observe → plan → act → verify, with bounded SPA-hydration initial acceptance |
 | Brain Registry router | `PV-BOP-BRR-0.1` | advisory registry routing + local inventory verification |
 | Read-only research completion | `PV-BOP-RRC-0.6` | bounded read-only research + grant-gated query interaction with task-aware budget |
-| Portable client | `PV-BOP-CLIENT-0.1` | local endpoint discovery/client |
+| Portable client | `PV-BOP-CLIENT-0.2` | local endpoint discovery/client |
 | PhiOS / Super Φ.Vessel bridge | `PV-BRIDGE-0.2` | task handoff and bounded diagnostics |
-| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.5` | bounded semantic Vessie + Domistika connector surface |
-| Domistika semantic bridge | `PV-CBR-DOM-0.3` | exact-path drawing recipes through observed controls and governed pointer input |
+| ChatGPT ↔ Browsallax bridge | `PV-CBR-0.6` | bounded semantic Vessie + Domistika connector surface |
+| Domistika semantic bridge | `PV-CBR-DOM-0.4` | exact-path drawing recipes through observed controls and governed pointer input |
 | Governed pointer path | `PV-BOP-POINTER-0.1` | bounded native drag / sticky / polyline input, always mutation-gated |
 | ChatGPT outbound relay agent | `PV-CBR-AGENT-0.4` | outbound-only transport client for the public relay |
 | ChatGPT transport relay | `PV-CBR-RELAY-0.4` | Netlify-hosted transport-only semantic queue owned by Browsallax |
@@ -222,7 +222,7 @@ Browsallax includes an experimental local semantic connector intended to replace
 ```text
 ChatGPT
    ↓ bounded semantic request
-PV-CBR-0.5
+PV-CBR-0.6
    ↓
 Browsallax Browser Operator
    ├── Super Φ.Vessel / Vessie
@@ -231,7 +231,7 @@ Browsallax Browser Operator
 
 The bridge still does **not** expose raw browser selectors, arbitrary navigation, shell access, filesystem access, grant creation, or sensitive-action approval.
 
-Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.3`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact with either full-viewport or observed-canvas scope. `domistika.draw` can capture the canvas **before** Gallery save, preserve session/pass identity, and optionally return through an observed Back to Studio control after archiving. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
+Vessie keeps its deterministic observed composer/send path. Domistika uses `PV-CBR-DOM-0.4`, path-locked to `https://michaelwave369.github.io/Domistika/`. It exposes bounded status, observation, capabilities, capture, and drawing operations. `domistika.capabilities` reports the actual observed tools and symmetry values before planning. `domistika.capture` returns a digest-verified PNG as a bounded base64 artifact with full-viewport, observed-canvas, or clean `artwork` scope. The clean-art path uses Domistika's own composited canvas and excludes Studio chrome and symmetry guides. `domistika.draw` can capture visual evidence **before** Gallery save, preserve session/pass identity, and optionally return through an observed Back to Studio control after archiving. Drawing still uses `PV-BOP-POINTER-0.1`; mutation remains grant-gated.
 
 Remote transport can use `PV-CBR-AGENT-0.4` + `PV-CBR-RELAY-0.4`, or the private GitHub mailbox `PV-CBR-GH-0.4`. The mailbox remains claim-before-execute with no replay after an ambiguous previous claim.
 

@@ -20,14 +20,14 @@ test('local operator API requires token and human grant for ordinary mutation', 
   let grant = null;
   const webContents = {
     isDestroyed: () => false,
-    getURL: () => 'https://example.test/',
+    getURL: () => 'https://michaelwave369.github.io/Domistika/',
     getTitle: () => 'Example',
     isLoading: () => false,
     executeJavaScript: async (script) => {
       if (script.trim() === 'document.body ? document.body.innerText : ""') return 'READY';
       if (script.includes("const candidates =")) {
         return {
-          url: 'https://example.test/',
+          url: 'https://michaelwave369.github.io/Domistika/',
           title: 'Example',
           text: 'READY',
           viewport: { width: 1200, height: 800, scrollX: 0, scrollY: 0 },
@@ -38,6 +38,22 @@ test('local operator API requires token and human grant for ordinary mutation', 
         return {
           selector: '#open', tagName: 'button', role: '', type: 'button', name: '',
           text: 'Open panel', ariaLabel: '', title: '', href: '', disabled: false
+        };
+      }
+      if (script.includes('window.domistikaCleanCaptureV0920')) {
+        const bytes = Buffer.from('clean-art-png');
+        return {
+          ok: true,
+          payload: {
+            schema: 'domistika.clean-art-capture.v1',
+            version: '0.9.20',
+            contentType: 'image/png',
+            encoding: 'base64',
+            width: 1200,
+            height: 1200,
+            includeBackground: true,
+            dataBase64: bytes.toString('base64')
+          }
         };
       }
       if (script.includes("el.click();")) return { ok: true };
@@ -61,7 +77,7 @@ test('local operator API requires token and human grant for ordinary mutation', 
     service = startOperatorServer({
       userDataPath: dir,
       getTab: () => tab,
-      listTabs: () => [{ id: 1, title: 'Example', url: 'https://example.test/', active: true }],
+      listTabs: () => [{ id: 1, title: 'Example', url: 'https://michaelwave369.github.io/Domistika/', active: true }],
       navigateTab: async () => {},
       getGrant: () => grant,
       onStatus,
@@ -76,13 +92,32 @@ test('local operator API requires token and human grant for ordinary mutation', 
 
     const health = await fetch(`${base}/v1/health`);
     assert.equal(health.status, 200);
-    assert.equal((await health.json()).version, 'PV-BOP-0.2');
+    assert.equal((await health.json()).version, 'PV-BOP-0.3');
 
     const deniedStatus = await fetch(`${base}/v1/status`);
     assert.equal(deniedStatus.status, 401);
 
     const allowedStatus = await fetch(`${base}/v1/status`, { headers: { authorization: `Bearer ${endpoint.token}` } });
     assert.equal(allowedStatus.status, 200);
+
+    const cleanArtifact = await fetch(`${base}/v1/page-artifact`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ tabId: 1, kind: 'domistika-clean-art-png' })
+    });
+    assert.equal(cleanArtifact.status, 200);
+    const cleanBody = await cleanArtifact.json();
+    assert.equal(cleanBody.ok, true);
+    assert.equal(cleanBody.artifact.kind, 'domistika-clean-art-png');
+    assert.equal(cleanBody.artifact.sourceVersion, '0.9.20');
+    assert.deepEqual(cleanBody.artifact.size, { width: 1200, height: 1200 });
+
+    const arbitraryArtifact = await fetch(`${base}/v1/page-artifact`, {
+      method: 'POST',
+      headers: auth,
+      body: JSON.stringify({ tabId: 1, kind: 'arbitrary-js' })
+    });
+    assert.equal(arbitraryArtifact.status, 400);
 
     const plannerStatus = await fetch(`${base}/v1/planner/status`, { headers: { authorization: `Bearer ${endpoint.token}` } });
     assert.equal(plannerStatus.status, 200);

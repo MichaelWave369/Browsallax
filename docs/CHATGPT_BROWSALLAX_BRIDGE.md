@@ -1,6 +1,6 @@
 # ChatGPT ↔ Browsallax ↔ Vessie Bridge
 
-**Contract:** `PV-CBR-0.5`  
+**Contract:** `PV-CBR-0.6`  
 **Status:** experimental local bridge  
 **Goal:** let a connected ChatGPT tool interact with bounded local semantic lanes through Browsallax without TinyFish or another paid remote-browser agent.
 
@@ -15,7 +15,7 @@ authenticated tunnel / relay
       |
       | outbound/local transport only
       v
-PV-CBR-0.5 on the user's machine
+PV-CBR-0.6 on the user's machine
       |
       | local protected operator token
       v
@@ -26,7 +26,7 @@ Browsallax Browser Operator
       +--> Domistika (path-locked semantic lane)
 ```
 
-The bridge deliberately exposes semantic operations instead of raw browser controls. Vessie keeps its deterministic observed-control path. `PV-CBR-DOM-0.3` adds a Domistika lane locked to the exact `/Domistika/` application path and uses observed controls plus governed local pointer input.
+The bridge deliberately exposes semantic operations instead of raw browser controls. Vessie keeps its deterministic observed-control path. `PV-CBR-DOM-0.4` adds a Domistika lane locked to the exact `/Domistika/` application path and uses observed controls plus governed local pointer input.
 
 ## Exposed methods
 
@@ -175,6 +175,6 @@ See `docs/chatgpt-browsallax.openapi.yaml` for the intentionally small OpenAPI s
 
 ## TinyFish replacement boundary
 
-`PV-CBR-0.5` replaces the transport path needed for ChatGPT to reach supported local semantic browser lanes. Browsallax still performs browser execution and local planning.
+`PV-CBR-0.6` replaces the transport path needed for ChatGPT to reach supported local semantic browser lanes. Browsallax still performs browser execution and local planning.
 
 No claim is made that this bridge is production hardened. Persistent deployment should add stable tunnel identity, token rotation, request replay protection, rate limiting, and connector-specific authentication.

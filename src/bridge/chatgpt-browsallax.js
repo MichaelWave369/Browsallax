@@ -12,7 +12,7 @@ const {
   DomistikaSemanticBridge
 } = require('./domistika');
 
-const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.5';
+const CHATGPT_BROWSALLAX_BRIDGE_VERSION = 'PV-CBR-0.6';
 const CHATGPT_BROWSALLAX_BRIDGE_SCHEMA = 'browsallax.chatgpt-bridge.v1';
 const DEFAULT_BRIDGE_HOST = '127.0.0.1';
 const DEFAULT_BRIDGE_PORT = 3698;

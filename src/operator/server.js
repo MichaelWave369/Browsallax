@@ -11,8 +11,27 @@ const { executePointerPath, normalizePointerPath } = require('./pointer-path');
 
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = 3697;
-const VERSION = 'PV-BOP-0.2';
+const VERSION = 'PV-BOP-0.3';
 const BODY_LIMIT = 1024 * 1024;
+const MAX_PAGE_ARTIFACT_BYTES = 2 * 1024 * 1024;
+const DOMISTIKA_CLEAN_ART_KIND = 'domistika-clean-art-png';
+const DOMISTIKA_CLEAN_ART_SCRIPT = `(() => {
+  const api = window.domistikaCleanCaptureV0920;
+  if (!api || typeof api.capture !== 'function') {
+    return { ok: false, error: 'DOMISTIKA_CLEAN_CAPTURE_UNAVAILABLE' };
+  }
+  try {
+    return {
+      ok: true,
+      payload: api.capture({ maxDimension: 2048, includeBackground: true })
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: String(error?.message || error || 'DOMISTIKA_CLEAN_CAPTURE_FAILED').slice(0, 300)
+    };
+  }
+})()`;
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -334,6 +353,90 @@ function startOperatorServer({ userDataPath, getTab, listTabs, navigateTab, getG
         await navigateTab(tab.id, targetUrl);
         const receipt = await ledger.append('NAVIGATION', { tabId: tab.id, url: targetUrl, authority });
         return json(res, 200, { ok: true, receipt });
+      }
+
+      if (req.method === 'POST' && url.pathname === '/v1/page-artifact') {
+        const body = await readJson(req);
+        const tab = requireTab(body.tabId);
+        const kind = String(body.kind || '').trim();
+        if (kind !== DOMISTIKA_CLEAN_ART_KIND) {
+          return json(res, 400, { ok: false, error: 'PAGE_ARTIFACT_KIND_NOT_ALLOWED' });
+        }
+
+        let target;
+        try {
+          target = new URL(tab.view.webContents.getURL());
+        } catch {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_TARGET_NOT_ALLOWED' });
+        }
+        if (target.origin !== 'https://michaelwave369.github.io' ||
+            !(target.pathname === '/Domistika/' || target.pathname.startsWith('/Domistika/'))) {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_TARGET_NOT_ALLOWED' });
+        }
+
+        const returned = await tab.view.webContents.executeJavaScript(DOMISTIKA_CLEAN_ART_SCRIPT, true);
+        if (!returned?.ok) {
+          return json(res, 409, {
+            ok: false,
+            error: String(returned?.error || 'PAGE_ARTIFACT_UNAVAILABLE').slice(0, 300)
+          });
+        }
+
+        const payload = returned.payload || {};
+        if (payload.schema !== 'domistika.clean-art-capture.v1' ||
+            payload.version !== '0.9.20' ||
+            payload.contentType !== 'image/png' ||
+            payload.encoding !== 'base64' ||
+            typeof payload.dataBase64 !== 'string') {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_CONTRACT_INVALID' });
+        }
+
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload.dataBase64) || payload.dataBase64.length % 4 !== 0) {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_BASE64_INVALID' });
+        }
+
+        const bytes = Buffer.from(payload.dataBase64, 'base64');
+        if (bytes.length <= 0 || bytes.length > MAX_PAGE_ARTIFACT_BYTES) {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_SIZE_INVALID' });
+        }
+
+        const width = Math.round(Number(payload.width));
+        const height = Math.round(Number(payload.height));
+        if (![width, height].every(Number.isFinite) ||
+            width < 1 || height < 1 || width > 2048 || height > 2048) {
+          return json(res, 409, { ok: false, error: 'PAGE_ARTIFACT_DIMENSIONS_INVALID' });
+        }
+
+        const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+        const receipt = await ledger.append('PAGE_ARTIFACT', {
+          tabId: tab.id,
+          url: tab.view.webContents.getURL(),
+          title: tab.title || tab.view.webContents.getTitle() || '',
+          kind,
+          schema: payload.schema,
+          sourceVersion: payload.version,
+          sha256,
+          bytes: bytes.length,
+          size: { width, height },
+          includeBackground: Boolean(payload.includeBackground)
+        });
+
+        return json(res, 200, {
+          ok: true,
+          artifact: {
+            kind,
+            schema: payload.schema,
+            sourceVersion: payload.version,
+            contentType: 'image/png',
+            encoding: 'base64',
+            sha256,
+            bytes: bytes.length,
+            size: { width, height },
+            includeBackground: Boolean(payload.includeBackground),
+            dataBase64: payload.dataBase64
+          },
+          receipt
+        });
       }
 
       if (req.method === 'POST' && url.pathname === '/v1/screenshot') {

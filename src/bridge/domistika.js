@@ -1,10 +1,12 @@
 const {
   DOMISTIKA_CAPTURE_VERSION,
   normalizeCaptureOptions,
-  boundedCaptureArtifact
+  boundedCaptureArtifact,
+  boundedPageArtifact
 } = require('./domistika-capture');
 
-const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.3';
+const DOMISTIKA_BRIDGE_VERSION = 'PV-CBR-DOM-0.4';
+const DOMISTIKA_CLEAN_ART_KIND = 'domistika-clean-art-png';
 const DEFAULT_DOMISTIKA_URL = 'https://michaelwave369.github.io/Domistika/';
 const DOMISTIKA_PATH_PREFIX = '/Domistika/';
 const DRAW_TOOLS = new Set(['pencil', 'ink', 'marker', 'airbrush', 'eraser']);
@@ -200,7 +202,12 @@ function domistikaCapabilities(snapshot = {}) {
       supported: Boolean(overlay),
       contentTypes: ['image/png'],
       inlineEncoding: 'base64',
-      scopes: ['viewport', 'canvas'],
+      scopes: ['viewport', 'canvas', 'artwork'],
+      cleanArtwork: {
+        kind: DOMISTIKA_CLEAN_ART_KIND,
+        sourceContract: 'domistika.clean-art-capture.v1',
+        requiredDomistikaVersion: '0.9.20'
+      },
       maxBytes: 2 * 1024 * 1024
     },
     canvas: overlay?.rect || null,
@@ -370,6 +377,46 @@ class DomistikaSemanticBridge {
     };
   }
 
+  async captureArtifact(tabId, snapshot, captureOptions, options = {}, { buildArtifact = true } = {}) {
+    if (captureOptions.scope === 'artwork') {
+      try {
+        const response = await this.client.pageArtifact(tabId, DOMISTIKA_CLEAN_ART_KIND, options);
+        return {
+          ok: true,
+          screenshot: null,
+          artifact: buildArtifact ? boundedPageArtifact(response, captureOptions) : null
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          error: String(error?.code || error?.message || 'DOMISTIKA_CLEAN_ART_CAPTURE_FAILED').slice(0, 300)
+        };
+      }
+    }
+
+    const overlay = elementBySelector(snapshot, '#overlay');
+    if (captureOptions.scope === 'canvas' && !overlay?.rect) {
+      return { ok: false, error: 'DOMISTIKA_CANVAS_BOUNDS_NOT_OBSERVED' };
+    }
+
+    try {
+      const screenshot = await this.client.screenshot(tabId, {
+        ...options,
+        clip: captureOptions.scope === 'canvas' ? overlay.rect : null
+      });
+      return {
+        ok: true,
+        screenshot,
+        artifact: buildArtifact ? boundedCaptureArtifact(screenshot, captureOptions) : null
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: String(error?.code || error?.message || 'DOMISTIKA_SCREENSHOT_CAPTURE_FAILED').slice(0, 300)
+      };
+    }
+  }
+
   async capture(captureInput = {}, options = {}) {
     const captureOptions = normalizeCaptureOptions(captureInput);
     const { tab, grant } = await this.resolve(options);
@@ -393,21 +440,17 @@ class DomistikaSemanticBridge {
         contract
       };
     }
-    const overlay = elementBySelector(snapshot, '#overlay');
-    if (captureOptions.scope === 'canvas' && !overlay?.rect) {
+    const captured = await this.captureArtifact(tab.id, snapshot, captureOptions, options);
+    if (!captured.ok) {
       return {
         disposition: 'FAILED',
-        reason: 'DOMISTIKA_CANVAS_BOUNDS_NOT_OBSERVED',
+        reason: captured.error || 'DOMISTIKA_CAPTURE_FAILED',
         tabId: tab.id,
         grant,
         contract
       };
     }
-    const screenshot = await this.client.screenshot(tab.id, {
-      ...options,
-      clip: captureOptions.scope === 'canvas' ? overlay.rect : null
-    });
-    const artifact = await boundedCaptureArtifact(screenshot, captureOptions);
+    const artifact = captured.artifact;
     return {
       disposition: 'CAPTURED',
       bridgeVersion: DOMISTIKA_BRIDGE_VERSION,
@@ -654,32 +697,34 @@ class DomistikaSemanticBridge {
 
     const critiqueObserved = await this.client.observe(tab.id, options);
     const critiqueSnapshot = critiqueObserved?.snapshot || {};
-    const critiqueOverlay = elementBySelector(critiqueSnapshot, '#overlay');
-    if (drawOptions.captureScope === 'canvas' && !critiqueOverlay?.rect) {
+    const captureOptions = {
+      sessionId: drawOptions.sessionId,
+      passName: drawOptions.passName,
+      includeImage: drawOptions.includeImage,
+      scope: drawOptions.captureScope
+    };
+
+    let screenshot = null;
+    let artifact = null;
+    const captured = await this.captureArtifact(
+      tab.id,
+      critiqueSnapshot,
+      captureOptions,
+      options,
+      { buildArtifact: drawOptions.returnCapture }
+    );
+    if (!captured.ok) {
       return {
         disposition: 'FAILED',
-        reason: 'DOMISTIKA_CANVAS_BOUNDS_NOT_OBSERVED',
+        reason: captured.error || 'DOMISTIKA_CAPTURE_FAILED',
         stage: 'CAPTURE',
         tabId: tab.id,
         grant,
         drawingCommitted: true
       };
     }
-
-    const screenshot = await this.client.screenshot(tab.id, {
-      ...options,
-      clip: drawOptions.captureScope === 'canvas' ? critiqueOverlay.rect : null
-    }).catch(() => null);
-
-    let artifact = null;
-    if (drawOptions.returnCapture && screenshot) {
-      artifact = await boundedCaptureArtifact(screenshot, {
-        sessionId: drawOptions.sessionId,
-        passName: drawOptions.passName,
-        includeImage: drawOptions.includeImage,
-        scope: drawOptions.captureScope
-      });
-    }
+    screenshot = captured.screenshot;
+    if (drawOptions.returnCapture) artifact = captured.artifact;
 
     if (recipe.saveToGallery) {
       const gallery = await this.saveGallery(tab.id, recipe, drawOptions.postSaveAction, options);
@@ -736,6 +781,7 @@ class DomistikaSemanticBridge {
 
 module.exports = {
   DOMISTIKA_BRIDGE_VERSION,
+  DOMISTIKA_CLEAN_ART_KIND,
   DEFAULT_DOMISTIKA_URL,
   DOMISTIKA_PATH_PREFIX,
   DRAW_TOOLS,

@@ -2,7 +2,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 
-const CLIENT_VERSION = 'PV-BOP-CLIENT-0.1';
+const CLIENT_VERSION = 'PV-BOP-CLIENT-0.2';
 const TERMINAL_TASK_STATES = new Set(['COMPLETE', 'FAILED', 'CANCELLED']);
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
 
@@ -41,7 +41,7 @@ function validateEndpoint(endpoint, sourcePath = null) {
   if (!LOOPBACK_HOSTS.has(host)) throw new Error('ENDPOINT_NOT_LOOPBACK');
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('INVALID_ENDPOINT_PORT');
   if (!token || token.length < 32) throw new Error('INVALID_ENDPOINT_TOKEN');
-  if (!/^PV-BOP-0\.[12]$/.test(version)) throw new Error('UNSUPPORTED_OPERATOR_VERSION');
+  if (!/^PV-BOP-0\.[123]$/.test(version)) throw new Error('UNSUPPORTED_OPERATOR_VERSION');
 
   return {
     schema: String(endpoint.schema || ''),
@@ -223,6 +223,10 @@ class BrowsallaxOperatorClient {
 
   screenshot(tabId, { clip = null, ...options } = {}) {
     return this.request('POST', '/v1/screenshot', { tabId, clip }, options);
+  }
+
+  pageArtifact(tabId, kind, options = {}) {
+    return this.request('POST', '/v1/page-artifact', { tabId, kind }, options);
   }
 
   navigate(tabId, url, options = {}) {

@@ -14,14 +14,14 @@ const TOKEN = 'a'.repeat(64);
 
 test('endpoint validation rejects any non-loopback host', () => {
   assert.throws(() => validateEndpoint({
-    version: 'PV-BOP-0.2',
+    version: 'PV-BOP-0.3',
     host: 'example.com',
     port: 3697,
     token: TOKEN
   }), /ENDPOINT_NOT_LOOPBACK/);
 
   const valid = validateEndpoint({
-    version: 'PV-BOP-0.2',
+    version: 'PV-BOP-0.3',
     host: '127.0.0.1',
     port: 3697,
     token: TOKEN
@@ -43,7 +43,7 @@ test('discoverEndpoint honors an explicit endpoint file', async () => {
   const file = path.join(dir, 'endpoint.json');
   await fs.writeFile(file, JSON.stringify({
     schema: 'browsallax.operator.endpoint.v1',
-    version: 'PV-BOP-0.2',
+    version: 'PV-BOP-0.3',
     host: '127.0.0.1',
     port: 3697,
     token: TOKEN
@@ -59,14 +59,14 @@ test('client descriptor never exposes bearer token and authenticated requests us
   const fetchImpl = async (url, options = {}) => {
     calls.push({ url: String(url), options });
     if (String(url).endsWith('/v1/health')) {
-      return new Response(JSON.stringify({ ok: true, version: 'PV-BOP-0.2' }), {
+      return new Response(JSON.stringify({ ok: true, version: 'PV-BOP-0.3' }), {
         status: 200,
         headers: { 'content-type': 'application/json' }
       });
     }
     if (String(url).endsWith('/v1/status')) {
       assert.equal(options.headers.authorization, `Bearer ${TOKEN}`);
-      return new Response(JSON.stringify({ ok: true, version: 'PV-BOP-0.2', tabs: [] }), {
+      return new Response(JSON.stringify({ ok: true, version: 'PV-BOP-0.3', tabs: [] }), {
         status: 200,
         headers: { 'content-type': 'application/json' }
       });
@@ -76,7 +76,7 @@ test('client descriptor never exposes bearer token and authenticated requests us
 
   const client = new BrowsallaxOperatorClient({
     endpoint: {
-      version: 'PV-BOP-0.2',
+      version: 'PV-BOP-0.3',
       host: '127.0.0.1',
       port: 3697,
       token: TOKEN,
@@ -98,7 +98,7 @@ test('screenshot request carries only the bounded optional clip', async () => {
   let seen = null;
   const client = new BrowsallaxOperatorClient({
     endpoint: {
-      version: 'PV-BOP-0.2',
+      version: 'PV-BOP-0.3',
       host: '127.0.0.1',
       port: 3697,
       token: TOKEN,
@@ -129,5 +129,45 @@ test('screenshot request carries only the bounded optional clip', async () => {
   assert.deepEqual(seen.body, {
     tabId: 7,
     clip: { x: 100, y: 120, width: 800, height: 800 }
+  });
+});
+
+
+test('page artifact request carries only tab and fixed artifact kind', async () => {
+  let seen = null;
+  const client = new BrowsallaxOperatorClient({
+    endpoint: {
+      version: 'PV-BOP-0.3',
+      host: '127.0.0.1',
+      port: 3697,
+      token: TOKEN,
+      sourcePath: '/tmp/endpoint.json'
+    },
+    fetchImpl: async (url, options = {}) => {
+      seen = { url: String(url), body: JSON.parse(options.body || '{}') };
+      return new Response(JSON.stringify({
+        ok: true,
+        artifact: {
+          kind: 'domistika-clean-art-png',
+          contentType: 'image/png',
+          encoding: 'base64',
+          sha256: 'a'.repeat(64),
+          bytes: 3,
+          size: { width: 1, height: 1 },
+          dataBase64: 'YWJj'
+        }
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+  });
+
+  await client.pageArtifact(7, 'domistika-clean-art-png');
+
+  assert.ok(seen.url.endsWith('/v1/page-artifact'));
+  assert.deepEqual(seen.body, {
+    tabId: 7,
+    kind: 'domistika-clean-art-png'
   });
 });

@@ -1,16 +1,16 @@
 # ChatGPT ↔ Browsallax ↔ Domistika Bridge
 
-**Contract:** `PV-CBR-DOM-0.3`  
-**Parent bridge:** `PV-CBR-0.5`
+**Contract:** `PV-CBR-DOM-0.4`  
+**Parent bridge:** `PV-CBR-0.6`
 
 This lane lets a connected ChatGPT surface ask the user's local Browsallax stack to make a bounded drawing inside an already-open Domistika tab without using a paid remote browser.
 
 ```text
 ChatGPT
    ↓ semantic request only
-PV-CBR-0.5 / GitHub mailbox / relay
+PV-CBR-0.6 / GitHub mailbox / relay
    ↓
-PV-CBR-DOM-0.3
+PV-CBR-DOM-0.4
    ↓ exact Domistika path lock
 Browsallax Browser Operator
    ↓ governed form/click/pointer input
@@ -82,7 +82,8 @@ Capture may carry bounded `sessionId` and `passName` identifiers so a caller can
 `scope` controls the returned image:
 
 - `viewport` (default) captures the full Domistika tab;
-- `canvas` captures only the currently observed `#overlay` bounds.
+- `canvas` captures only the currently observed `#overlay` bounds;
+- `artwork` returns Domistika's clean composited PNG from `domistika.clean-art-capture.v1`, excluding Studio chrome and overlay guides.
 
 Canvas scope is resolved from the live observed Domistika canvas. Callers cannot supply arbitrary crop coordinates through the semantic bridge.
 
@@ -99,7 +100,7 @@ Executes one bounded drawing recipe. A recipe may:
 - optionally save the finished canvas to the local Domistika Gallery;
 - capture a governed screenshot receipt;
 - optionally return the actual digest-verified PNG using `returnCapture: true` plus bounded `sessionId` / `passName` metadata;
-- choose `captureScope: "viewport" | "canvas"`;
+- choose `captureScope: "viewport" | "canvas" | "artwork"`;
 - use `postSaveAction: "return-to-studio"` so a final Gallery archive does not strand the critic loop in Gallery.
 
 Coordinates are normalized to the observed canvas:
