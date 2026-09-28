@@ -1,0 +1,85 @@
+{
+  "schema": "browsallax.live-acceptance.v1",
+  "id": "Browsallax-Live-Acceptance-006-2026-09-28",
+  "title": "Domistika Closed-Loop Visual Critic",
+  "date": "2026-09-28",
+  "result": "PASS",
+  "environment": {
+    "browsallax": "0.5.0-alpha.9",
+    "chatgptBridge": "PV-CBR-0.5",
+    "githubBridge": "PV-CBR-GH-0.4",
+    "domistikaBridge": "PV-CBR-DOM-0.3",
+    "captureContract": "PV-CBR-DOM-CAP-0.2",
+    "operator": "PV-BOP-0.2",
+    "target": "https://michaelwave369.github.io/Domistika/"
+  },
+  "session": {
+    "sessionId": "acceptance-006-nbg",
+    "projectName": "NBG Closed-Loop Acceptance 006",
+    "captureScope": "canvas"
+  },
+  "passes": [
+    {
+      "name": "pass-1-shell",
+      "intent": "Create an orange kaleidoscopic outer gear/membrane on a fresh 1200x1200 canvas.",
+      "artifactSha256": "1b6ce8e79cf6e2eb3b53dae629acad95b93b975c36d0754bc3711166b43852eb",
+      "artifactSize": {
+        "width": 869,
+        "height": 869
+      },
+      "artifactBytes": 281030,
+      "observedDecision": "The outer shell had strong motion and an intentionally open center, so the next pass was tightened instead of reusing the older dense vortex."
+    },
+    {
+      "name": "pass-2-vortex",
+      "intent": "Add a compact dark-blue rotational field inside the orange shell.",
+      "artifactSha256": "f20239fb40c62f786899082e214f6697e7ff0e5a86e8a614aa0185a5b51b7ee2",
+      "artifactSize": {
+        "width": 869,
+        "height": 869
+      },
+      "artifactBytes": 341090,
+      "observedDecision": "The vortex remained contained and readable, leaving a visible interface gap between rotational core and outer membrane."
+    },
+    {
+      "name": "pass-3-interface-bubbles",
+      "intent": "Add twelve thin purple bubble bearings at the core/shell interface.",
+      "artifactSha256": "71547db6e88e371efd9da8ace7c01d5c4e3ba639021e171672701a7c9fb5ec9f",
+      "artifactSize": {
+        "width": 869,
+        "height": 869
+      },
+      "artifactBytes": 368716,
+      "observedDecision": "The interface became explicit and the center remained visually under-weighted, motivating a small unsymmetrized final core."
+    },
+    {
+      "name": "pass-4-final-core-archive",
+      "intent": "Add a small teal center core, archive to local Domistika Gallery, and return to Studio.",
+      "artifactSha256": "43ebb33f11cfb98b3834542ee0754ca051bcc366ceada5658f04d9ef0523c272",
+      "artifactSize": {
+        "width": 869,
+        "height": 869
+      },
+      "artifactBytes": 345433,
+      "savedToGallery": true,
+      "postSaveAction": "return-to-studio",
+      "finalContract": {
+        "ok": true,
+        "version": "PV-CBR-DOM-0.3",
+        "missing": [],
+        "stickyDraw": true,
+        "polyline": true,
+        "canvasObserved": true
+      }
+    }
+  ],
+  "verified": [
+    "GitHub mailbox agent processed requests on PV-CBR-GH-0.4.",
+    "Domistika exact-tab status was READY with an active human interactive grant.",
+    "Each draw returned a digest-identified canvas-scope PNG.",
+    "Later drawing passes were changed from direct visual inspection of earlier returned pixels.",
+    "Final pass saved to the local Domistika Gallery.",
+    "postSaveAction=return-to-studio restored a valid Domistika Studio contract."
+  ],
+  "observation": "Canvas-scope screenshots can still include symmetry guides or floating controls that visually overlap the canvas region. The next fidelity rung should expose a clean composite-art capture with no Studio chrome."
+}
