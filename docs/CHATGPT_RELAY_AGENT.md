@@ -1,15 +1,15 @@
 # Outbound ChatGPT Relay Agent
 
-**Contract:** `PV-CBR-AGENT-0.1`
+**Contract:** `PV-CBR-AGENT-0.2`
 
-This process connects the user's local `PV-CBR-0.2` bridge to the transport-only public relay without exposing an inbound port.
+This process connects the user's local `PV-CBR-0.3` bridge to the transport-only public relay without exposing an inbound port.
 
 ```text
 ChatGPT connector
       ↓
 HTTPS relay
       ↑ outbound polling only
-PV-CBR-AGENT-0.1
+PV-CBR-AGENT-0.2
       ↓
 PV-CBR-0.2
       ↓
@@ -26,6 +26,9 @@ The agent has a hardcoded allowlist:
 - `vessie.observe`
 - `vessie.ask`
 - `vessie.resume`
+- `domistika.status`
+- `domistika.observe`
+- `domistika.draw`
 
 Unknown relay operations are returned as errors and are never dispatched to the local bridge.
 
@@ -51,7 +54,7 @@ The relay agent cannot:
 - execute shell commands;
 - call arbitrary Browser Operator endpoints.
 
-`vessie.ask` still requires the normal active Browsallax interactive grant. If the grant is absent, the result returned through the relay is `HELD`.
+`vessie.ask` and `domistika.draw` still require the normal active Browsallax interactive grant. If the grant is absent, the result returned through the relay is `HELD`.
 
 ## Secrets
 
