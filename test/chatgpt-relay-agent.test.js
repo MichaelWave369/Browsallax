@@ -22,7 +22,10 @@ function fakeBridge() {
     status: async () => { calls.push(['status']); return { kind: 'BRIDGE_STATUS' }; },
     observeVessie: async () => { calls.push(['observe']); return { kind: 'VESSIE_OBSERVATION' }; },
     askVessie: async (message) => { calls.push(['ask', message]); return { kind: 'VESSIE_ASK_RESULT', message }; },
-    resumeVessie: async (taskId) => { calls.push(['resume', taskId]); return { kind: 'VESSIE_RESUME_RESULT', taskId }; }
+    resumeVessie: async (taskId) => { calls.push(['resume', taskId]); return { kind: 'VESSIE_RESUME_RESULT', taskId }; },
+    domistikaStatus: async () => { calls.push(['dom-status']); return { kind: 'DOMISTIKA_STATUS' }; },
+    observeDomistika: async () => { calls.push(['dom-observe']); return { kind: 'DOMISTIKA_OBSERVATION' }; },
+    drawDomistika: async (recipe) => { calls.push(['dom-draw', recipe]); return { kind: 'DOMISTIKA_DRAW_RESULT', recipe }; }
   };
 }
 
@@ -56,6 +59,10 @@ test('execute maps only allowed relay operations to bridge methods', async () =>
 
   await agent.execute({ operation: 'vessie.ask', payload: { message: 'hello' } });
   assert.deepEqual(bridge.calls, [['ask', 'hello']]);
+
+  const recipe = { mode: 'sticky', points: [{ x: 0.1, y: 0.1 }, { x: 0.9, y: 0.9 }] };
+  await agent.execute({ operation: 'domistika.draw', payload: { recipe } });
+  assert.deepEqual(bridge.calls.at(-1), ['dom-draw', recipe]);
 
   await assert.rejects(
     agent.execute({ operation: 'shell.exec', payload: { command: 'whoami' } }),
