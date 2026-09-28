@@ -12,11 +12,11 @@ Netlify relay + short-lived Blob queue
       ↑ outbound polling
 PV-CBR-AGENT-0.3 on the user's machine
       ↓
-PV-CBR-0.1
+PV-CBR-0.4
       ↓
 Browsallax
-      ↓
-Vessie
+      ├── Vessie
+      └── Domistika
 ```
 
 The user's PC opens no inbound port.
