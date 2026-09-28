@@ -13,7 +13,7 @@ private mailbox repository
    ↑ git polling + response commits
 PV-CBR-GH-0.3 local agent
    ↓
-PV-CBR-0.2
+PV-CBR-0.4
    ↓
 Browsallax Browser Operator
    ↓
@@ -145,7 +145,7 @@ The bootstrap:
 1. verifies the local Browser Operator;
 2. clones the private mailbox to the current user's application-data directory if needed;
 3. validates the GitHub origin;
-4. starts `PV-CBR-GH-0.1`;
+4. starts `PV-CBR-GH-0.3`;
 5. polls for bounded request files.
 
 The default local mailbox is outside the Browsallax source checkout:
