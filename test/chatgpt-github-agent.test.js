@@ -74,7 +74,7 @@ class FakeMailbox {
 }
 
 test('GitHub compatibility bridge exposes only bounded semantic operations', () => {
-  assert.equal(CHATGPT_GITHUB_AGENT_VERSION, 'PV-CBR-GH-0.3');
+  assert.equal(CHATGPT_GITHUB_AGENT_VERSION, 'PV-CBR-GH-0.4');
   assert.deepEqual([...ALLOWED_OPERATIONS], [
     'bridge.status',
     'vessie.observe',
@@ -121,7 +121,9 @@ test('request contract is strict and bounded', () => {
       },
       sessionId: 'session-1',
       passName: 'pass-1',
-      returnCapture: true
+      returnCapture: true,
+      captureScope: 'canvas',
+      postSaveAction: 'return-to-studio'
     }
   }));
   assert.equal(draw.payload.recipe.mode, 'polyline');
@@ -129,13 +131,16 @@ test('request contract is strict and bounded', () => {
   assert.equal(draw.payload.sessionId, 'session-1');
   assert.equal(draw.payload.passName, 'pass-1');
   assert.equal(draw.payload.returnCapture, true);
+  assert.equal(draw.payload.captureScope, 'canvas');
+  assert.equal(draw.payload.postSaveAction, 'return-to-studio');
 
   const capture = normalizeRequest(request({
     id: 'req-domistika-cap-001',
     operation: 'domistika.capture',
-    payload: { sessionId: 'session-1', passName: 'inspect-1' }
+    payload: { sessionId: 'session-1', passName: 'inspect-1', scope: 'canvas' }
   }));
   assert.equal(capture.payload.includeImage, true);
+  assert.equal(capture.payload.scope, 'canvas');
 
   assert.throws(
     () => normalizeRequest(request({
