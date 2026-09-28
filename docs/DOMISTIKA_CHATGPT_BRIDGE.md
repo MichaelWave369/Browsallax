@@ -1,16 +1,16 @@
 # ChatGPT ↔ Browsallax ↔ Domistika Bridge
 
-**Contract:** `PV-CBR-DOM-0.3`  
-**Parent bridge:** `PV-CBR-0.5`
+**Contract:** `PV-CBR-DOM-0.4`  
+**Parent bridge:** `PV-CBR-0.6`
 
 This lane lets a connected ChatGPT surface ask the user's local Browsallax stack to make a bounded drawing inside an already-open Domistika tab without using a paid remote browser.
 
 ```text
 ChatGPT
    ↓ semantic request only
-PV-CBR-0.5 / GitHub mailbox / relay
+PV-CBR-0.6 / GitHub mailbox / relay
    ↓
-PV-CBR-DOM-0.3
+PV-CBR-DOM-0.4
    ↓ exact Domistika path lock
 Browsallax Browser Operator
    ↓ governed form/click/pointer input
