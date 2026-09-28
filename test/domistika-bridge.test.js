@@ -13,7 +13,7 @@ const {
 } = require('../src/bridge/domistika');
 
 test('Domistika bridge locks to the configured GitHub Pages path', () => {
-  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.3');
+  assert.equal(DOMISTIKA_BRIDGE_VERSION, 'PV-CBR-DOM-0.4');
   assert.equal(isDomistikaUrl(DEFAULT_DOMISTIKA_URL), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/Domistika/#gallery'), true);
   assert.equal(isDomistikaUrl('https://michaelwave369.github.io/OtherApp/'), false);
@@ -137,6 +137,26 @@ test('semantic draw uses observed controls and one governed pointer path', async
         ok: true,
         screenshot: { filePath: 'C:/private/capture.png', sha256: 'a'.repeat(64), bytes: 1234, size: { width: 800, height: 800 } }
       };
+    },
+    pageArtifact: async (tabId, kind) => {
+      calls.push(['pageArtifact', tabId, kind]);
+      const bytes = Buffer.from('clean-art');
+      const crypto = require('node:crypto');
+      return {
+        ok: true,
+        artifact: {
+          kind,
+          schema: 'domistika.clean-art-capture.v1',
+          sourceVersion: '0.9.20',
+          contentType: 'image/png',
+          encoding: 'base64',
+          sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+          bytes: bytes.length,
+          size: { width: 1200, height: 1200 },
+          includeBackground: true,
+          dataBase64: bytes.toString('base64')
+        }
+      };
     }
   };
 
@@ -169,13 +189,14 @@ test('semantic draw uses observed controls and one governed pointer path', async
 test('capabilities expose observed controls separately from allowed bridge modes', () => {
   const snapshot = domistikaSnapshot();
   const caps = domistikaCapabilities(snapshot);
-  assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.3');
+  assert.equal(caps.bridgeVersion, 'PV-CBR-DOM-0.4');
   assert.ok(caps.tools.includes('marker'));
   assert.deepEqual(caps.drawModes, ['sticky', 'polyline']);
   assert.deepEqual(caps.observedSymmetryModes, ['none', 'radial-12', 'kaleido-12']);
   assert.ok(caps.allowedSymmetryModes.includes('kaleido-12'));
   assert.equal(caps.capture.supported, true);
-  assert.deepEqual(caps.capture.scopes, ['viewport', 'canvas']);
+  assert.deepEqual(caps.capture.scopes, ['viewport', 'canvas', 'artwork']);
+  assert.equal(caps.capture.cleanArtwork.requiredDomistikaVersion, '0.9.20');
   assert.equal(caps.maxPointsPerPass, 512);
 });
 
@@ -197,4 +218,54 @@ test('draw options carry session/pass identity and visual return intent', () => 
   assert.throws(() => normalizeDrawOptions({ rawSelector: '#overlay' }), /DOMISTIKA_DRAW_OPTIONS_INVALID/);
   assert.throws(() => normalizeDrawOptions({ captureScope: 'selector' }), /DOMISTIKA_CAPTURE_SCOPE_INVALID/);
   assert.throws(() => normalizeDrawOptions({ postSaveAction: 'navigate-anywhere' }), /DOMISTIKA_POST_SAVE_ACTION_INVALID/);
+});
+
+
+test('clean artwork capture bypasses UI screenshot and returns composited artifact', async () => {
+  const calls = [];
+  const crypto = require('node:crypto');
+  const bytes = Buffer.from('clean-art');
+  const client = {
+    status: async () => ({
+      ok: true,
+      grant: null,
+      tabs: [{ id: 7, url: DEFAULT_DOMISTIKA_URL, active: true }]
+    }),
+    observe: async () => ({ ok: true, snapshot: domistikaSnapshot() }),
+    pageArtifact: async (tabId, kind) => {
+      calls.push(['pageArtifact', tabId, kind]);
+      return {
+        ok: true,
+        artifact: {
+          kind,
+          schema: 'domistika.clean-art-capture.v1',
+          sourceVersion: '0.9.20',
+          contentType: 'image/png',
+          encoding: 'base64',
+          sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+          bytes: bytes.length,
+          size: { width: 1200, height: 1200 },
+          includeBackground: true,
+          dataBase64: bytes.toString('base64')
+        }
+      };
+    },
+    screenshot: async () => {
+      throw new Error('screenshot should not be used for artwork scope');
+    }
+  };
+
+  const { DomistikaSemanticBridge } = require('../src/bridge/domistika');
+  const bridge = new DomistikaSemanticBridge(client);
+  const result = await bridge.capture({
+    sessionId: 'critic',
+    passName: 'clean',
+    scope: 'artwork',
+    includeImage: true
+  });
+
+  assert.equal(result.disposition, 'CAPTURED');
+  assert.equal(result.artifact.scope, 'artwork');
+  assert.equal(result.artifact.size.width, 1200);
+  assert.deepEqual(calls[0], ['pageArtifact', 7, 'domistika-clean-art-png']);
 });
