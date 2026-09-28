@@ -136,6 +136,10 @@ paths:
                 sessionId: { type: string, maxLength: 120 }
                 passName: { type: string, maxLength: 120 }
                 includeImage: { type: boolean, default: true }
+                scope:
+                  type: string
+                  enum: [viewport, canvas]
+                  default: viewport
       responses:
         "200":
           description: Digest-verified Domistika PNG artifact
@@ -163,6 +167,14 @@ paths:
                 passName: { type: string, maxLength: 120 }
                 returnCapture: { type: boolean, default: false }
                 includeImage: { type: boolean, default: true }
+                captureScope:
+                  type: string
+                  enum: [viewport, canvas]
+                  default: viewport
+                postSaveAction:
+                  type: string
+                  enum: [stay, return-to-studio]
+                  default: stay
       responses:
         "200":
           description: Domistika draw result, including HELD when no human interactive grant is active
