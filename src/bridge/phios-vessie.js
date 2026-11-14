@@ -180,6 +180,13 @@ class PhiBrowserBridge {
     let navigation = null;
     if (spec.url) {
       navigation = await this.client.navigate(spec.tabId, spec.url, options);
+      // A rejected or unconfirmed initial navigation must never start a task on the old tab.
+      // Only the local Operator can confirm navigation success.
+      if (navigation?.ok !== true) {
+        const error = new Error('BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED');
+        error.code = 'BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED';
+        throw error;
+      }
     }
     const taskSpec = { ...spec };
     delete taskSpec.url;
@@ -207,6 +214,13 @@ class PhiBrowserBridge {
     let navigation = null;
     if (spec.url) {
       navigation = await this.client.navigate(spec.tabId, spec.url, options);
+      // A rejected or unconfirmed initial navigation must never start a task on the old tab.
+      // Only the local Operator can confirm navigation success.
+      if (navigation?.ok !== true) {
+        const error = new Error('BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED');
+        error.code = 'BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED';
+        throw error;
+      }
     }
     const taskSpec = { ...spec };
     delete taskSpec.url;
