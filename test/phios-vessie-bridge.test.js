@@ -232,3 +232,66 @@ test('bridge rejects an unrecognized planner registry schema instead of passing 
     /PLANNER_REGISTRY_HINT_SCHEMA_INVALID/
   );
 });
+
+
+test('submitTask fails closed if starting navigation is unsuccessful or unconfirmed', async () => {
+  for (const navigation of [
+    { ok: false, status: 'HELD' },
+    { ok: false, error: 'NAVIGATION_FAILED' },
+    {},
+    undefined
+  ]) {
+    let created = 0;
+    const bridge = new PhiBrowserBridge({
+      navigate: async () => navigation,
+      createTask: async () => {
+        created += 1;
+        return { task: completeTask() };
+      }
+    });
+    await assert.rejects(
+      () => bridge.submitTask({
+        tabId: 1,
+        url: 'https://example.org/',
+        goal: 'Research the target page'
+      }),
+      /BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED/
+    );
+    assert.equal(created, 0, 'a task must not start on an old page');
+  }
+});
+
+test('runTask fails closed if starting navigation is unsuccessful or unconfirmed', async () => {
+  let runs = 0;
+  const bridge = new PhiBrowserBridge({
+    navigate: async () => ({ ok: false, error: 'NAVIGATION_FAILED' }),
+    runTask: async () => {
+      runs += 1;
+      return completeTask();
+    }
+  });
+  await assert.rejects(
+    () => bridge.runTask({
+      tabId: 1,
+      url: 'https://example.org/',
+      goal: 'Read the intended page'
+    }),
+    /BRIDGE_STARTING_NAVIGATION_NOT_CONFIRMED/
+  );
+  assert.equal(runs, 0);
+});
+
+test('task submission without starting navigation is unchanged', async () => {
+  let created = 0;
+  const bridge = new PhiBrowserBridge({
+    navigate: async () => { throw new Error('unexpected navigation'); },
+    createTask: async (spec) => {
+      created += 1;
+      assert.equal(spec.goal, 'Inspect current page');
+      return { task: { ...completeTask(), status: 'QUEUED', result: null } };
+    }
+  });
+  const result = await bridge.submitTask({ tabId: 1, goal: 'Inspect current page' });
+  assert.equal(result.payload.disposition, 'IN_PROGRESS');
+  assert.equal(created, 1);
+});
