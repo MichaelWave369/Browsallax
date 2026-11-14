@@ -6,11 +6,8 @@ const TOOLS = [
   { id: 'workspaces', label: 'Workspaces', mark: 'W', kind: 'internal', view: 'workspaces', note: 'Saved links by project' },
   { id: 'lwg', label: 'LWG Living Studio', mark: '▤', kind: 'external', url: 'https://michaelwave369.github.io/LWG/', note: 'Build living websites in Design, Code, Split and Live views' },
   { id: 'phioffice', label: 'PhiOffice369', mark: 'Φ', kind: 'external', url: 'https://michaelwave369.github.io/phioffice369/', note: 'Free local-first productivity suite' },
-  { id: 'field', label: 'Enter the Field', mark: '◎', kind: 'external', url: 'https://www.enterthefield.org/network/?entry=card', note: 'More free tools and projects' },
   { id: 'source', label: 'Browsallax Source', mark: '<>', kind: 'external', url: 'https://github.com/MichaelWave369/Browsallax', note: 'MIT source and roadmap' }
 ];
-
-const FIELD_PRODUCTS_URL = 'https://field-supply-369.netlify.app/';
 
 export default function ToolsDock({ currentView, onNavigate, openExternal }) {
   const [open, setOpen] = useState(true);
@@ -40,19 +37,6 @@ export default function ToolsDock({ currentView, onNavigate, openExternal }) {
             </button>
           ))}
 
-          <p className="eyebrow" style={{ margin: '14px 10px 6px', fontSize: '.62rem' }}>FIELD PRODUCTS · PAID</p>
-          <button
-            className="tool-dock-item"
-            onClick={() => openExternal(FIELD_PRODUCTS_URL)}
-            aria-label="Open Field Supply paid products"
-          >
-            <span className="tool-mark">$</span>
-            <span className="tool-copy">
-              <strong>Field Supply</strong>
-              <small>RackMap and other paid field products</small>
-            </span>
-            <span className="tool-arrow">↗</span>
-          </button>
         </div>
       )}
     </aside>

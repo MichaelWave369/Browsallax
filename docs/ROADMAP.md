@@ -53,7 +53,7 @@ Browsallax is intentionally developed in small, reviewable rungs. Completed work
 - [x] GitHub Pages deployment
 - [x] Research Mode
 - [x] persistent Free Tools Dock
-- [x] separate paid-products link to Field Supply
+- [x] free-only launcher and dock without paid product promotion
 - [ ] IndexedDB-backed durable data store
 - [ ] schema-versioned migrations
 - [ ] import/restore flow
@@ -148,16 +148,11 @@ See [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md) and [THREAT_MODEL.md](THR
 
 - [x] Free Tools Dock
 - [x] PhiOffice369 launcher
-- [x] Enter the Field launcher
+- [x] LWG Living Studio launcher
+- [x] Browsallax source launcher
 - [ ] extensible tool manifest
 - [ ] optional user-added tool links
 - [ ] tighter integrations with stable public free tools
-
-## Field products
-
-- [x] Field Supply discovery link
-- [x] RackMap remains outside the Free Tools classification
-- [ ] optional richer product cards without mixing free and paid categories
 
 ## Documentation and contributor experience
 
