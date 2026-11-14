@@ -7,6 +7,7 @@ Browsallax is intentionally developed in small, reviewable rungs. Completed work
 ### 1. Repair the Super Φ.Vessel browser-intent handoff
 
 - explicit browser work should route directly to the trusted Browsallax task lane;
+- exact Vessie GitHub Pages cockpit document trust should not authorize sibling GitHub Pages apps;
 - Brain Registry routing may propose a planner;
 - Browsallax remains responsible for local inventory verification and browser authority;
 - normal provider completion should not be a prerequisite for starting an explicit governed browser task;

@@ -8,6 +8,13 @@ const DEFAULT_TRUSTED_ORIGINS = Object.freeze([
   'https://superphivessel.netlify.app'
 ]);
 
+// GitHub Pages shares an origin across unrelated repositories. Only this exact
+// static cockpit document is trusted, never the whole github.io account origin.
+const DEFAULT_TRUSTED_PAGE_DOCUMENTS = Object.freeze([
+  'https://michaelwave369.github.io/SuperPhiVessel/vessie/',
+  'https://michaelwave369.github.io/SuperPhiVessel/vessie/index.html'
+]);
+
 function normalizeOrigin(value) {
   try {
     const url = new URL(String(value || ''));
@@ -27,8 +34,19 @@ function trustedOrigins(env = process.env) {
 }
 
 function isTrustedPageUrl(rawUrl, env = process.env) {
-  const origin = normalizeOrigin(rawUrl);
-  return Boolean(origin && trustedOrigins(env).has(origin));
+  try {
+    const url = new URL(String(rawUrl || ''));
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+    if (trustedOrigins(env).has(url.origin)) return true;
+    // Compare normalized origin + exact pathname, excluding query and fragment.
+    // No prefix checks: other GitHub Pages apps must not inherit browser authority.
+    return DEFAULT_TRUSTED_PAGE_DOCUMENTS.some((documentUrl) => {
+      const trusted = new URL(documentUrl);
+      return url.origin === trusted.origin && url.pathname === trusted.pathname;
+    });
+  } catch {
+    return false;
+  }
 }
 
 function callerOrigin(rawUrl) {
@@ -98,6 +116,7 @@ function publicPageBridgeManifest() {
       dedicatedTaskTabOnly: true
     },
     trustedOrigins: [...DEFAULT_TRUSTED_ORIGINS],
+    trustedPageDocuments: [...DEFAULT_TRUSTED_PAGE_DOCUMENTS],
     plannerRegistryHints: {
       supported: true,
       version: BRAIN_REGISTRY_ROUTER_VERSION
@@ -121,6 +140,7 @@ function publicPageBridgeManifest() {
 module.exports = {
   TRUSTED_PAGE_BRIDGE_VERSION,
   DEFAULT_TRUSTED_ORIGINS,
+  DEFAULT_TRUSTED_PAGE_DOCUMENTS,
   normalizeOrigin,
   trustedOrigins,
   isTrustedPageUrl,

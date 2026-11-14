@@ -127,3 +127,34 @@ test('initial acceptance short-circuit requires an actual acceptance assertion',
   });
   assert.equal(spec.completeOnInitialAcceptance, false);
 });
+
+test('Vessie GitHub Pages cockpit has exact-document trust, not github.io origin trust', () => {
+  assert.equal(isTrustedPageUrl('https://michaelwave369.github.io/SuperPhiVessel/vessie/'), true);
+  assert.equal(isTrustedPageUrl('https://michaelwave369.github.io/SuperPhiVessel/vessie/index.html'), true);
+  assert.equal(isTrustedPageUrl('https://michaelwave369.github.io/SuperPhiVessel/vessie/?view=browser#task'), true);
+  for (const url of [
+    'https://michaelwave369.github.io/',
+    'https://michaelwave369.github.io/Browsallax/',
+    'https://michaelwave369.github.io/SuperPhiVessel/',
+    'https://michaelwave369.github.io/SuperPhiVessel/vessie/fake',
+    'https://michaelwave369.github.io/SuperPhiVessel/vessie.evil/',
+    'https://michaelwave369.github.io/SuperPhiVessel/vessie/evil/index.html',
+    'http://michaelwave369.github.io/SuperPhiVessel/vessie/',
+    'https://michaelwave369.github.io.evil.example/SuperPhiVessel/vessie/',
+    'https://superphivessel.netlify.app.evil.example/'
+  ]) {
+    assert.equal(isTrustedPageUrl(url), false, url);
+  }
+  // The shared origin must remain absent from unconditional trusted origins.
+  assert.equal(trustedOrigins().has('https://michaelwave369.github.io'), false);
+});
+
+test('path-restricted trust is reflected in the public manifest without broadening origins', () => {
+  const manifest = publicPageBridgeManifest();
+  assert.deepEqual(manifest.trustedPageDocuments, [
+    'https://michaelwave369.github.io/SuperPhiVessel/vessie/',
+    'https://michaelwave369.github.io/SuperPhiVessel/vessie/index.html'
+  ]);
+  assert.equal(manifest.trustedOrigins.includes('https://michaelwave369.github.io'), false);
+  assert.equal(manifest.authority.pageCanGrantAuthority, false);
+});
