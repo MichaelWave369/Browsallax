@@ -2,14 +2,15 @@
 
 **A free browser for humans, machines, and everything in between.**
 
-Browsallax is an MIT-licensed, local-first browser project with two complementary editions:
+Browsallax is an MIT-licensed, local-first browser project with three complementary editions:
 
 - **Browsallax Desktop** — Chromium/Electron with real tabs, browser permissions, Reality Ledger capture, a governed local Browser Operator, local Ollama planning, and a bounded Super Φ.Vessel / Brain Registry bridge.
 - **Browsallax Web** — a zero-install React/PWA companion with search/launch, local workspaces, Research Mode, a persistent Free Tools Dock, and a browser-local Reality Ledger.
+- **Browsallax Cloud (experimental)** — hosted on-demand Chromium for governed public-page research without any local PC or agent, using a private GitHub Actions mailbox; persistent HTTPS MCP hosting is planned.
 
 The goal is not to invent another rendering engine. The goal is to build transparent browser tooling around the web with stronger privacy boundaries, local intelligence, explicit authority, evidence capture, and an open ecosystem of useful tools.
 
-> **Current status:** Desktop `0.5.0-alpha.10`; Web `0.2.0-alpha.1`. Both are alpha software.
+> **Current status:** Desktop `0.5.0-alpha.10`; Web `0.2.0-alpha.1`; Cloud `0.1.0` experimental. Cloud Chromium has passed a real GitHub-hosted public-page smoke test; the private mailbox round trip is still pending acceptance.
 
 ## Try it
 
@@ -54,11 +55,17 @@ npm run accept:nasa-registry
 npm run accept:registry-fail-closed
 ```
 
+## Cloud: no local steps
+
+Browsallax Cloud does not need Desktop or Ollama running on the user's machine. It currently supports ephemeral, read-only public HTTPS navigation and evidence extraction through a GitHub Actions on-demand worker. See [Cloud overview](cloud/README.md) and [GitHub Actions transport](cloud/docs/GITHUB_ACTIONS_ON_DEMAND.md). The cloud bridge uses its own browser session, never the user's desktop cookies or logged-in tabs. Do not treat it as general website mutation capability.
+
 ## Project status
 
 | Area | Status |
 |---|---|
 | Web/PWA shell | **Available · alpha** |
+| Cloud hosted Chromium | **Experimental · public-page smoke passed** |
+| ChatGPT ↔ Cloud GitHub mailbox | **Integration pending live acceptance** |
 | Research Mode | **Working** |
 | Browser-local Reality Ledger | **Working** |
 | Desktop Chromium browser | **Alpha** |
