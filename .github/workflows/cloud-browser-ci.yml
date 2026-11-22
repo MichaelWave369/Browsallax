@@ -29,3 +29,28 @@ jobs:
         run: npm run check
       - name: Cloud policy tests
         run: npm test
+  cloud-chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+    env:
+      BROWSALLAX_CLOUD_ALLOWED_HOSTS: example.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cloud deps
+        run: npm install --prefix cloud --omit=dev --no-audit --no-fund
+      - name: Launch hosted Chromium against public test page
+        run: |
+          node --input-type=module <<'NODE'
+          import { BrowsallaxCloudBrowser } from './cloud/src/browser.js';
+          const b = new BrowsallaxCloudBrowser();
+          try {
+            const result = await b.open('https://example.com/');
+            if (result.url !== 'https://example.com/') throw new Error('WRONG_FINAL_URL');
+            if (!result.text.includes('Example Domain')) throw new Error('EXAMPLE_CONTENT_MISSING');
+            console.log(JSON.stringify({ ok: true, url: result.url, title: result.title, chars: result.text.length }));
+          } finally {
+            await b.reset();
+          }
+          NODE
