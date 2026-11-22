@@ -1,0 +1,56 @@
+name: Browsallax Cloud CI
+on:
+  pull_request:
+    paths:
+      - 'cloud/**'
+      - 'railway.json'
+      - '.github/workflows/cloud-browser-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cloud/**'
+      - 'railway.json'
+      - '.github/workflows/cloud-browser-ci.yml'
+jobs:
+  cloud-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install cloud dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check
+      - name: Cloud policy tests
+        run: npm test
+  cloud-chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+    env:
+      BROWSALLAX_CLOUD_ALLOWED_HOSTS: example.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cloud deps
+        run: npm install --prefix cloud --omit=dev --no-audit --no-fund
+      - name: Launch hosted Chromium against public test page
+        run: |
+          node --input-type=module <<'NODE'
+          import { BrowsallaxCloudBrowser } from './cloud/src/browser.js';
+          const b = new BrowsallaxCloudBrowser();
+          try {
+            const result = await b.open('https://example.com/');
+            if (result.url !== 'https://example.com/') throw new Error('WRONG_FINAL_URL');
+            console.log(JSON.stringify({ url: result.url, title: result.title, chars: result.text.length, sample: result.text.slice(0, 600) }));
+            if (result.text.length < 20) throw new Error('PUBLIC_PAGE_TEXT_EMPTY');
+          } finally {
+            await b.reset();
+          }
+          NODE
