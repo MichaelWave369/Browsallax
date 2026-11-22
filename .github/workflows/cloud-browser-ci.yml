@@ -1,0 +1,31 @@
+name: Browsallax Cloud CI
+on:
+  pull_request:
+    paths:
+      - 'cloud/**'
+      - 'railway.json'
+      - '.github/workflows/cloud-browser-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cloud/**'
+      - 'railway.json'
+      - '.github/workflows/cloud-browser-ci.yml'
+jobs:
+  cloud-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloud
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install cloud dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check
+      - name: Cloud policy tests
+        run: npm test
