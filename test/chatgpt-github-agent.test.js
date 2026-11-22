@@ -77,6 +77,7 @@ test('GitHub compatibility bridge exposes only bounded semantic operations', () 
   assert.equal(CHATGPT_GITHUB_AGENT_VERSION, 'PV-CBR-GH-0.4');
   assert.deepEqual([...ALLOWED_OPERATIONS], [
     'bridge.status',
+    'browser.observe',
     'vessie.observe',
     'vessie.ask',
     'vessie.resume',
@@ -102,6 +103,23 @@ test('request contract is strict and bounded', () => {
     () => normalizeRequest(request({ payload: { hiddenInstruction: 'nope' } })),
     /UNEXPECTED_PAYLOAD_FIELDS/
   );
+
+  const browser = normalizeRequest(request({
+    id: 'req-browser-observe-001',
+    operation: 'browser.observe',
+    payload: { tabId: 3, expectedUrl: 'https://www.nasa.gov/' }
+  }));
+  assert.deepEqual(browser.payload, { tabId: 3, expectedUrl: 'https://www.nasa.gov/' });
+  assert.throws(() => normalizeRequest(request({
+    id: 'req-browser-http-001',
+    operation: 'browser.observe',
+    payload: { tabId: 3, expectedUrl: 'http://www.nasa.gov/' }
+  })), /BROWSER_PUBLIC_HTTPS_REQUIRED/);
+  assert.throws(() => normalizeRequest(request({
+    id: 'req-browser-extra-001',
+    operation: 'browser.observe',
+    payload: { tabId: 3, expectedUrl: 'https://www.nasa.gov/', bypass: true }
+  })), /UNEXPECTED_PAYLOAD_FIELDS/);
 
   const ask = normalizeRequest(request({
     id: 'req-vessie-ask-001',
@@ -233,4 +251,29 @@ test('agent fails closed instead of replaying a previously claimed request', asy
   const response = JSON.parse(mailbox.files.get('responses/req-status-001.json'));
   assert.equal(response.state, 'FAILED');
   assert.match(response.error, /INDETERMINATE_PREVIOUS_CLAIM_NO_REPLAY/);
+});
+
+test('public browser observation uses the explicit tab and URL after the claim', async () => {
+  const events = [];
+  const req = request({
+    id: 'req-browser-observe-002',
+    operation: 'browser.observe',
+    payload: { tabId: 4, expectedUrl: 'https://www.nasa.gov/' }
+  });
+  const mailbox = new FakeMailbox({ 'requests/req-browser-observe-002.json': JSON.stringify(req) }, events);
+  const agent = new ChatGPTGitHubMailboxAgent({
+    mailbox,
+    bridge: {
+      observeBrowser: async (payload) => {
+        events.push('execute:browser.observe');
+        assert.deepEqual(payload, { tabId: 4, expectedUrl: 'https://www.nasa.gov/' });
+        return { kind: 'BROWSER_PUBLIC_OBSERVATION' };
+      }
+    },
+    runId: 'run-browser-002'
+  });
+  const outcome = await agent.runOnce();
+  assert.equal(outcome.ok, true);
+  assert.ok(events.indexOf('execute:browser.observe') > events.indexOf('commit:claims/req-browser-observe-002.json'));
+  assert.equal(JSON.parse(mailbox.files.get('responses/req-browser-observe-002.json')).result.kind, 'BROWSER_PUBLIC_OBSERVATION');
 });
