@@ -250,10 +250,11 @@ function actionFailureReason(actionResult, fallback) {
 class ChatGPTBrowsallaxBridge {
   constructor(client, {
     vessieOrigin = DEFAULT_VESSIE_ORIGIN,
-    domistikaUrl = DEFAULT_DOMISTIKA_URL
+    domistikaUrl = DEFAULT_DOMISTIKA_URL,
+    publicObservationHosts = process.env.BROWSALLAX_CHATGPT_PUBLIC_HOSTS || ''
   } = {}) {
     this.client = client;
-    this.publicObservationHosts = [...new Set(String(process.env.BROWSALLAX_CHATGPT_PUBLIC_HOSTS || '')
+    this.publicObservationHosts = [...new Set(String(publicObservationHosts || '')
       .split(',').map((host) => host.trim().toLowerCase()).filter((host) => /^[a-z0-9.-]+$/.test(host)))];
     this.vessieOrigin = normalizeOrigin(vessieOrigin);
     if (!this.vessieOrigin) throw new Error('INVALID_VESSIE_ORIGIN');
