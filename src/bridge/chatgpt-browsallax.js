@@ -45,6 +45,7 @@ function bridgeManifest() {
     },
     methods: [
       'bridge.status',
+      'browser.observe',
       'vessie.observe',
       'vessie.ask',
       'vessie.resume',
@@ -252,6 +253,8 @@ class ChatGPTBrowsallaxBridge {
     domistikaUrl = DEFAULT_DOMISTIKA_URL
   } = {}) {
     this.client = client;
+    this.publicObservationHosts = [...new Set(String(process.env.BROWSALLAX_CHATGPT_PUBLIC_HOSTS || '')
+      .split(',').map((host) => host.trim().toLowerCase()).filter((host) => /^[a-z0-9.-]+$/.test(host)))];
     this.vessieOrigin = normalizeOrigin(vessieOrigin);
     if (!this.vessieOrigin) throw new Error('INVALID_VESSIE_ORIGIN');
     this.domistika = new DomistikaSemanticBridge(client, { domistikaUrl });
@@ -282,6 +285,7 @@ class ChatGPTBrowsallaxBridge {
     return bridgeEnvelope('BRIDGE_STATUS', {
       manifest: bridgeManifest(),
       operator: safeOperator,
+      browserObservation: { enabled: this.publicObservationHosts.length > 0, allowedHosts: this.publicObservationHosts },
       planner: {
         ok: planner?.ok !== false,
         available: planner?.planner?.available ?? planner?.available ?? null,
@@ -302,6 +306,33 @@ class ChatGPTBrowsallaxBridge {
       },
       domistika
     });
+  }
+
+
+  async observeBrowser({ tabId, expectedUrl } = {}, options = {}) {
+    const id = Number(tabId);
+    if (!Number.isSafeInteger(id) || id < 0) throw new Error('BROWSER_TAB_ID_INVALID');
+    const raw = String(expectedUrl || '').trim();
+    if (!raw || raw.length > 2000) throw new Error('BROWSER_EXPECTED_URL_INVALID');
+    let expected;
+    try { expected = new URL(raw); } catch { throw new Error('BROWSER_EXPECTED_URL_INVALID'); }
+    if (expected.protocol !== 'https:' || expected.username || expected.password) {
+      throw new Error('BROWSER_PUBLIC_HTTPS_REQUIRED');
+    }
+    if (!this.publicObservationHosts.includes(expected.hostname.toLowerCase())) {
+      throw new Error('BROWSER_HOST_NOT_LOCALLY_ALLOWED');
+    }
+    const operator = await this.client.status(options);
+    const tab = (Array.isArray(operator.tabs) ? operator.tabs : []).find((item) => item.id === id);
+    if (!tab || String(tab.url || '') !== expected.href) throw new Error('BROWSER_TAB_URL_MISMATCH');
+    const observed = await this.client.observe(id, options);
+    const snapshot = observed?.snapshot || {};
+    if (String(snapshot.url || '') !== expected.href) throw new Error('BROWSER_TAB_NAVIGATED_DURING_OBSERVATION');
+    return bridgeEnvelope('BROWSER_PUBLIC_OBSERVATION', {
+      disposition: 'OBSERVED',
+      tabId: id,
+      observation: boundedObservation(snapshot)
+    }, { tabId: id });
   }
 
   async domistikaStatus(options = {}) {
