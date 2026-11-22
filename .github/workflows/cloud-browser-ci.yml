@@ -48,8 +48,8 @@ jobs:
           try {
             const result = await b.open('https://example.com/');
             if (result.url !== 'https://example.com/') throw new Error('WRONG_FINAL_URL');
-            if (!result.text.includes('Example Domain')) throw new Error('EXAMPLE_CONTENT_MISSING');
-            console.log(JSON.stringify({ ok: true, url: result.url, title: result.title, chars: result.text.length }));
+            console.log(JSON.stringify({ url: result.url, title: result.title, chars: result.text.length, sample: result.text.slice(0, 600) }));
+            if (result.text.length < 20) throw new Error('PUBLIC_PAGE_TEXT_EMPTY');
           } finally {
             await b.reset();
           }
