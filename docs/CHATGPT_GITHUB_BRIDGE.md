@@ -72,6 +72,7 @@ Example:
 Allowed operations are exactly:
 
 - `bridge.status`
+- `browser.observe` (read-only, exact HTTPS tab URL and locally allowed host)
 - `vessie.observe`
 - `vessie.ask`
 - `vessie.resume`
@@ -161,3 +162,29 @@ Use `bridge.status` first. It is read-only and needs no human interactive grant.
 Then test `vessie.observe`.
 
 Only after both are proven should mutation operations be tested. `vessie.ask` and `domistika.draw` still require the normal five-minute Browsallax interactive grant. For Domistika live acceptance, open the Domistika app in Browsallax first and use `domistika.status` before sending a drawing recipe.
+
+## General public-page observation (first TinyFish-free rung)
+
+Set the locally controlled allowlist before starting the bridge agent:
+
+```powershell
+$env:BROWSALLAX_CHATGPT_PUBLIC_HOSTS="www.nasa.gov"
+npm run bridge:github-agent
+```
+
+Browsallax Desktop must already be running with the target HTTPS page open in a tab.
+First use `bridge.status` to get the tab ID and exact URL, then submit a private
+mailbox request with `operation: "browser.observe"` and payload
+`{"tabId": 3, "expectedUrl": "https://www.nasa.gov/"}`, replacing both values
+with the exact observed tab values.
+
+The local bridge enforces an exact hostname allowlist and re-checks the exact
+URL before and after observation. It returns bounded visible text, source URL,
+title, and SHA-256 text digest without navigation, clicks, typing, or grants.
+This is an explicitly opt-in read-only capability; the environment variable
+must be set on the local bridge agent process. No host is allowed by default.
+Do not allowlist private/account pages because observed text is committed to the
+private mailbox and remains in its Git history.
+
+This does not yet expose general task execution, arbitrary navigation, or
+mutation through ChatGPT. Those require separate policy controls and acceptance.

@@ -25,6 +25,7 @@ const MAX_TTL_MS = 15 * 60 * 1000;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 const ALLOWED_OPERATIONS = new Set([
   'bridge.status',
+  'browser.observe',
   'vessie.observe',
   'vessie.ask',
   'vessie.resume',
@@ -82,6 +83,18 @@ function normalizePayload(operation, payload) {
   if (operation === 'bridge.status' || operation === 'vessie.observe') {
     assertExactKeys(value, new Set(), 'UNEXPECTED_PAYLOAD_FIELDS');
     return {};
+  }
+
+  if (operation === 'browser.observe') {
+    assertExactKeys(value, new Set(['tabId', 'expectedUrl']), 'UNEXPECTED_PAYLOAD_FIELDS');
+    const tabId = Number(value.tabId);
+    const expectedUrl = String(value.expectedUrl || '').trim();
+    if (!Number.isSafeInteger(tabId) || tabId < 0) throw new Error('BROWSER_TAB_ID_INVALID');
+    if (!expectedUrl || expectedUrl.length > 2000) throw new Error('BROWSER_EXPECTED_URL_INVALID');
+    let parsed;
+    try { parsed = new URL(expectedUrl); } catch { throw new Error('BROWSER_EXPECTED_URL_INVALID'); }
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('BROWSER_PUBLIC_HTTPS_REQUIRED');
+    return { tabId, expectedUrl: parsed.href };
   }
 
   if (operation === 'vessie.ask') {
@@ -220,6 +233,8 @@ async function executeBridgeOperation(bridge, request) {
   switch (request.operation) {
     case 'bridge.status':
       return bridge.status();
+    case 'browser.observe':
+      return bridge.observeBrowser(request.payload);
     case 'vessie.observe':
       return bridge.observeVessie();
     case 'vessie.ask':
