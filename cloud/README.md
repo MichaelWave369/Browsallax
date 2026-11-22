@@ -1,4 +1,13 @@
-# Browsallax Cloud (first cloud-only browser rung)
+# Browsallax Cloud (zero-local browser execution)
+
+## Default path now: GitHub Actions on demand
+
+Railway deployment is **currently blocked by an expired trial**. The first cloud
+acceptance uses the owner's existing private GitHub mailbox and GitHub-hosted
+Actions runner instead: see [GitHub Actions On Demand](docs/GITHUB_ACTIONS_ON_DEMAND.md).
+It needs **no local process or machine**, but is not an always-on MCP service.
+The cloud worker and browser policy code below are shared between both paths.
+
 
 **Status:** experimental, read-only browser MVP. No desktop process, local
 Ollama, GitHub mailbox polling or local setup is needed. This is a remote
