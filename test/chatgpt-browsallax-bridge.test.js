@@ -143,6 +143,7 @@ test('manifest exposes a narrow semantic surface and no grant authority', () => 
   assert.equal(CHATGPT_BROWSALLAX_BRIDGE_VERSION, 'PV-CBR-0.6');
   assert.deepEqual(manifest.methods, [
     'bridge.status',
+    'browser.observe',
     'vessie.observe',
     'vessie.ask',
     'vessie.resume',
