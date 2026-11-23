@@ -105,5 +105,9 @@ history are durable: **do not request private pages or credentials**.
    and verify cloud claim, response, two distinct source URLs, timestamps,
    digests, and zero-local execution.
 4. Test focused discovery and failure boundaries.
-5. Only then mark this rung as accepted. Write-capable site controls remain out
-   of scope pending an explicit human authority framework.
+5. Acceptance evidence is recorded in
+   [Cloud Acceptance 002](acceptance/Cloud-Acceptance-002-2026-11-22.md):
+   both the explicit two-page and focused-link discovery runs passed in a
+   private test branch. Production rollout awaits review and a pinned merge SHA.
+   Write-capable site controls remain out of scope pending an explicit human
+   authority framework.
