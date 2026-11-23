@@ -7,10 +7,12 @@ runner opens a fresh sandboxed, read-only Chromium session with Playwright,
 writes a claim BEFORE opening a page, and commits the bounded observation back
 to the private mailbox. **No PC, no Windows agent, no local browser required.**
 
-This first runner uses only `browser.research`. It can open one allowlisted
-public HTTPS URL, optionally follow one observed link ID, optionally scroll,
-then return title, final URL, visible text, bounded observed links, and a SHA-256
-text digest. It cannot type, click buttons, execute arbitrary commands,
+The runner uses only `browser.research`. Its original one-page contract
+remains supported; v0.2 adds up to five allowlisted public HTTPS pages,
+explicit seed URLs, or topic-focused observed-link discovery within two hops.
+It returns source URLs, titles, visible text, per-page hashes, timestamps,
+redirect provenance, and an overall index digest.
+See [Multi-page research v0.2](MULTIPAGE_RESEARCH_V02.md). It cannot type, click buttons, execute arbitrary commands,
 log into accounts, transfer cookies, install software, buy, or post.
 
 ## Request file
