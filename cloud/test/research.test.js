@@ -39,6 +39,9 @@ test('normalization rejects excessive pages/depth, unknown keys, and outside sco
   ]) assert.throws(()=>normalizeResearchSpec({...options,...changes},allowedHosts));
   assert.throws(()=>normalizeResearchSpec({...options,additionalUrls:['https://outside.example/']},allowedHosts),/URL_NOT_ALLOWLISTED_PUBLIC_HTTPS/);
   assert.throws(()=>normalizeResearchSpec({...options,selector:'#pay'},allowedHosts),/UNEXPECTED_RESEARCH_FIELDS/);
+  assert.throws(()=>normalizeResearchSpec({...options,url:'https://www.nasa.gov/account/'},allowedHosts),/RESEARCH_URL_SENSITIVE_OR_NON_HTML/);
+  assert.throws(()=>normalizeResearchSpec({...options,url:'https://www.nasa.gov/?access_token=abc'},allowedHosts),/RESEARCH_URL_SENSITIVE_OR_NON_HTML/);
+  assert.throws(()=>normalizeResearchSpec({...options,url:'https://www.nasa.gov/report.pdf'},allowedHosts),/RESEARCH_URL_SENSITIVE_OR_NON_HTML/);
   assert.throws(()=>normalizeResearchSpec({...options,additionalUrls:[other],maxPages:1},allowedHosts),/RESEARCH_PAGE_LIMIT/);
 });
 
