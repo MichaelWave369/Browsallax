@@ -1,23 +1,11 @@
 import crypto from 'node:crypto';
-import { validatePublicUrl, BrowserPolicyError } from './policy.js';
+import { validatePublicUrl, validateResearchUrl, BrowserPolicyError } from './policy.js';
 
 export const RESEARCH_VERSION = 'PV-CLOUD-RESEARCH-0.2';
 export const MAX_RESEARCH_PAGES = 5;
 export const MAX_RESEARCH_DEPTH = 2;
 const MAX_QUEUE = 24;
 const MAX_OUTPUT_LINKS = 40;
-const DANGEROUS_PATH = /\/(?:logout|log-out|signout|sign-out|delete|remove|checkout|purchase|buy|download|payment|cart|admin|account)(?:\/|$)/i;
-const SKIP_EXT = /\.(?:zip|exe|dmg|pdf|jpg|jpeg|png|webp|gif|mp4|mp3|webm|svg|json|xml|csv)(?:$|[?])/i;
-const SENSITIVE_QUERY_KEY = /^(?:token|access_token|refresh_token|auth|authorization|api_?key|secret|client_secret|session|session_id|password|passcode|otp|signature|code|checkout|logout|delete|purchase|payment)$/i;
-function validateResearchUrl(raw, allowedHosts) {
-  const safe=validatePublicUrl(raw,allowedHosts);
-  const parsed=new URL(safe);
-  if (DANGEROUS_PATH.test(parsed.pathname) || SKIP_EXT.test(parsed.pathname) ||
-      [...parsed.searchParams.keys()].some(key=>SENSITIVE_QUERY_KEY.test(key))) {
-    throw new BrowserPolicyError('RESEARCH_URL_SENSITIVE_OR_NON_HTML');
-  }
-  return safe;
-}
 const STOP_WORDS = new Set(['the','and','for','from','with','this','that','about','into','what','when','where','which','are','was','were','has','have','how','its','our','new','news','more','page','site']);
 
 export function contentSha256(value) {
@@ -41,7 +29,7 @@ function linkScore(link, terms) {
 function eligibleLink(link, allowedHosts, sourceUrl) {
   try {
     const url = validateResearchUrl(link.url, allowedHosts);
-    if (url === sourceUrl || DANGEROUS_PATH.test(new URL(url).pathname) || SKIP_EXT.test(new URL(url).pathname)) return null;
+    if (url === sourceUrl) return null;
     return url;
   } catch { return null; }
 }
@@ -88,7 +76,7 @@ export async function runBoundedResearch(browser, specInput, {allowedHosts=brows
     let observed;
     try {
       observed=await browser.open(candidate.url);
-      const finalUrl=validatePublicUrl(observed.url,allowedHosts);
+      const finalUrl=validateResearchUrl(observed.url,allowedHosts);
       if (visited.has(finalUrl) && finalUrl !== candidate.url) continue;
       visited.add(finalUrl);
       if (typeof observed.text !== 'string') throw new BrowserPolicyError('INVALID_BROWSER_OBSERVATION');
