@@ -54,3 +54,27 @@ jobs:
             await b.reset();
           }
           NODE
+      - name: Verify two-page cloud evidence with a fresh browser context
+        run: |
+          node --input-type=module <<'NODE'
+          import { BrowsallaxCloudBrowser } from './cloud/src/browser.js';
+          import { runBoundedResearch } from './cloud/src/research.js';
+          const browser = new BrowsallaxCloudBrowser();
+          try {
+            const report = await runBoundedResearch(browser, {
+              url: 'https://example.com/',
+              additionalUrls: ['https://example.com/?page=2'],
+              maxPages: 2
+            });
+            if (report.pageCount !== 2) throw new Error('MULTIPAGE_COUNT_INCORRECT');
+            if (report.pages.some(p => !/^[a-f0-9]{64}$/.test(p.textSha256))) {
+              throw new Error('MULTIPAGE_DIGEST_MISSING');
+            }
+            console.log(JSON.stringify({
+              schema: report.schema, disposition: report.disposition,
+              pages: report.pages.map(p => ({id:p.pageId,url:p.url,chars:p.textChars,sha256:p.textSha256}))
+            }));
+          } finally {
+            await browser.reset();
+          }
+          NODE

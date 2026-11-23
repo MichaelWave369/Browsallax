@@ -57,6 +57,14 @@ npm run accept:registry-fail-closed
 
 ## Cloud: no local steps
 
+**v0.2 in review:** bounded multi-page public-web research, with per-page source
+evidence and up to two levels of approved observed-link discovery. Details:
+[Multi-page research contract](cloud/docs/MULTIPAGE_RESEARCH_V02.md).
+v0.2 passed two live cloud-only acceptance runs on an isolated private test branch
+([evidence](cloud/docs/acceptance/Cloud-Acceptance-002-2026-11-22.md)).
+The production mailbox remains pinned to v0.1 until the reviewed v0.2 merge
+commit is available and pinned.
+
 Browsallax Cloud does not need Desktop or Ollama running on the user's machine. It currently supports ephemeral, read-only public HTTPS navigation and evidence extraction through a GitHub Actions on-demand worker. See [Cloud overview](cloud/README.md) and [GitHub Actions transport](cloud/docs/GITHUB_ACTIONS_ON_DEMAND.md). The cloud bridge uses its own browser session, never the user's desktop cookies or logged-in tabs. Do not treat it as general website mutation capability.
 
 ## Project status

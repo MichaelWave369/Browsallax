@@ -1,5 +1,5 @@
 import { chromium } from 'playwright-core';
-import { allowedHostsFromEnv, validatePublicUrl, normalizeLinkId, BrowserPolicyError } from './policy.js';
+import { allowedHostsFromEnv, validatePublicUrl, validateResearchUrl, normalizeLinkId, BrowserPolicyError } from './policy.js';
 
 const MAX_TEXT = 16000;
 const MAX_LINKS = 80;
@@ -37,16 +37,32 @@ export class BrowsallaxCloudBrowser {
     });
     await this.context.route('**/*', async route => {
       try {
-        const url = route.request().url();
+        const request = route.request();
+        const url = request.url();
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method().toUpperCase())) {
+          return route.abort('blockedbyclient').catch(() => {});
+        }
         if (url.startsWith('data:') || url.startsWith('blob:')) return route.continue();
-        validatePublicUrl(url, this.allowedHosts);
+        if (request.isNavigationRequest() && request.resourceType() === 'document') {
+          validateResearchUrl(url, this.allowedHosts);
+        } else {
+          validatePublicUrl(url, this.allowedHosts);
+        }
         return route.continue();
       } catch {
         return route.abort('blockedbyclient').catch(() => {});
       }
     });
+    // Route policy covers HTTP(S). Block WebSocket channels too, so pages
+    // cannot silently open a second egress path outside the allowlist.
+    if (typeof this.context.routeWebSocket === 'function') {
+      await this.context.routeWebSocket('**/*', socket => {
+        Promise.resolve(socket.close()).catch(() => {});
+      });
+    }
     this.page = await this.context.newPage();
     this.page.on('dialog', dialog => dialog.dismiss().catch(() => {}));
+    this.page.on('download', download => download.cancel().catch(() => {}));
     this.page.on('popup', popup => popup.close().catch(() => {}));
     this.context.on('page', page => {
       if (page !== this.page) page.close().catch(() => {});
@@ -55,22 +71,40 @@ export class BrowsallaxCloudBrowser {
   }
 
   async navigateUnsafe(input) {
-    const url = validatePublicUrl(input, this.allowedHosts);
+    const url = validateResearchUrl(input, this.allowedHosts);
     if (this.navigations >= NAV_LIMIT) throw new BrowserPolicyError('NAVIGATION_LIMIT_REACHED_RESET_SESSION');
     const page = await this.ensurePage();
     this.lastLinks.clear();
     this.lastObservationUrl = null;
     this.navigations += 1;
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    validatePublicUrl(page.url(), this.allowedHosts);
-    return this.readUnsafe();
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    validateResearchUrl(page.url(), this.allowedHosts);
+    const redirectChain = [];
+    let request = response?.request()?.redirectedFrom() || null;
+    while (request && redirectChain.length < 8) {
+      redirectChain.unshift({
+        url: validateResearchUrl(request.url(), this.allowedHosts),
+        httpStatus: request.response ? (await request.response())?.status() ?? null : null
+      });
+      request = request.redirectedFrom();
+    }
+    const observed = await this.readUnsafe();
+    return {
+      ...observed,
+      navigation: {
+        requestedUrl: url,
+        finalUrl: observed.url,
+        httpStatus: response?.status() ?? null,
+        redirectChain
+      }
+    };
   }
 
   open(url) { return this.exclusive(() => this.navigateUnsafe(url)); }
 
   async readUnsafe() {
     if (!this.page || this.page.isClosed()) throw new BrowserPolicyError('NO_OPEN_BROWSER_PAGE');
-    const currentUrl = validatePublicUrl(this.page.url(), this.allowedHosts);
+    const currentUrl = validateResearchUrl(this.page.url(), this.allowedHosts);
     const observation = await this.page.evaluate(({ maxText, maxLinks }) => {
       const text = String(document.body?.innerText || '').slice(0, maxText);
       const links = Array.from(document.querySelectorAll('a[href]'))

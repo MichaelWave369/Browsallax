@@ -1,5 +1,7 @@
 # Browsallax Cloud (zero-local browser execution)
 
+**v0.2 verified on isolated private acceptance branch:** bounded multi-page public HTTPS research, including multiple seed URLs and focused observed-link discovery (up to five pages, two hops), with per-page source hashes, timestamps and redirect evidence. See [Multi-page research v0.2](docs/MULTIPAGE_RESEARCH_V02.md) and [Cloud Acceptance 002](docs/acceptance/Cloud-Acceptance-002-2026-11-22.md). The production private mailbox remains pinned to reviewed v0.1 until PR #51 merges.
+
 ## Default path now: GitHub Actions on demand
 
 Railway deployment is **currently blocked by an expired trial**. The first cloud
@@ -47,7 +49,7 @@ responses.
 ## MCP tools
 
 `browser_status`, `browser_open`, `browser_read`, `browser_follow`,
-`browser_scroll`, and `browser_reset`.
+`browser_scroll`, `browser_reset`, and new **`browser_research`** (fresh context per call, up to five approved pages).
 
 A ChatGPT MCP plugin can connect to `https://HOST/mcp` with API-key bearer
 auth. Credential setup may require connecting the plugin through the ChatGPT UI,
