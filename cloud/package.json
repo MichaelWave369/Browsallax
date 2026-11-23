@@ -1,13 +1,13 @@
 {
   "name": "browsallax-cloud",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Governed remote public-web Chromium worker and MCP gateway",
+  "description": "Governed zero-local multi-page public-web Chromium research and MCP gateway",
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test test/*.test.js",
-    "check": "node --check src/policy.js && node --check src/browser.js && node --check src/server.js"
+    "check": "node --check src/policy.js && node --check src/browser.js && node --check src/research.js && node --check src/server.js && node --check scripts/mailbox-runner.js"
   },
   "engines": {
     "node": ">=22"
