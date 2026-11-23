@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { BrowsallaxCloudBrowser } from '../src/browser.js';
 import { allowedHostsFromEnv, validatePublicUrl, normalizeLinkId } from '../src/policy.js';
+import { normalizeResearchSpec, runBoundedResearch } from '../src/research.js';
 
 export const REQUEST_SCHEMA = 'browsallax.github-cloud.request.v1';
 export const CLAIM_SCHEMA = 'browsallax.github-cloud.claim.v1';
@@ -22,7 +23,7 @@ export function normalizeCloudRequest(input, {id, now=Date.now(), allowedHosts}=
     throw new Error('INVALID_REQUEST_ID');
   }
   if (input.operation !== 'browser.research') throw new Error('CLOUD_OPERATION_NOT_ALLOWED');
-  strictFields(input.payload, ['url','followLinkId','scrollPixels']);
+  strictFields(input.payload, ['url','followLinkId','scrollPixels','maxPages','maxDepth','focus','additionalUrls']);
   const url = validatePublicUrl(input.payload.url, allowedHosts);
   let followLinkId = null;
   if (input.payload.followLinkId != null) followLinkId = normalizeLinkId(input.payload.followLinkId);
@@ -33,6 +34,19 @@ export function normalizeCloudRequest(input, {id, now=Date.now(), allowedHosts}=
       throw new Error('INVALID_SCROLL_PIXELS');
     }
   }
+  const multiRequested = input.payload.maxPages != null ||
+    input.payload.maxDepth != null || input.payload.focus != null ||
+    input.payload.additionalUrls != null;
+  const research = normalizeResearchSpec({
+    url,
+    maxPages: input.payload.maxPages,
+    maxDepth: input.payload.maxDepth,
+    focus: input.payload.focus,
+    additionalUrls: input.payload.additionalUrls
+  }, allowedHosts);
+  if (multiRequested && (followLinkId !== null || scrollPixels !== null)) {
+    throw new Error('MULTIPAGE_LEGACY_ACTION_CONFLICT');
+  }
   const start = Date.parse(String(input.createdAt || ''));
   const expiry = Date.parse(String(input.expiresAt || ''));
   if (!Number.isFinite(start) || !Number.isFinite(expiry) ||
@@ -42,7 +56,8 @@ export function normalizeCloudRequest(input, {id, now=Date.now(), allowedHosts}=
   }
   return {
     schema:REQUEST_SCHEMA,id:input.id,operation:input.operation,
-    payload:{url,followLinkId,scrollPixels},createdAt:input.createdAt,expiresAt:input.expiresAt
+    payload:{url,followLinkId,scrollPixels,
+      research:multiRequested?research:null},createdAt:input.createdAt,expiresAt:input.expiresAt
   };
 }
 
@@ -89,15 +104,20 @@ export async function processMailbox(mode, requestFile, {
   }
   const browser=browserFactory();
   try {
-    let result=await browser.open(request.payload.url);
-    if (request.payload.followLinkId) result=await browser.follow(request.payload.followLinkId);
-    if (request.payload.scrollPixels!=null) result=await browser.scroll(request.payload.scrollPixels);
-    const finalUrl=validatePublicUrl(result.url,allowedHosts);
+    let result;
+    if (request.payload.research) {
+      result = await runBoundedResearch(browser,request.payload.research,{allowedHosts});
+    } else {
+      result=await browser.open(request.payload.url);
+      if (request.payload.followLinkId) result=await browser.follow(request.payload.followLinkId);
+      if (request.payload.scrollPixels!=null) result=await browser.scroll(request.payload.scrollPixels);
+      const finalUrl=validatePublicUrl(result.url,allowedHosts);
+      result={...result,url:finalUrl,textSha256:sha(result.text),source:'BROWSALLAX_CLOUD_PLAYWRIGHT'};
+    }
     await save(responsePath,{
       schema:RESPONSE_SCHEMA,requestId:id,operation:request.operation,
       state:'COMPLETE',completedAt:new Date().toISOString(),
-      result:{...result,url:finalUrl,textSha256:sha(result.text), source:'BROWSALLAX_CLOUD_PLAYWRIGHT'},
-      error:null
+      result,error:null
     });
     return {complete:true,id,responsePath};
   } catch(err) {
