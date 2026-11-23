@@ -49,6 +49,13 @@ export class BrowsallaxCloudBrowser {
         return route.abort('blockedbyclient').catch(() => {});
       }
     });
+    // Route policy covers HTTP(S). Block WebSocket channels too, so pages
+    // cannot silently open a second egress path outside the allowlist.
+    if (typeof this.context.routeWebSocket === 'function') {
+      await this.context.routeWebSocket('**/*', socket => {
+        Promise.resolve(socket.close()).catch(() => {});
+      });
+    }
     this.page = await this.context.newPage();
     this.page.on('dialog', dialog => dialog.dismiss().catch(() => {}));
     this.page.on('download', download => download.cancel().catch(() => {}));
