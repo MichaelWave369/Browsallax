@@ -34,3 +34,24 @@ test('bounded link and scroll fields are validated',()=>{
  assert.throws(()=>normalizeCloudRequest(request({payload:{url:'https://example.com/',followLinkId:'click submit'}}),opt),/INVALID_OBSERVED_LINK_ID/);
  assert.throws(()=>normalizeCloudRequest(request({payload:{url:'https://example.com/',scrollPixels:99999}}),opt),/INVALID_SCROLL_PIXELS/);
 });
+
+test('multi-page mailbox request preserves the legacy schema and validates scoped search',()=>{
+ const opt={id:'cloud-acceptance-0001',now,allowedHosts:hosts};
+ const valid=normalizeCloudRequest(request({
+   payload:{url:'https://www.nasa.gov/',maxPages:3,maxDepth:1,focus:'Artemis Moon'}
+ }),opt);
+ assert.equal(valid.operation,'browser.research');
+ assert.equal(valid.payload.research.maxPages,3);
+ assert.equal(valid.payload.research.maxDepth,1);
+ assert.equal(valid.payload.research.focus,'Artemis Moon');
+ assert.equal(valid.payload.followLinkId,null);
+ assert.throws(()=>normalizeCloudRequest(request({
+   payload:{url:'https://www.nasa.gov/',maxPages:10,maxDepth:1,focus:'Artemis'}
+ }),opt),/RESEARCH_PAGE_LIMIT/);
+ assert.throws(()=>normalizeCloudRequest(request({
+   payload:{url:'https://www.nasa.gov/',maxPages:3,maxDepth:1,focus:'Artemis',followLinkId:'L1'}
+ }),opt),/MULTIPAGE_LEGACY_ACTION_CONFLICT/);
+ assert.throws(()=>normalizeCloudRequest(request({
+   payload:{url:'https://www.nasa.gov/',additionalUrls:['https://evil.example/']}
+ }),opt),/URL_NOT_ALLOWLISTED_PUBLIC_HTTPS/);
+});
