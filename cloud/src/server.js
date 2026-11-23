@@ -1,11 +1,12 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { BrowsallaxCloudBrowser } from './browser.js';
+import { runBoundedResearch } from './research.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const PORT = Number(process.env.PORT || 3000);
 const HOST = '0.0.0.0';
 const apiKey = String(process.env.BROWSALLAX_CLOUD_API_KEY || '');
@@ -49,6 +50,22 @@ function makeMcpServer() {
   server.tool('browser_follow','Navigate to a previously observed link ID on an approved public host. No arbitrary selectors or clicks.',{linkId:z.string().regex(/^L[1-9][0-9]{0,2}$/)},wrap(({linkId}) => browser.follow(linkId)));
   server.tool('browser_scroll','Scroll the currently open page within a bounded range and read the result.',{pixels:z.number().int().min(-2400).max(2400)},wrap(({pixels}) => browser.scroll(pixels)));
   server.tool('browser_reset','Close the ephemeral cloud session and discard its cookies, page, and observed links.',{},wrap(() => browser.reset()));
+  server.tool(
+    'browser_research',
+    'Research up to five approved public HTTPS pages in a fresh isolated Chromium context. Visit explicit seed URLs or follow observed topic-relevant links within two hops; return source URLs, page text, hashes, and provenance. No forms or mutation.',
+    {
+      url:z.string().min(1).max(2048),
+      additionalUrls:z.array(z.string().min(1).max(2048)).max(4).optional(),
+      maxPages:z.number().int().min(1).max(5).optional(),
+      maxDepth:z.number().int().min(0).max(2).optional(),
+      focus:z.string().max(200).optional()
+    },
+    wrap(async args => {
+      const isolated = new BrowsallaxCloudBrowser();
+      try { return await runBoundedResearch(isolated,args); }
+      finally { await isolated.reset().catch(()=>{}); }
+    })
+  );
   return server;
 }
 
@@ -77,6 +94,6 @@ const server = http.createServer(async (req,res) => {
     await mcp.close().catch(()=>{});
   }
 });
-server.requestTimeout = 60000;
+server.requestTimeout = 180000;
 server.listen(PORT,HOST,()=>console.log('Browsallax Cloud '+VERSION+' listening on '+PORT));
 process.on('SIGTERM',()=>{server.close();browser.reset().catch(()=>{});});
