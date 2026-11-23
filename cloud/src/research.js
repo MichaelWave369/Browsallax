@@ -8,6 +8,16 @@ const MAX_QUEUE = 24;
 const MAX_OUTPUT_LINKS = 40;
 const DANGEROUS_PATH = /\/(?:logout|log-out|signout|sign-out|delete|remove|checkout|purchase|buy|download|payment|cart|admin|account)(?:\/|$)/i;
 const SKIP_EXT = /\.(?:zip|exe|dmg|pdf|jpg|jpeg|png|webp|gif|mp4|mp3|webm|svg|json|xml|csv)(?:$|[?])/i;
+const SENSITIVE_QUERY_KEY = /^(?:token|access_token|refresh_token|auth|authorization|api_?key|secret|client_secret|session|session_id|password|passcode|otp|signature|code|checkout|logout|delete|purchase|payment)$/i;
+function validateResearchUrl(raw, allowedHosts) {
+  const safe=validatePublicUrl(raw,allowedHosts);
+  const parsed=new URL(safe);
+  if (DANGEROUS_PATH.test(parsed.pathname) || SKIP_EXT.test(parsed.pathname) ||
+      [...parsed.searchParams.keys()].some(key=>SENSITIVE_QUERY_KEY.test(key))) {
+    throw new BrowserPolicyError('RESEARCH_URL_SENSITIVE_OR_NON_HTML');
+  }
+  return safe;
+}
 const STOP_WORDS = new Set(['the','and','for','from','with','this','that','about','into','what','when','where','which','are','was','were','has','have','how','its','our','new','news','more','page','site']);
 
 export function contentSha256(value) {
@@ -30,7 +40,7 @@ function linkScore(link, terms) {
 
 function eligibleLink(link, allowedHosts, sourceUrl) {
   try {
-    const url = validatePublicUrl(link.url, allowedHosts);
+    const url = validateResearchUrl(link.url, allowedHosts);
     if (url === sourceUrl || DANGEROUS_PATH.test(new URL(url).pathname) || SKIP_EXT.test(new URL(url).pathname)) return null;
     return url;
   } catch { return null; }
@@ -40,10 +50,10 @@ export function normalizeResearchSpec(input = {}, allowedHosts = []) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new BrowserPolicyError('INVALID_RESEARCH_SPEC');
   const allowedKeys = ['url','additionalUrls','maxPages','maxDepth','focus'];
   if (Object.keys(input).some(key => !allowedKeys.includes(key))) throw new BrowserPolicyError('UNEXPECTED_RESEARCH_FIELDS');
-  const url = validatePublicUrl(input.url, allowedHosts);
+  const url = validateResearchUrl(input.url, allowedHosts);
   const additional = input.additionalUrls == null ? [] : input.additionalUrls;
   if (!Array.isArray(additional) || additional.length > 4) throw new BrowserPolicyError('RESEARCH_URL_LIMIT');
-  const additionalUrls = [...new Set(additional.map(item => validatePublicUrl(item,allowedHosts)))].filter(item => item !== url);
+  const additionalUrls = [...new Set(additional.map(item => validateResearchUrl(item,allowedHosts)))].filter(item => item !== url);
   const maxPages = input.maxPages == null ? Math.max(1,1+additionalUrls.length) : input.maxPages;
   const maxDepth = input.maxDepth == null ? 0 : input.maxDepth;
   if (!Number.isSafeInteger(maxPages) || maxPages < 1 || maxPages > MAX_RESEARCH_PAGES ||
