@@ -5,7 +5,7 @@ export const RESEARCH_VERSION = 'PV-CLOUD-RESEARCH-0.2';
 export const MAX_RESEARCH_PAGES = 5;
 export const MAX_RESEARCH_DEPTH = 2;
 const MAX_QUEUE = 24;
-const MAX_OUTPUT_LINKS = 20;
+const MAX_OUTPUT_LINKS = 40;
 const DANGEROUS_PATH = /\/(?:logout|log-out|signout|sign-out|delete|remove|checkout|purchase|buy|download|payment|cart|admin|account)(?:\/|$)/i;
 const SKIP_EXT = /\.(?:zip|exe|dmg|pdf|jpg|jpeg|png|webp|gif|mp4|mp3|webm|svg|json|xml|csv)(?:$|[?])/i;
 const STOP_WORDS = new Set(['the','and','for','from','with','this','that','about','into','what','when','where','which','are','was','were','has','have','how','its','our','new','news','more','page','site']);
@@ -22,7 +22,9 @@ export function focusTerms(focus = '') {
 function linkScore(link, terms) {
   const url = new URL(link.url);
   const name = String(link.text || '').toLowerCase();
-  const location = decodeURIComponent(url.pathname).toLowerCase().replace(/[^a-z0-9]+/g,' ');
+  let location;
+  try { location = decodeURIComponent(url.pathname); } catch { location = url.pathname; }
+  location = location.toLowerCase().replace(/[^a-z0-9]+/g,' ');
   return terms.reduce((total,word) => total + (name.includes(word) ? 3 : 0) + (location.includes(word) ? 1 : 0),0);
 }
 
@@ -80,7 +82,7 @@ export async function runBoundedResearch(browser, specInput, {allowedHosts=brows
       if (visited.has(finalUrl) && finalUrl !== candidate.url) continue;
       visited.add(finalUrl);
       if (typeof observed.text !== 'string') throw new BrowserPolicyError('INVALID_BROWSER_OBSERVATION');
-      const observedLinks=Array.isArray(observed.links) ? observed.links : [];
+      const observedLinks=(Array.isArray(observed.links) ? observed.links : []).slice(0,MAX_OUTPUT_LINKS);
       const pageId='P'+(pages.length+1);
       const evidence={
         pageId,requestedUrl:candidate.url,url:finalUrl,
