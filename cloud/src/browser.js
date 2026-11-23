@@ -1,5 +1,5 @@
 import { chromium } from 'playwright-core';
-import { allowedHostsFromEnv, validatePublicUrl, normalizeLinkId, BrowserPolicyError } from './policy.js';
+import { allowedHostsFromEnv, validatePublicUrl, validateResearchUrl, normalizeLinkId, BrowserPolicyError } from './policy.js';
 
 const MAX_TEXT = 16000;
 const MAX_LINKS = 80;
@@ -43,7 +43,11 @@ export class BrowsallaxCloudBrowser {
           return route.abort('blockedbyclient').catch(() => {});
         }
         if (url.startsWith('data:') || url.startsWith('blob:')) return route.continue();
-        validatePublicUrl(url, this.allowedHosts);
+        if (request.isNavigationRequest() && request.resourceType() === 'document') {
+          validateResearchUrl(url, this.allowedHosts);
+        } else {
+          validatePublicUrl(url, this.allowedHosts);
+        }
         return route.continue();
       } catch {
         return route.abort('blockedbyclient').catch(() => {});
@@ -67,19 +71,19 @@ export class BrowsallaxCloudBrowser {
   }
 
   async navigateUnsafe(input) {
-    const url = validatePublicUrl(input, this.allowedHosts);
+    const url = validateResearchUrl(input, this.allowedHosts);
     if (this.navigations >= NAV_LIMIT) throw new BrowserPolicyError('NAVIGATION_LIMIT_REACHED_RESET_SESSION');
     const page = await this.ensurePage();
     this.lastLinks.clear();
     this.lastObservationUrl = null;
     this.navigations += 1;
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    validatePublicUrl(page.url(), this.allowedHosts);
+    validateResearchUrl(page.url(), this.allowedHosts);
     const redirectChain = [];
     let request = response?.request()?.redirectedFrom() || null;
     while (request && redirectChain.length < 8) {
       redirectChain.unshift({
-        url: validatePublicUrl(request.url(), this.allowedHosts),
+        url: validateResearchUrl(request.url(), this.allowedHosts),
         httpStatus: request.response ? (await request.response())?.status() ?? null : null
       });
       request = request.redirectedFrom();
@@ -100,7 +104,7 @@ export class BrowsallaxCloudBrowser {
 
   async readUnsafe() {
     if (!this.page || this.page.isClosed()) throw new BrowserPolicyError('NO_OPEN_BROWSER_PAGE');
-    const currentUrl = validatePublicUrl(this.page.url(), this.allowedHosts);
+    const currentUrl = validateResearchUrl(this.page.url(), this.allowedHosts);
     const observation = await this.page.evaluate(({ maxText, maxLinks }) => {
       const text = String(document.body?.innerText || '').slice(0, maxText);
       const links = Array.from(document.querySelectorAll('a[href]'))
