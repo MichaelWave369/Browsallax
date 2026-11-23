@@ -37,7 +37,11 @@ export class BrowsallaxCloudBrowser {
     });
     await this.context.route('**/*', async route => {
       try {
-        const url = route.request().url();
+        const request = route.request();
+        const url = request.url();
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method().toUpperCase())) {
+          return route.abort('blockedbyclient').catch(() => {});
+        }
         if (url.startsWith('data:') || url.startsWith('blob:')) return route.continue();
         validatePublicUrl(url, this.allowedHosts);
         return route.continue();
@@ -47,6 +51,7 @@ export class BrowsallaxCloudBrowser {
     });
     this.page = await this.context.newPage();
     this.page.on('dialog', dialog => dialog.dismiss().catch(() => {}));
+    this.page.on('download', download => download.cancel().catch(() => {}));
     this.page.on('popup', popup => popup.close().catch(() => {}));
     this.context.on('page', page => {
       if (page !== this.page) page.close().catch(() => {});
@@ -61,9 +66,27 @@ export class BrowsallaxCloudBrowser {
     this.lastLinks.clear();
     this.lastObservationUrl = null;
     this.navigations += 1;
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
     validatePublicUrl(page.url(), this.allowedHosts);
-    return this.readUnsafe();
+    const redirectChain = [];
+    let request = response?.request()?.redirectedFrom() || null;
+    while (request && redirectChain.length < 8) {
+      redirectChain.unshift({
+        url: validatePublicUrl(request.url(), this.allowedHosts),
+        httpStatus: request.response ? (await request.response())?.status() ?? null : null
+      });
+      request = request.redirectedFrom();
+    }
+    const observed = await this.readUnsafe();
+    return {
+      ...observed,
+      navigation: {
+        requestedUrl: url,
+        finalUrl: observed.url,
+        httpStatus: response?.status() ?? null,
+        redirectChain
+      }
+    };
   }
 
   open(url) { return this.exclusive(() => this.navigateUnsafe(url)); }
